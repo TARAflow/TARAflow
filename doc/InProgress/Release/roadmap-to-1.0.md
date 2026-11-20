@@ -1,6 +1,8 @@
 # TARAflow — roadmap to 1.0.0
 
-**Status:** v0.8 · 2026-11-20 · v0.8: the Audit SSH key field without effect (review 2026-11-20) · v0.7: 0.20 also hardens git:rawInDir and shows a component's boundary interfaces (review / user 2026-11-19/20) · v0.6: acknowledged audit findings in 0.20 (user 2026-11-17) · v0.5: snapshot hash test from 0.20 (reference 0.19, re-based in 0.21); where R-6 / R-7 go if decided for 1.0; the deliberate exception of 0.23 to rule 2 (review of cb0eabe5, second instance) · v0.4: review of the order against the design documents and
+**Status:** v0.9 · 2026-11-20 · v0.9: results dump of 0.19 done (0.20 patch 01); four small
+items from the 0.19 manual test and review in 0.20; EN 40000-1-4 with EN 18031 in 0.22 (user
+2026-11-20) · v0.8: the Audit SSH key field without effect (review 2026-11-20) · v0.7: 0.20 also hardens git:rawInDir and shows a component's boundary interfaces (review / user 2026-11-19/20) · v0.6: acknowledged audit findings in 0.20 (user 2026-11-17) · v0.5: snapshot hash test from 0.20 (reference 0.19, re-based in 0.21); where R-6 / R-7 go if decided for 1.0; the deliberate exception of 0.23 to rule 2 (review of cb0eabe5, second instance) · v0.4: review of the order against the design documents and
 the code (second instance, user 2026-11-14) — guard rails first in 0.20 (results dump,
 catalogue stamp, field register + guard test, `no-feature-to-feature` with a baseline);
 the ISO/SAE 21434 risk model as a release of its own (0.23), two releases before the RC;
@@ -93,7 +95,7 @@ once released); the design of each item stays in its own design document.
 | **0.19.0-beta** | Component import — **released 2026-11-14** | Polarion listed "planned" | file: yes (schema 14, retired asset fields) |
 | **0.20** | **Guard rails** (rule 3) and **EN 50742 Approach B** | EN 50742 A SRSL0 guard (after the stamp); repair of raw i18n keys saved as threat / risk text | results: yes (SRSL0 guard); file: additive (retention field), repair |
 | **0.21** | **Threat results correct** — physical attacks and sensors / actuators | **the one batch of field retirements** (D2, old values kept as text — R-5); DFD graph builder without side effects; typed `linkedElement` / `dataFlow` | results: yes (on regeneration); file: yes (snapshot hash — "Refresh stored state" once) |
-| **0.22** | **EN 18031-1 / -2 / -3** | model coverage stage 2 (threats and matrix react to `updateEncryption`, `keyRenewal`; F-7 certificate management); time source | results: yes (stage 2 threats); file: additive |
+| **0.22** | **EN 18031-1 / -2 / -3** and **EN 40000-1-4** (shared mechanism catalogue) | model coverage stage 2 (threats and matrix react to `updateEncryption`, `keyRenewal`; F-7 certificate management); time source | results: yes (stage 2 threats); file: additive |
 | **0.23** | **ISO/SAE 21434 risk model** — alone | phase 2 (damage scenarios as objects) and 3b under R-10; ISO safety impact (Se4); methodology sentences; manual ISO test with a component import | file: yes (schema — last structural change); ISO results: where several damage scenarios exist |
 | **0.24** | **EN 303 645** | rating context display (model field purpose phase 2); `DataFlow.frequency: once`; rest of phase 4; audit round model | file: additive (`frequency: once`); config / commits: yes (round field) |
 | **0.25** | **ISO/SAE 21434 compliance module** | ISO phase 5 (cybersecurity requirements, additive) | file: additive |
@@ -123,6 +125,8 @@ everything else.
 
 - **Results dump of 0.19** (rule 3.1) on the shipped example projects — the reference the
   stamp and every later release is compared with. Customer projects only locally (rule 8).
+  **Done** (0.20 patch 01): `npm run dump:results`, reference in
+  `doc/Testing/results-dump/0.19/`, what it holds and what it showed in its README.
 - **Threat catalogue version stamp** (catalogue divergence design, phase A).
 - **Field purpose register + guard test** (`model-field-purpose-and-rating-context-design.md`
   phase 1) — infrastructure, no effect on files or results.
@@ -174,6 +178,18 @@ everything else.
 - **Interfaces of an imported component on its physical boundary** (user 2026-11-19) appear
   on the machine's top page as attached reference copies on the border of the case copy,
   where the boundary flows cross them, set again on an update.
+- **Small items** (user / review 2026-11-19/20, manual test of 0.19):
+  - the status chip of the Risks tab says "In Progress" without a reason: a tooltip naming
+    the risks to reduce whose mitigations are not implemented yet (capped list, en / de),
+    like the phase tooltips (0.19); the Risk phase tooltip checked for the same gap;
+  - `project-mitigation-usage` and `copy-ratings` compare with `JSON.stringify`, so an
+    object rebuilt with another key order counts as changed — the canonical compare
+    instead, as the DiffService does since 0.19 (characterization test first);
+  - audit diff gaps: each field named by a "Changes the audit diff does not list" commit
+    (`unlisted-changes.ts`) and seen in practice is covered in the DiffService;
+  - smaller notes: a label for the rationale of a "not fulfilled" AoU; boundary prefix
+    variant A; the window title shows the project file; the signing key from the git
+    config shown in its field.
 
 ### 3.2 0.21 — physical attacks, sensors and actuators, field retirements
 
@@ -209,7 +225,16 @@ Designs: `doc/Open/Threat/transducer-threat-catalogue-design.md` (phase 0) and
 - Release note: threats on physical edges and on "physical world" entities disappear on
   regeneration.
 
-### 3.3 0.22 — EN 18031
+### 3.3 0.22 — EN 18031 and EN 40000-1-4
+
+- **EN 40000-1-4** (user 2026-11-20, after a talk with TÜV Süd): its technical controls are
+  the mechanisms of the EN 18031 series (ACM, AUM, SUM, SSM, SCM, LGM, DLM, UNM, RLM, NMM,
+  TCM, CCK, GEC, CRY) plus own ones — the table of contents shows DTM (data minimisation),
+  MON (monitoring of security activities), SPD (secure processed data) and LIM (limitation
+  of negative impact on external systems); TÜV speaks of six more, to be checked against
+  the text. One mechanism catalogue for both standards, the additional controls as a module
+  of their own. Only a table of contents so far — no matrix from headings: the draft text
+  is needed first.
 
 - Licensed texts: FprEN 18031-1 / -2 / -3 (May 2024) in `Standards/`. Coverage document
   per part (requirement IDs exist: `[XXX-n]`), K-points first, then the modules — gate in

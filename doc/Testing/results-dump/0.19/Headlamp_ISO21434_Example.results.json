@@ -1,0 +1,4954 @@
+{
+  "format": 1,
+  "header": {
+    "inputCommit": "70201b564caab195a6caa053d12e59fcf4f89beb",
+    "inputFile": "Headlamp_ISO21434_Example.tara.json",
+    "inputSha256": "aaa1860f2cefeb1be7de9b09734e3a4b2651b30bfb1a746359cee22e1b4b9343",
+    "taraflowCommit": "79b73ca8cc8bbb5ff89ec898be69f6687d05b7b3",
+    "taraflowVersion": "0.19.0-beta"
+  },
+  "project": {
+    "name": "Headlamp System (ISO/SAE 21434)",
+    "schemaVersion": 14,
+    "tags": {
+      "custom": [],
+      "domain": [
+        "Automotive"
+      ],
+      "platform": [
+        "Embedded"
+      ],
+      "regulation": [
+        "ISO 21434"
+      ]
+    }
+  },
+  "compliance": {
+    "skipped": "no active standard"
+  },
+  "risks": {
+    "count": 17,
+    "findings": [],
+    "progress": {
+      "done": 6,
+      "percent": 35.294117647058826,
+      "total": 17
+    },
+    "risks": {
+      "R-AT-at-1789854508960-etnvlnanu-3edf4cdcfccd-T": {
+        "impact": 2.5,
+        "iso": {
+          "feasibility": "medium",
+          "impact": "severe",
+          "residual": {
+            "feasibility": "very-low",
+            "value": 2
+          },
+          "value": 4
+        },
+        "likelihood": 3,
+        "method": "attack-path",
+        "riskAfter": 2.5,
+        "riskBefore": 7.5,
+        "stride": "T",
+        "threat": "AT-1.2",
+        "treatment": "reduce"
+      },
+      "R-AT-at-1789854508960-etnvlnanu-830bd28826a0-T": {
+        "impact": 2.5,
+        "iso": {
+          "feasibility": "high",
+          "impact": "severe",
+          "residual": {
+            "feasibility": "very-low",
+            "value": 2
+          },
+          "value": 5
+        },
+        "likelihood": 4,
+        "method": "attack-path",
+        "riskAfter": 2.5,
+        "riskBefore": 10,
+        "stride": "T",
+        "threat": "AT-1.1",
+        "treatment": "reduce"
+      },
+      "R-AT-at-1789854508960-etnvlnanu-8c8c4d076810-T": {
+        "impact": 2.5,
+        "iso": {
+          "feasibility": "high",
+          "impact": "severe",
+          "residual": {
+            "feasibility": "low",
+            "value": 3
+          },
+          "value": 5
+        },
+        "likelihood": 4,
+        "method": "attack-path",
+        "riskAfter": 5,
+        "riskBefore": 10,
+        "stride": "T",
+        "threat": "AT-1.3",
+        "treatment": "reduce"
+      },
+      "R-AT-at-1789854508965-1wph97i9n-1345fb02a57a-R": {
+        "impact": 2.5,
+        "iso": {
+          "feasibility": "high",
+          "impact": "severe",
+          "residual": {
+            "feasibility": "very-low",
+            "value": 2
+          },
+          "value": 5
+        },
+        "likelihood": 4,
+        "method": "attack-path",
+        "riskAfter": 2.5,
+        "riskBefore": 10,
+        "stride": "R",
+        "threat": "AT-3.1",
+        "treatment": "reduce"
+      },
+      "R-AT-at-1789854508965-h8t99la9f-459cc5761fbe-D": {
+        "impact": 2.5,
+        "iso": {
+          "feasibility": "high",
+          "impact": "severe",
+          "residual": {
+            "feasibility": "low",
+            "value": 3
+          },
+          "value": 5
+        },
+        "likelihood": 4,
+        "method": "attack-path",
+        "riskAfter": 5,
+        "riskBefore": 10,
+        "stride": "D",
+        "threat": "AT-2.1",
+        "treatment": "reduce"
+      },
+      "R-AT-at-1789854508965-h8t99la9f-6d0bacf70381-D": {
+        "impact": 2.5,
+        "iso": {
+          "feasibility": "high",
+          "impact": "severe",
+          "residual": {
+            "feasibility": "medium",
+            "value": 4
+          },
+          "value": 5
+        },
+        "likelihood": 4,
+        "method": "attack-path",
+        "riskAfter": 7.5,
+        "riskBefore": 10,
+        "stride": "D",
+        "threat": "AT-2.2",
+        "treatment": "reduce"
+      },
+      "R-AT-at-1789854508966-1ga4ioklt-49ad2d956db1-T": {
+        "impact": 1.8,
+        "iso": {
+          "feasibility": "medium",
+          "impact": "moderate",
+          "residual": {
+            "feasibility": "low",
+            "value": 2
+          },
+          "value": 2
+        },
+        "likelihood": 3,
+        "method": "attack-path",
+        "riskAfter": 3.5,
+        "riskBefore": 5.3,
+        "stride": "T",
+        "threat": "AT-4.2",
+        "treatment": "reduce"
+      },
+      "R-AT-at-1789854508966-1ga4ioklt-a6c89758d947-T": {
+        "impact": 1.8,
+        "iso": {
+          "feasibility": "medium",
+          "impact": "moderate",
+          "residual": {
+            "feasibility": "very-low",
+            "value": 1
+          },
+          "value": 2
+        },
+        "likelihood": 3,
+        "method": "attack-path",
+        "riskAfter": 1.8,
+        "riskBefore": 5.3,
+        "stride": "T",
+        "threat": "AT-4.1",
+        "treatment": "reduce"
+      },
+      "R-AT-at-1789854508966-fo3hf5xw3-68e7023f740f-T": {
+        "impact": 1.8,
+        "iso": {
+          "feasibility": "high",
+          "impact": "major",
+          "residual": {
+            "feasibility": "very-low",
+            "value": 1
+          },
+          "value": 4
+        },
+        "likelihood": 4,
+        "method": "attack-path",
+        "riskAfter": 1.8,
+        "riskBefore": 7,
+        "stride": "T",
+        "threat": "AT-7.2",
+        "treatment": "reduce"
+      },
+      "R-AT-at-1789854508966-fo3hf5xw3-dec4e3f44ba9-T": {
+        "impact": 1.8,
+        "iso": {
+          "feasibility": "high",
+          "impact": "major",
+          "residual": {
+            "feasibility": "low",
+            "value": 2
+          },
+          "value": 4
+        },
+        "likelihood": 4,
+        "method": "attack-path",
+        "riskAfter": 3.5,
+        "riskBefore": 7,
+        "stride": "T",
+        "threat": "AT-7.1",
+        "treatment": "reduce"
+      },
+      "R-AT-at-1789854508966-rl4skf4ol-a829de35280a-D": {
+        "impact": 1.8,
+        "iso": {
+          "feasibility": "medium",
+          "impact": "major",
+          "residual": {
+            "feasibility": "medium",
+            "value": 3
+          },
+          "value": 3
+        },
+        "likelihood": 3,
+        "method": "attack-path",
+        "riskAfter": 5.3,
+        "riskBefore": 5.3,
+        "stride": "D",
+        "threat": "AT-8.1",
+        "treatment": "reduce"
+      },
+      "R-AT-at-1789854508966-sj7zymvpg-1ea78f0a6eff-I": {
+        "impact": 1.8,
+        "iso": {
+          "feasibility": "high",
+          "impact": "major",
+          "residual": {
+            "feasibility": "low",
+            "value": 2
+          },
+          "value": 4
+        },
+        "likelihood": 4,
+        "method": "attack-path",
+        "riskAfter": 3.5,
+        "riskBefore": 7,
+        "stride": "I",
+        "threat": "AT-6.2",
+        "treatment": "reduce"
+      },
+      "R-AT-at-1789854508966-sj7zymvpg-2235532dd69c-I": {
+        "impact": 1.8,
+        "iso": {
+          "feasibility": "low",
+          "impact": "major",
+          "residual": {
+            "feasibility": "very-low",
+            "value": 1
+          },
+          "value": 2
+        },
+        "likelihood": 2,
+        "method": "attack-path",
+        "riskAfter": 1.8,
+        "riskBefore": 3.5,
+        "stride": "I",
+        "threat": "AT-6.1",
+        "treatment": "reduce"
+      },
+      "R-AT-at-1789854508966-yotyn4c2m-11a438db4b6a-D": {
+        "impact": 1.8,
+        "iso": {
+          "feasibility": "low",
+          "impact": "moderate",
+          "residual": {
+            "feasibility": "low",
+            "value": 2
+          },
+          "value": 2
+        },
+        "likelihood": 2,
+        "method": "attack-path",
+        "riskAfter": 3.5,
+        "riskBefore": 3.5,
+        "stride": "D",
+        "threat": "AT-5.1",
+        "treatment": "reduce"
+      },
+      "R-AT-at-1789854508967-pem95c6i2-796e1adbbc8f-I": {
+        "impact": 2,
+        "iso": {
+          "feasibility": "low",
+          "impact": "major",
+          "residual": {
+            "feasibility": "low",
+            "value": 2
+          },
+          "value": 2
+        },
+        "likelihood": 2,
+        "method": "attack-path",
+        "riskAfter": 4,
+        "riskBefore": 4,
+        "stride": "I",
+        "threat": "AT-9.1",
+        "treatment": "share"
+      },
+      "R-AT-at-1789854508967-t0ga1ymes-87c5fce0662b-T": {
+        "impact": 2,
+        "iso": {
+          "feasibility": "very-low",
+          "impact": "major",
+          "residual": {
+            "feasibility": "very-low",
+            "value": 1
+          },
+          "value": 1
+        },
+        "likelihood": 1,
+        "method": "attack-path",
+        "riskAfter": 2,
+        "riskBefore": 2,
+        "stride": "T",
+        "threat": "AT-10.1",
+        "treatment": "accept"
+      },
+      "R-AT-at-1789854508967-t0ga1ymes-c4b8fa6bfa05-T": {
+        "impact": 2,
+        "iso": {
+          "feasibility": "medium",
+          "impact": "major",
+          "residual": {
+            "feasibility": "very-low",
+            "value": 1
+          },
+          "value": 3
+        },
+        "likelihood": 3,
+        "method": "attack-path",
+        "riskAfter": 2,
+        "riskBefore": 6,
+        "stride": "T",
+        "threat": "AT-10.2",
+        "treatment": "reduce"
+      }
+    }
+  },
+  "threats": {
+    "activeMethod": "per-element",
+    "configuration": "stored",
+    "methods": {
+      "per-element": {
+        "count": 99,
+        "drift": {
+          "added": 0,
+          "obsolete": []
+        },
+        "stored": {
+          "generated": 99,
+          "manual": 0
+        },
+        "threats": {
+          "AC1::D": {
+            "attackDescription": "Attacker blocks or delays the command channel to prevent actuation",
+            "causeDescription": "No watchdog or fail-safe on missing commands",
+            "dataFlow": null,
+            "displayId": "AC1-D-1",
+            "initialImpact": "medium",
+            "isTextCustomized": false,
+            "linkedAssetIds": [
+              "62558929-8ac8-42ad-942b-31266dd7ede8"
+            ],
+            "linkedElement": {
+              "displayId": "AC-1",
+              "elementId": "AC1",
+              "elementName": "Power switch actuator",
+              "elementType": "Actuator"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-014"
+              },
+              {
+                "id": "M-D-015"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-010"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:full",
+            "strideCategory": "D",
+            "table": "[OE]",
+            "templateId": "D-008",
+            "threatActor": "external",
+            "threatDescription": "Actuation denial — an attacker blocks or delays commands so a required physical action does not happen in time",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "AC1::T": {
+            "attackDescription": "Attacker injects or modifies actuation commands to force an unintended state",
+            "causeDescription": "The command path lacks integrity protection and interlocks",
+            "dataFlow": null,
+            "displayId": "AC1-T-1",
+            "initialImpact": "medium",
+            "isTextCustomized": false,
+            "linkedAssetIds": [
+              "62558929-8ac8-42ad-942b-31266dd7ede8"
+            ],
+            "linkedElement": {
+              "displayId": "AC-1",
+              "elementId": "AC1",
+              "elementName": "Power switch actuator",
+              "elementType": "Actuator"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-017"
+              },
+              {
+                "id": "M-T-018"
+              },
+              {
+                "id": "M-T-019"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-011"
+              },
+              {
+                "id": "V-T-012"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:full",
+            "strideCategory": "T",
+            "table": "[OE]",
+            "templateId": "T-016",
+            "threatActor": "external",
+            "threatDescription": "Unauthorized actuation — an attacker injects or alters actuation commands, driving the actuator to an unsafe state",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "Bh1WS2LJNXF-039DZOge-1::D": {
+            "attackDescription": "Attacker physically damages the device or cuts power, causing immediate loss of availability",
+            "causeDescription": "No physical protection or anchoring — device can be damaged, unplugged, or destroyed",
+            "dataFlow": null,
+            "displayId": "GPB-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "GPB",
+              "elementId": "Bh1WS2LJNXF-039DZOge-1",
+              "elementName": "Gateway [GPB]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-002"
+              },
+              {
+                "id": "M-PB-D-001"
+              },
+              {
+                "id": "M-PB-T-006"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-IF-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[GPB]",
+            "templateId": "D-007",
+            "threatActor": "external",
+            "threatDescription": "Physical destruction or power disruption — device rendered unavailable by physical attack",
+            "trustBoundaryDisplayId": "GPB",
+            "trustBoundaryId": "Bh1WS2LJNXF-039DZOge-1",
+            "trustBoundaryName": "Gateway [GPB]",
+            "workflowStatus": "open"
+          },
+          "Bh1WS2LJNXF-039DZOge-1::E": {
+            "attackDescription": "Attacker opens the physical boundary and connects to internal debug interface, bypassing all software authentication",
+            "causeDescription": "Physical access to device interior grants debug/hardware access — logical security can be bypassed",
+            "dataFlow": null,
+            "displayId": "GPB-E-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "GPB",
+              "elementId": "Bh1WS2LJNXF-039DZOge-1",
+              "elementName": "Gateway [GPB]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-E-001"
+              },
+              {
+                "id": "M-CB-E-001"
+              },
+              {
+                "id": "M-PB-T-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-E-001"
+              },
+              {
+                "id": "V-CB-E-001"
+              },
+              {
+                "id": "V-PB-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "E",
+            "table": "[GPB]",
+            "templateId": "E-010",
+            "threatActor": "external",
+            "threatDescription": "Physical privilege escalation — attacker gains elevated system access via physical boundary breach",
+            "trustBoundaryDisplayId": "GPB",
+            "trustBoundaryId": "Bh1WS2LJNXF-039DZOge-1",
+            "trustBoundaryName": "Gateway [GPB]",
+            "workflowStatus": "open"
+          },
+          "Bh1WS2LJNXF-039DZOge-1::I": {
+            "attackDescription": "Attacker measures power consumption or EM emissions and extracts cryptographic keys",
+            "causeDescription": "Physical boundary provides no electromagnetic shielding — internal operations are observable",
+            "dataFlow": null,
+            "displayId": "GPB-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "GPB",
+              "elementId": "Bh1WS2LJNXF-039DZOge-1",
+              "elementName": "Gateway [GPB]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-IF-I-001"
+              },
+              {
+                "id": "M-CB-I-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-IF-I-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[GPB]",
+            "templateId": "I-005",
+            "threatActor": "external",
+            "threatDescription": "Side-channel observation — sensitive data extracted via physical measurements",
+            "trustBoundaryDisplayId": "GPB",
+            "trustBoundaryId": "Bh1WS2LJNXF-039DZOge-1",
+            "trustBoundaryName": "Gateway [GPB]",
+            "workflowStatus": "open"
+          },
+          "Bh1WS2LJNXF-039DZOge-1::T": {
+            "attackDescription": "Attacker opens the enclosure without triggering any alarm, gaining access to internal components",
+            "causeDescription": "No tamper detection mechanism — unauthorized opening is undetected",
+            "dataFlow": null,
+            "displayId": "GPB-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "GPB",
+              "elementId": "Bh1WS2LJNXF-039DZOge-1",
+              "elementName": "Gateway [GPB]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-IF-T-001"
+              },
+              {
+                "id": "M-IF-T-003"
+              },
+              {
+                "id": "M-PB-T-001"
+              },
+              {
+                "id": "M-PB-T-006"
+              },
+              {
+                "id": "M-PB-T-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-IF-T-001"
+              },
+              {
+                "id": "V-PB-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[GPB]",
+            "templateId": "T-001",
+            "threatActor": "external",
+            "threatDescription": "Physical boundary tampering — unauthorized physical access to boundary interior",
+            "trustBoundaryDisplayId": "GPB",
+            "trustBoundaryId": "Bh1WS2LJNXF-039DZOge-1",
+            "trustBoundaryName": "Gateway [GPB]",
+            "workflowStatus": "open"
+          },
+          "Bh1WS2LJNXF-039DZOge-2::D": {
+            "attackDescription": "Attacker physically damages the device or cuts power, causing immediate loss of availability",
+            "causeDescription": "No physical protection or anchoring — device can be damaged, unplugged, or destroyed",
+            "dataFlow": null,
+            "displayId": "NPB-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "NPB",
+              "elementId": "Bh1WS2LJNXF-039DZOge-2",
+              "elementName": "Navigation [NPB]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-002"
+              },
+              {
+                "id": "M-PB-D-001"
+              },
+              {
+                "id": "M-PB-T-006"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-IF-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[NPB]",
+            "templateId": "D-007",
+            "threatActor": "external",
+            "threatDescription": "Physical destruction or power disruption — device rendered unavailable by physical attack",
+            "trustBoundaryDisplayId": "NPB",
+            "trustBoundaryId": "Bh1WS2LJNXF-039DZOge-2",
+            "trustBoundaryName": "Navigation [NPB]",
+            "workflowStatus": "open"
+          },
+          "Bh1WS2LJNXF-039DZOge-2::E": {
+            "attackDescription": "Attacker opens the physical boundary and connects to internal debug interface, bypassing all software authentication",
+            "causeDescription": "Physical access to device interior grants debug/hardware access — logical security can be bypassed",
+            "dataFlow": null,
+            "displayId": "NPB-E-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "NPB",
+              "elementId": "Bh1WS2LJNXF-039DZOge-2",
+              "elementName": "Navigation [NPB]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-E-001"
+              },
+              {
+                "id": "M-CB-E-001"
+              },
+              {
+                "id": "M-PB-T-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-E-001"
+              },
+              {
+                "id": "V-CB-E-001"
+              },
+              {
+                "id": "V-PB-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "E",
+            "table": "[NPB]",
+            "templateId": "E-010",
+            "threatActor": "external",
+            "threatDescription": "Physical privilege escalation — attacker gains elevated system access via physical boundary breach",
+            "trustBoundaryDisplayId": "NPB",
+            "trustBoundaryId": "Bh1WS2LJNXF-039DZOge-2",
+            "trustBoundaryName": "Navigation [NPB]",
+            "workflowStatus": "open"
+          },
+          "Bh1WS2LJNXF-039DZOge-2::I": {
+            "attackDescription": "Attacker measures power consumption or EM emissions and extracts cryptographic keys",
+            "causeDescription": "Physical boundary provides no electromagnetic shielding — internal operations are observable",
+            "dataFlow": null,
+            "displayId": "NPB-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "NPB",
+              "elementId": "Bh1WS2LJNXF-039DZOge-2",
+              "elementName": "Navigation [NPB]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-IF-I-001"
+              },
+              {
+                "id": "M-CB-I-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-IF-I-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[NPB]",
+            "templateId": "I-005",
+            "threatActor": "external",
+            "threatDescription": "Side-channel observation — sensitive data extracted via physical measurements",
+            "trustBoundaryDisplayId": "NPB",
+            "trustBoundaryId": "Bh1WS2LJNXF-039DZOge-2",
+            "trustBoundaryName": "Navigation [NPB]",
+            "workflowStatus": "open"
+          },
+          "Bh1WS2LJNXF-039DZOge-2::T": {
+            "attackDescription": "Attacker opens the enclosure without triggering any alarm, gaining access to internal components",
+            "causeDescription": "No tamper detection mechanism — unauthorized opening is undetected",
+            "dataFlow": null,
+            "displayId": "NPB-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "NPB",
+              "elementId": "Bh1WS2LJNXF-039DZOge-2",
+              "elementName": "Navigation [NPB]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-IF-T-001"
+              },
+              {
+                "id": "M-IF-T-003"
+              },
+              {
+                "id": "M-PB-T-001"
+              },
+              {
+                "id": "M-PB-T-006"
+              },
+              {
+                "id": "M-PB-T-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-IF-T-001"
+              },
+              {
+                "id": "V-PB-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[NPB]",
+            "templateId": "T-001",
+            "threatActor": "external",
+            "threatDescription": "Physical boundary tampering — unauthorized physical access to boundary interior",
+            "trustBoundaryDisplayId": "NPB",
+            "trustBoundaryId": "Bh1WS2LJNXF-039DZOge-2",
+            "trustBoundaryName": "Navigation [NPB]",
+            "workflowStatus": "open"
+          },
+          "DF-10::D": {
+            "attackDescription": "Attacker blocks or corrupts the data flow causing dependent components to lose communication",
+            "causeDescription": "No redundancy or timeout protection — disruption causes loss of communication",
+            "dataFlow": null,
+            "displayId": "DF2-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-2",
+              "elementId": "DF-10",
+              "elementName": "push media control [cmd]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[DF]",
+            "templateId": "D-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow disruption — attacker blocks or delays the data flow",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Data Flows",
+            "workflowStatus": "open"
+          },
+          "DF-10::I": {
+            "attackDescription": "Attacker passively monitors the data flow and captures sensitive data",
+            "causeDescription": "Data flow is unencrypted — sensitive payload is transmitted in plaintext",
+            "dataFlow": null,
+            "displayId": "DF2-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-2",
+              "elementId": "DF-10",
+              "elementName": "push media control [cmd]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-I-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-I-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[DF]",
+            "templateId": "I-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow eavesdropping — attacker intercepts sensitive data on the data flow",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Data Flows",
+            "workflowStatus": "open"
+          },
+          "DF-10::T": {
+            "attackDescription": "Attacker intercepts and modifies values before they reach the destination",
+            "causeDescription": "Data flow is unprotected — no integrity check or encryption prevents modification",
+            "dataFlow": null,
+            "displayId": "DF2-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-2",
+              "elementId": "DF-10",
+              "elementName": "push media control [cmd]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-T-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-T-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[DF]",
+            "templateId": "T-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow tampering — attacker modifies data in transit between components",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Data Flows",
+            "workflowStatus": "open"
+          },
+          "DF-1::D": {
+            "attackDescription": "Attacker blocks or corrupts the data flow causing dependent components to lose communication",
+            "causeDescription": "No redundancy or timeout protection — disruption causes loss of communication",
+            "dataFlow": null,
+            "displayId": "DF6-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-6",
+              "elementId": "DF-1",
+              "elementName": "push headlamp mode [cmd]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[OE]",
+            "templateId": "D-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow disruption — attacker blocks or delays the data flow",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "DF-1::I": {
+            "attackDescription": "Attacker passively monitors the data flow and captures sensitive data",
+            "causeDescription": "Data flow is unencrypted — sensitive payload is transmitted in plaintext",
+            "dataFlow": null,
+            "displayId": "DF6-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-6",
+              "elementId": "DF-1",
+              "elementName": "push headlamp mode [cmd]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-I-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-I-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[OE]",
+            "templateId": "I-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow eavesdropping — attacker intercepts sensitive data on the data flow",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "DF-1::T": {
+            "attackDescription": "Attacker splices in a tap device or signal injector and manipulates data in transit without triggering any alarm",
+            "causeDescription": "Data flow runs through a physically accessible cable without physical protection",
+            "dataFlow": null,
+            "displayId": "DF6-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-6",
+              "elementId": "DF-1",
+              "elementName": "push headlamp mode [cmd]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-008"
+              },
+              {
+                "id": "M-T-009"
+              },
+              {
+                "id": "M-T-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-006"
+              },
+              {
+                "id": "V-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[OE]",
+            "templateId": "T-009",
+            "threatActor": "external",
+            "threatDescription": "Physical cable tampering — data flow manipulated via accessible cable or connector",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "DF-2::D": {
+            "attackDescription": "Attacker blocks or corrupts the data flow causing dependent components to lose communication",
+            "causeDescription": "No redundancy or timeout protection — disruption causes loss of communication",
+            "dataFlow": null,
+            "displayId": "DF9-D-1",
+            "initialImpact": "high",
+            "isTextCustomized": false,
+            "linkedAssetIds": [
+              "ac70a321-b04e-4df2-bc51-1fd5b5179857"
+            ],
+            "linkedElement": {
+              "displayId": "DF-9",
+              "elementId": "DF-2",
+              "elementName": "push lamp request [cmd]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:cianaaa",
+            "strideCategory": "D",
+            "table": "[OE]",
+            "templateId": "D-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow disruption — attacker blocks or delays the data flow",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "DF-2::T": {
+            "attackDescription": "Attacker splices in a tap device or signal injector and manipulates data in transit without triggering any alarm",
+            "causeDescription": "Data flow runs through a physically accessible cable without physical protection",
+            "dataFlow": null,
+            "displayId": "DF9-T-1",
+            "initialImpact": "high",
+            "isTextCustomized": false,
+            "linkedAssetIds": [
+              "ac70a321-b04e-4df2-bc51-1fd5b5179857"
+            ],
+            "linkedElement": {
+              "displayId": "DF-9",
+              "elementId": "DF-2",
+              "elementName": "push lamp request [cmd]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-008"
+              },
+              {
+                "id": "M-T-009"
+              },
+              {
+                "id": "M-T-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-006"
+              },
+              {
+                "id": "V-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:cianaaa",
+            "strideCategory": "T",
+            "table": "[OE]",
+            "templateId": "T-009",
+            "threatActor": "external",
+            "threatDescription": "Physical cable tampering — data flow manipulated via accessible cable or connector",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "DF-3::D": {
+            "attackDescription": "Attacker blocks or corrupts the data flow causing dependent components to lose communication",
+            "causeDescription": "No redundancy or timeout protection — disruption causes loss of communication",
+            "dataFlow": null,
+            "displayId": "DF10-D-1",
+            "initialImpact": "high",
+            "isTextCustomized": false,
+            "linkedAssetIds": [
+              "56fe0b45-9bfc-457b-8637-ce529dc92038"
+            ],
+            "linkedElement": {
+              "displayId": "DF-10",
+              "elementId": "DF-3",
+              "elementName": "stream oncoming car status",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:cianaaa",
+            "strideCategory": "D",
+            "table": "[OE]",
+            "templateId": "D-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow disruption — attacker blocks or delays the data flow",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "DF-3::T": {
+            "attackDescription": "Attacker attaches a hardware probe to the embedded bus and injects or modifies transmitted data",
+            "causeDescription": "Embedded bus communication carries no integrity protection or authentication",
+            "dataFlow": null,
+            "displayId": "DF10-T-1",
+            "initialImpact": "high",
+            "isTextCustomized": false,
+            "linkedAssetIds": [
+              "56fe0b45-9bfc-457b-8637-ce529dc92038"
+            ],
+            "linkedElement": {
+              "displayId": "DF-10",
+              "elementId": "DF-3",
+              "elementName": "stream oncoming car status",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-T-002"
+              },
+              {
+                "id": "M-T-008"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-T-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:cianaaa",
+            "strideCategory": "T",
+            "table": "[OE]",
+            "templateId": "T-014",
+            "threatActor": "external",
+            "threatDescription": "Embedded bus data tampering — attacker modifies communication on internal bus",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "DF-4::D": {
+            "attackDescription": "Attacker blocks or corrupts the data flow causing dependent components to lose communication",
+            "causeDescription": "No redundancy or timeout protection — disruption causes loss of communication",
+            "dataFlow": null,
+            "displayId": "DF5-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-5",
+              "elementId": "DF-4",
+              "elementName": "push vehicle command [cmd]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[OE]",
+            "templateId": "D-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow disruption — attacker blocks or delays the data flow",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "DF-4::I": {
+            "attackDescription": "Attacker passively monitors the data flow and captures sensitive data",
+            "causeDescription": "Data flow is unencrypted — sensitive payload is transmitted in plaintext",
+            "dataFlow": null,
+            "displayId": "DF5-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-5",
+              "elementId": "DF-4",
+              "elementName": "push vehicle command [cmd]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-I-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-I-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[OE]",
+            "templateId": "I-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow eavesdropping — attacker intercepts sensitive data on the data flow",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "DF-4::T": {
+            "attackDescription": "Attacker attaches a hardware probe to the embedded bus and injects or modifies transmitted data",
+            "causeDescription": "Embedded bus communication carries no integrity protection or authentication",
+            "dataFlow": null,
+            "displayId": "DF5-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-5",
+              "elementId": "DF-4",
+              "elementName": "push vehicle command [cmd]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-T-002"
+              },
+              {
+                "id": "M-T-008"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-T-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[OE]",
+            "templateId": "T-014",
+            "threatActor": "external",
+            "threatDescription": "Embedded bus data tampering — attacker modifies communication on internal bus",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "DF-5::D": {
+            "attackDescription": "Attacker blocks or corrupts the data flow causing dependent components to lose communication",
+            "causeDescription": "No redundancy or timeout protection — disruption causes loss of communication",
+            "dataFlow": null,
+            "displayId": "DF7-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-7",
+              "elementId": "DF-5",
+              "elementName": "push camera control [cmd]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[OE]",
+            "templateId": "D-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow disruption — attacker blocks or delays the data flow",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "DF-5::I": {
+            "attackDescription": "Attacker passively monitors the data flow and captures sensitive data",
+            "causeDescription": "Data flow is unencrypted — sensitive payload is transmitted in plaintext",
+            "dataFlow": null,
+            "displayId": "DF7-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-7",
+              "elementId": "DF-5",
+              "elementName": "push camera control [cmd]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-I-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-I-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[OE]",
+            "templateId": "I-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow eavesdropping — attacker intercepts sensitive data on the data flow",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "DF-5::T": {
+            "attackDescription": "Attacker attaches a hardware probe to the embedded bus and injects or modifies transmitted data",
+            "causeDescription": "Embedded bus communication carries no integrity protection or authentication",
+            "dataFlow": null,
+            "displayId": "DF7-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-7",
+              "elementId": "DF-5",
+              "elementName": "push camera control [cmd]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-T-002"
+              },
+              {
+                "id": "M-T-008"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-T-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[OE]",
+            "templateId": "T-014",
+            "threatActor": "external",
+            "threatDescription": "Embedded bus data tampering — attacker modifies communication on internal bus",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "DF-6::D": {
+            "attackDescription": "Attacker blocks or corrupts the data flow causing dependent components to lose communication",
+            "causeDescription": "No redundancy or timeout protection — disruption causes loss of communication",
+            "dataFlow": null,
+            "displayId": "DF4-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-4",
+              "elementId": "DF-6",
+              "elementName": "pull vehicle state [req_resp]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[DF]",
+            "templateId": "D-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow disruption — attacker blocks or delays the data flow",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Data Flows",
+            "workflowStatus": "open"
+          },
+          "DF-6::I": {
+            "attackDescription": "Attacker passively monitors the data flow and captures sensitive data",
+            "causeDescription": "Data flow is unencrypted — sensitive payload is transmitted in plaintext",
+            "dataFlow": null,
+            "displayId": "DF4-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-4",
+              "elementId": "DF-6",
+              "elementName": "pull vehicle state [req_resp]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-I-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-I-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[DF]",
+            "templateId": "I-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow eavesdropping — attacker intercepts sensitive data on the data flow",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Data Flows",
+            "workflowStatus": "open"
+          },
+          "DF-6::T": {
+            "attackDescription": "Attacker attaches a hardware probe to the embedded bus and injects or modifies transmitted data",
+            "causeDescription": "Embedded bus communication carries no integrity protection or authentication",
+            "dataFlow": null,
+            "displayId": "DF4-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-4",
+              "elementId": "DF-6",
+              "elementName": "pull vehicle state [req_resp]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-T-002"
+              },
+              {
+                "id": "M-T-008"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-T-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[DF]",
+            "templateId": "T-014",
+            "threatActor": "external",
+            "threatDescription": "Embedded bus data tampering — attacker modifies communication on internal bus",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Data Flows",
+            "workflowStatus": "open"
+          },
+          "DF-7::D": {
+            "attackDescription": "Attacker blocks or corrupts the data flow causing dependent components to lose communication",
+            "causeDescription": "No redundancy or timeout protection — disruption causes loss of communication",
+            "dataFlow": null,
+            "displayId": "DF3-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-3",
+              "elementId": "DF-7",
+              "elementName": "stream vehicle signals",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[DF]",
+            "templateId": "D-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow disruption — attacker blocks or delays the data flow",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Data Flows",
+            "workflowStatus": "open"
+          },
+          "DF-7::I": {
+            "attackDescription": "Attacker passively monitors the data flow and captures sensitive data",
+            "causeDescription": "Data flow is unencrypted — sensitive payload is transmitted in plaintext",
+            "dataFlow": null,
+            "displayId": "DF3-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-3",
+              "elementId": "DF-7",
+              "elementName": "stream vehicle signals",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-I-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-I-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[DF]",
+            "templateId": "I-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow eavesdropping — attacker intercepts sensitive data on the data flow",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Data Flows",
+            "workflowStatus": "open"
+          },
+          "DF-7::T": {
+            "attackDescription": "Attacker attaches a hardware probe to the embedded bus and injects or modifies transmitted data",
+            "causeDescription": "Embedded bus communication carries no integrity protection or authentication",
+            "dataFlow": null,
+            "displayId": "DF3-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-3",
+              "elementId": "DF-7",
+              "elementName": "stream vehicle signals",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-T-002"
+              },
+              {
+                "id": "M-T-008"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-T-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[DF]",
+            "templateId": "T-014",
+            "threatActor": "external",
+            "threatDescription": "Embedded bus data tampering — attacker modifies communication on internal bus",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Data Flows",
+            "workflowStatus": "open"
+          },
+          "DF-8::D": {
+            "attackDescription": "Attacker blocks or corrupts the data flow causing dependent components to lose communication",
+            "causeDescription": "No redundancy or timeout protection — disruption causes loss of communication",
+            "dataFlow": null,
+            "displayId": "DF8-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-8",
+              "elementId": "DF-8",
+              "elementName": "pull diagnostic data [req_resp]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[DF]",
+            "templateId": "D-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow disruption — attacker blocks or delays the data flow",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Data Flows",
+            "workflowStatus": "open"
+          },
+          "DF-8::I": {
+            "attackDescription": "Attacker passively monitors the data flow and captures sensitive data",
+            "causeDescription": "Data flow is unencrypted — sensitive payload is transmitted in plaintext",
+            "dataFlow": null,
+            "displayId": "DF8-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-8",
+              "elementId": "DF-8",
+              "elementName": "pull diagnostic data [req_resp]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-I-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-I-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[DF]",
+            "templateId": "I-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow eavesdropping — attacker intercepts sensitive data on the data flow",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Data Flows",
+            "workflowStatus": "open"
+          },
+          "DF-8::T": {
+            "attackDescription": "Attacker splices in a tap device or signal injector and manipulates data in transit without triggering any alarm",
+            "causeDescription": "Data flow runs through a physically accessible cable without physical protection",
+            "dataFlow": null,
+            "displayId": "DF8-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-8",
+              "elementId": "DF-8",
+              "elementName": "pull diagnostic data [req_resp]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-008"
+              },
+              {
+                "id": "M-T-009"
+              },
+              {
+                "id": "M-T-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-006"
+              },
+              {
+                "id": "V-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[DF]",
+            "templateId": "T-009",
+            "threatActor": "external",
+            "threatDescription": "Physical cable tampering — data flow manipulated via accessible cable or connector",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Data Flows",
+            "workflowStatus": "open"
+          },
+          "DF-9::D": {
+            "attackDescription": "Attacker blocks or corrupts the data flow causing dependent components to lose communication",
+            "causeDescription": "No redundancy or timeout protection — disruption causes loss of communication",
+            "dataFlow": null,
+            "displayId": "DF1-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-1",
+              "elementId": "DF-9",
+              "elementName": "push remote update [cmd]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[DF]",
+            "templateId": "D-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow disruption — attacker blocks or delays the data flow",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Data Flows",
+            "workflowStatus": "open"
+          },
+          "DF-9::I": {
+            "attackDescription": "Attacker passively monitors the data flow and captures sensitive data",
+            "causeDescription": "Data flow is unencrypted — sensitive payload is transmitted in plaintext",
+            "dataFlow": null,
+            "displayId": "DF1-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-1",
+              "elementId": "DF-9",
+              "elementName": "push remote update [cmd]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-I-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-I-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[DF]",
+            "templateId": "I-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow eavesdropping — attacker intercepts sensitive data on the data flow",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Data Flows",
+            "workflowStatus": "open"
+          },
+          "DF-9::T": {
+            "attackDescription": "Attacker intercepts and modifies values before they reach the destination",
+            "causeDescription": "Data flow is unprotected — no integrity check or encryption prevents modification",
+            "dataFlow": null,
+            "displayId": "DF1-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-1",
+              "elementId": "DF-9",
+              "elementName": "push remote update [cmd]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-T-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-T-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[DF]",
+            "templateId": "T-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow tampering — attacker modifies data in transit between components",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Data Flows",
+            "workflowStatus": "open"
+          },
+          "EE1::R": {
+            "attackDescription": "External entity denies having sent a command that the system received and acted upon",
+            "causeDescription": "No non-repudiation mechanism — requests from external entities are not cryptographically bound to the sender",
+            "dataFlow": null,
+            "displayId": "EE1-R-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "EE-1",
+              "elementId": "EE1",
+              "elementName": "Mobile network / backend (assumption – not in Annex H)",
+              "elementType": "ExternalEntity"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-R-001"
+              },
+              {
+                "id": "M-R-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-R-001"
+              },
+              {
+                "id": "V-R-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "R",
+            "table": "[EE]",
+            "templateId": "R-001",
+            "threatActor": "external",
+            "threatDescription": "External entity repudiation — external entity denies having sent a request",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "External Entities",
+            "workflowStatus": "open"
+          },
+          "EE1::S": {
+            "attackDescription": "Attacker crafts requests that appear to originate from a legitimate external entity",
+            "causeDescription": "No authentication mechanism enforced for external entities",
+            "dataFlow": null,
+            "displayId": "EE1-S-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "EE-1",
+              "elementId": "EE1",
+              "elementName": "Mobile network / backend (assumption – not in Annex H)",
+              "elementType": "ExternalEntity"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-S-001"
+              },
+              {
+                "id": "M-S-002"
+              },
+              {
+                "id": "M-S-004"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-S-001"
+              },
+              {
+                "id": "V-S-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "S",
+            "table": "[EE]",
+            "templateId": "S-001",
+            "threatActor": "external",
+            "threatDescription": "External entity identity spoofing — attacker impersonates a legitimate external entity",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "External Entities",
+            "workflowStatus": "open"
+          },
+          "EE2::R": {
+            "attackDescription": "External entity denies having sent a command that the system received and acted upon",
+            "causeDescription": "No non-repudiation mechanism — requests from external entities are not cryptographically bound to the sender",
+            "dataFlow": null,
+            "displayId": "EE3-R-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "EE-3",
+              "elementId": "EE2",
+              "elementName": "Driver's smartphone",
+              "elementType": "ExternalEntity"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-R-001"
+              },
+              {
+                "id": "M-R-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-R-001"
+              },
+              {
+                "id": "V-R-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "R",
+            "table": "[EE]",
+            "templateId": "R-001",
+            "threatActor": "external",
+            "threatDescription": "External entity repudiation — external entity denies having sent a request",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "External Entities",
+            "workflowStatus": "open"
+          },
+          "EE2::S": {
+            "attackDescription": "Attacker crafts requests that appear to originate from a legitimate external entity",
+            "causeDescription": "No authentication mechanism enforced for external entities",
+            "dataFlow": null,
+            "displayId": "EE3-S-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "EE-3",
+              "elementId": "EE2",
+              "elementName": "Driver's smartphone",
+              "elementType": "ExternalEntity"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-S-001"
+              },
+              {
+                "id": "M-S-002"
+              },
+              {
+                "id": "M-S-004"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-S-001"
+              },
+              {
+                "id": "V-S-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "S",
+            "table": "[EE]",
+            "templateId": "S-001",
+            "threatActor": "external",
+            "threatDescription": "External entity identity spoofing — attacker impersonates a legitimate external entity",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "External Entities",
+            "workflowStatus": "open"
+          },
+          "EE3::R": {
+            "attackDescription": "External entity denies having sent a command that the system received and acted upon",
+            "causeDescription": "No non-repudiation mechanism — requests from external entities are not cryptographically bound to the sender",
+            "dataFlow": null,
+            "displayId": "EE4-R-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "EE-4",
+              "elementId": "EE3",
+              "elementName": "OBD-II diagnostic tool",
+              "elementType": "ExternalEntity"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-R-001"
+              },
+              {
+                "id": "M-R-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-R-001"
+              },
+              {
+                "id": "V-R-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "R",
+            "table": "[EE]",
+            "templateId": "R-001",
+            "threatActor": "external",
+            "threatDescription": "External entity repudiation — external entity denies having sent a request",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "External Entities",
+            "workflowStatus": "open"
+          },
+          "EE3::S": {
+            "attackDescription": "Attacker crafts requests that appear to originate from a legitimate external entity",
+            "causeDescription": "No authentication mechanism enforced for external entities",
+            "dataFlow": null,
+            "displayId": "EE4-S-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "EE-4",
+              "elementId": "EE3",
+              "elementName": "OBD-II diagnostic tool",
+              "elementType": "ExternalEntity"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-S-001"
+              },
+              {
+                "id": "M-S-002"
+              },
+              {
+                "id": "M-S-004"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-S-001"
+              },
+              {
+                "id": "V-S-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "S",
+            "table": "[EE]",
+            "templateId": "S-001",
+            "threatActor": "external",
+            "threatDescription": "External entity identity spoofing — attacker impersonates a legitimate external entity",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "External Entities",
+            "workflowStatus": "open"
+          },
+          "IF1::D": {
+            "attackDescription": "Attacker applies excessive electrical input or flooding signals to the interface causing it to fail",
+            "causeDescription": "Interface has no protection against electrical stress or signal flooding — it can be disabled by physical or signal attack",
+            "dataFlow": null,
+            "displayId": "NPB-IF2-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-2",
+              "elementId": "IF1",
+              "elementName": "Cellular",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-D-001"
+              },
+              {
+                "id": "M-IF-D-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-D-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[NPB]",
+            "templateId": "D-006",
+            "threatActor": "external",
+            "threatDescription": "Interface denial of service — attacker renders the interface unavailable",
+            "trustBoundaryDisplayId": "NPB",
+            "trustBoundaryId": "Bh1WS2LJNXF-039DZOge-2",
+            "trustBoundaryName": "Navigation [NPB]",
+            "workflowStatus": "open"
+          },
+          "IF1::E": {
+            "attackDescription": "Attacker exploits the interface to run privileged commands and bypass access controls, or uploads unsigned malicious firmware that disables security controls or installs a persistent backdoor",
+            "causeDescription": "Interface exposes privileged functions without sufficient authentication and accepts firmware updates without signature verification",
+            "dataFlow": null,
+            "displayId": "NPB-IF2-E-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-2",
+              "elementId": "IF1",
+              "elementName": "Cellular",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-E-006"
+              },
+              {
+                "id": "M-IF-E-001"
+              },
+              {
+                "id": "M-IF-E-002"
+              },
+              {
+                "id": "M-IF-E-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-E-004"
+              },
+              {
+                "id": "V-IF-E-001"
+              },
+              {
+                "id": "V-IF-E-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "E",
+            "table": "[NPB]",
+            "templateId": "E-004",
+            "threatActor": "external",
+            "threatDescription": "Interface privilege escalation — attacker uses the interface to gain elevated access or inject unauthorized firmware",
+            "trustBoundaryDisplayId": "NPB",
+            "trustBoundaryId": "Bh1WS2LJNXF-039DZOge-2",
+            "trustBoundaryName": "Navigation [NPB]",
+            "workflowStatus": "open"
+          },
+          "IF1::I": {
+            "attackDescription": "Attacker attaches monitoring equipment to the physical interface and captures transmitted data",
+            "causeDescription": "Physical interface transmits data without encryption — signals are readable with basic test equipment",
+            "dataFlow": null,
+            "displayId": "NPB-IF2-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-2",
+              "elementId": "IF1",
+              "elementName": "Cellular",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-I-001"
+              },
+              {
+                "id": "M-IF-I-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-I-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[NPB]",
+            "templateId": "I-007",
+            "threatActor": "external",
+            "threatDescription": "Interface eavesdropping — attacker intercepts data on the physical interface",
+            "trustBoundaryDisplayId": "NPB",
+            "trustBoundaryId": "Bh1WS2LJNXF-039DZOge-2",
+            "trustBoundaryName": "Navigation [NPB]",
+            "workflowStatus": "open"
+          },
+          "IF1::R": {
+            "attackDescription": "Attacker connects to the physical interface and denies having accessed it because no log record exists",
+            "causeDescription": "No logging of physical interface connections — who connected and when is unknown",
+            "dataFlow": null,
+            "displayId": "NPB-IF2-R-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-2",
+              "elementId": "IF1",
+              "elementName": "Cellular",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-R-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-R-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "R",
+            "table": "[NPB]",
+            "templateId": "R-005",
+            "threatActor": "external",
+            "threatDescription": "Interface access repudiation — physical interface access cannot be attributed",
+            "trustBoundaryDisplayId": "NPB",
+            "trustBoundaryId": "Bh1WS2LJNXF-039DZOge-2",
+            "trustBoundaryName": "Navigation [NPB]",
+            "workflowStatus": "open"
+          },
+          "IF1::S": {
+            "attackDescription": "Attacker connects a rogue device to the interface and impersonates a legitimate system, gaining unauthorized access",
+            "causeDescription": "No hardware authentication on the interface — any device connecting is trusted without verification",
+            "dataFlow": null,
+            "displayId": "NPB-IF2-S-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-2",
+              "elementId": "IF1",
+              "elementName": "Cellular",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-S-001"
+              },
+              {
+                "id": "M-S-008"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-S-001"
+              },
+              {
+                "id": "V-IF-S-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "S",
+            "table": "[NPB]",
+            "templateId": "S-005",
+            "threatActor": "external",
+            "threatDescription": "Interface identity spoofing — attacker impersonates a legitimate device on the interface",
+            "trustBoundaryDisplayId": "NPB",
+            "trustBoundaryId": "Bh1WS2LJNXF-039DZOge-2",
+            "trustBoundaryName": "Navigation [NPB]",
+            "workflowStatus": "open"
+          },
+          "IF1::T": {
+            "attackDescription": "Attacker modifies the interface hardware or firmware to intercept, inject, or block communications",
+            "causeDescription": "Interface lacks tamper detection and physical protection — unauthorized modification is possible without detection",
+            "dataFlow": null,
+            "displayId": "NPB-IF2-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-2",
+              "elementId": "IF1",
+              "elementName": "Cellular",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-T-001"
+              },
+              {
+                "id": "M-IF-T-002"
+              },
+              {
+                "id": "M-IF-T-003"
+              },
+              {
+                "id": "M-IF-T-004"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[NPB]",
+            "templateId": "T-007",
+            "threatActor": "external",
+            "threatDescription": "Interface tampering — attacker physically or logically tampers with the interface",
+            "trustBoundaryDisplayId": "NPB",
+            "trustBoundaryId": "Bh1WS2LJNXF-039DZOge-2",
+            "trustBoundaryName": "Navigation [NPB]",
+            "workflowStatus": "open"
+          },
+          "IF2::D": {
+            "attackDescription": "Attacker floods or jams the wireless channel (RF interference, connection/association flooding) causing the interface to drop or become unresponsive",
+            "causeDescription": "Wireless interface has no protection against signal flooding or jamming and no redundant path — it can be disabled by overwhelming the channel",
+            "dataFlow": null,
+            "displayId": "NPB-IF3-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-3",
+              "elementId": "IF2",
+              "elementName": "Bluetooth",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-D-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-D-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[NPB]",
+            "templateId": "D-009",
+            "threatActor": "external",
+            "threatDescription": "Interface denial of service (wireless) — attacker jams or floods the wireless interface to render it unavailable",
+            "trustBoundaryDisplayId": "NPB",
+            "trustBoundaryId": "Bh1WS2LJNXF-039DZOge-2",
+            "trustBoundaryName": "Navigation [NPB]",
+            "workflowStatus": "open"
+          },
+          "IF2::E": {
+            "attackDescription": "Attacker exploits the interface to run privileged commands and bypass access controls, or uploads unsigned malicious firmware that disables security controls or installs a persistent backdoor",
+            "causeDescription": "Interface exposes privileged functions without sufficient authentication and accepts firmware updates without signature verification",
+            "dataFlow": null,
+            "displayId": "NPB-IF3-E-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-3",
+              "elementId": "IF2",
+              "elementName": "Bluetooth",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-E-006"
+              },
+              {
+                "id": "M-IF-E-001"
+              },
+              {
+                "id": "M-IF-E-002"
+              },
+              {
+                "id": "M-IF-E-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-E-004"
+              },
+              {
+                "id": "V-IF-E-001"
+              },
+              {
+                "id": "V-IF-E-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "E",
+            "table": "[NPB]",
+            "templateId": "E-004",
+            "threatActor": "external",
+            "threatDescription": "Interface privilege escalation — attacker uses the interface to gain elevated access or inject unauthorized firmware",
+            "trustBoundaryDisplayId": "NPB",
+            "trustBoundaryId": "Bh1WS2LJNXF-039DZOge-2",
+            "trustBoundaryName": "Navigation [NPB]",
+            "workflowStatus": "open"
+          },
+          "IF2::R": {
+            "attackDescription": "Attacker connects to the physical interface and denies having accessed it because no log record exists",
+            "causeDescription": "No logging of physical interface connections — who connected and when is unknown",
+            "dataFlow": null,
+            "displayId": "NPB-IF3-R-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-3",
+              "elementId": "IF2",
+              "elementName": "Bluetooth",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-R-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-R-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "R",
+            "table": "[NPB]",
+            "templateId": "R-005",
+            "threatActor": "external",
+            "threatDescription": "Interface access repudiation — physical interface access cannot be attributed",
+            "trustBoundaryDisplayId": "NPB",
+            "trustBoundaryId": "Bh1WS2LJNXF-039DZOge-2",
+            "trustBoundaryName": "Navigation [NPB]",
+            "workflowStatus": "open"
+          },
+          "IF2::S": {
+            "attackDescription": "Attacker connects a rogue device to the interface and impersonates a legitimate system, gaining unauthorized access",
+            "causeDescription": "No hardware authentication on the interface — any device connecting is trusted without verification",
+            "dataFlow": null,
+            "displayId": "NPB-IF3-S-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-3",
+              "elementId": "IF2",
+              "elementName": "Bluetooth",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "alreadyImplemented": true,
+                "id": "M-S-001",
+                "implementedByProperty": "implementedControls.linkAuthentication",
+                "implementedByValue": "pairing"
+              },
+              {
+                "id": "M-S-008"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-S-001"
+              },
+              {
+                "id": "V-IF-S-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "S",
+            "table": "[NPB]",
+            "templateId": "S-005",
+            "threatActor": "external",
+            "threatDescription": "Interface identity spoofing — attacker impersonates a legitimate device on the interface",
+            "trustBoundaryDisplayId": "NPB",
+            "trustBoundaryId": "Bh1WS2LJNXF-039DZOge-2",
+            "trustBoundaryName": "Navigation [NPB]",
+            "workflowStatus": "open"
+          },
+          "IF3::D": {
+            "attackDescription": "Attacker applies excessive electrical input or flooding signals to the interface causing it to fail",
+            "causeDescription": "Interface has no protection against electrical stress or signal flooding — it can be disabled by physical or signal attack",
+            "dataFlow": null,
+            "displayId": "GPB-IF4-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-4",
+              "elementId": "IF3",
+              "elementName": "OBD-II",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-D-001"
+              },
+              {
+                "id": "M-IF-D-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-D-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[GPB]",
+            "templateId": "D-006",
+            "threatActor": "external",
+            "threatDescription": "Interface denial of service — attacker renders the interface unavailable",
+            "trustBoundaryDisplayId": "GPB",
+            "trustBoundaryId": "Bh1WS2LJNXF-039DZOge-1",
+            "trustBoundaryName": "Gateway [GPB]",
+            "workflowStatus": "open"
+          },
+          "IF3::E": {
+            "attackDescription": "Attacker exploits the interface to run privileged commands and bypass access controls, or uploads unsigned malicious firmware that disables security controls or installs a persistent backdoor",
+            "causeDescription": "Interface exposes privileged functions without sufficient authentication and accepts firmware updates without signature verification",
+            "dataFlow": null,
+            "displayId": "GPB-IF4-E-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-4",
+              "elementId": "IF3",
+              "elementName": "OBD-II",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-E-006"
+              },
+              {
+                "id": "M-IF-E-001"
+              },
+              {
+                "id": "M-IF-E-002"
+              },
+              {
+                "id": "M-IF-E-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-E-004"
+              },
+              {
+                "id": "V-IF-E-001"
+              },
+              {
+                "id": "V-IF-E-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "E",
+            "table": "[GPB]",
+            "templateId": "E-004",
+            "threatActor": "external",
+            "threatDescription": "Interface privilege escalation — attacker uses the interface to gain elevated access or inject unauthorized firmware",
+            "trustBoundaryDisplayId": "GPB",
+            "trustBoundaryId": "Bh1WS2LJNXF-039DZOge-1",
+            "trustBoundaryName": "Gateway [GPB]",
+            "workflowStatus": "open"
+          },
+          "IF3::I": {
+            "attackDescription": "Attacker attaches monitoring equipment to the physical interface and captures transmitted data",
+            "causeDescription": "Physical interface transmits data without encryption — signals are readable with basic test equipment",
+            "dataFlow": null,
+            "displayId": "GPB-IF4-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-4",
+              "elementId": "IF3",
+              "elementName": "OBD-II",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "alreadyImplemented": true,
+                "id": "M-IF-I-001",
+                "implementedByProperty": "implementedControls.signalProtection",
+                "implementedByValue": "shielded"
+              },
+              {
+                "id": "M-IF-I-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-I-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[GPB]",
+            "templateId": "I-007",
+            "threatActor": "external",
+            "threatDescription": "Interface eavesdropping — attacker intercepts data on the physical interface",
+            "trustBoundaryDisplayId": "GPB",
+            "trustBoundaryId": "Bh1WS2LJNXF-039DZOge-1",
+            "trustBoundaryName": "Gateway [GPB]",
+            "workflowStatus": "open"
+          },
+          "IF3::R": {
+            "attackDescription": "Attacker connects to the physical interface and denies having accessed it because no log record exists",
+            "causeDescription": "No logging of physical interface connections — who connected and when is unknown",
+            "dataFlow": null,
+            "displayId": "GPB-IF4-R-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-4",
+              "elementId": "IF3",
+              "elementName": "OBD-II",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-R-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-R-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "R",
+            "table": "[GPB]",
+            "templateId": "R-005",
+            "threatActor": "external",
+            "threatDescription": "Interface access repudiation — physical interface access cannot be attributed",
+            "trustBoundaryDisplayId": "GPB",
+            "trustBoundaryId": "Bh1WS2LJNXF-039DZOge-1",
+            "trustBoundaryName": "Gateway [GPB]",
+            "workflowStatus": "open"
+          },
+          "IF3::S": {
+            "attackDescription": "Attacker connects a rogue device to the interface and impersonates a legitimate system, gaining unauthorized access",
+            "causeDescription": "No hardware authentication on the interface — any device connecting is trusted without verification",
+            "dataFlow": null,
+            "displayId": "GPB-IF4-S-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-4",
+              "elementId": "IF3",
+              "elementName": "OBD-II",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-S-001"
+              },
+              {
+                "id": "M-S-008"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-S-001"
+              },
+              {
+                "id": "V-IF-S-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "S",
+            "table": "[GPB]",
+            "templateId": "S-005",
+            "threatActor": "external",
+            "threatDescription": "Interface identity spoofing — attacker impersonates a legitimate device on the interface",
+            "trustBoundaryDisplayId": "GPB",
+            "trustBoundaryId": "Bh1WS2LJNXF-039DZOge-1",
+            "trustBoundaryName": "Gateway [GPB]",
+            "workflowStatus": "open"
+          },
+          "IF3::T": {
+            "attackDescription": "Attacker modifies the interface hardware or firmware to intercept, inject, or block communications",
+            "causeDescription": "Interface lacks tamper detection and physical protection — unauthorized modification is possible without detection",
+            "dataFlow": null,
+            "displayId": "GPB-IF4-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-4",
+              "elementId": "IF3",
+              "elementName": "OBD-II",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-T-001"
+              },
+              {
+                "id": "M-IF-T-002"
+              },
+              {
+                "id": "M-IF-T-003"
+              },
+              {
+                "id": "M-IF-T-004"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[GPB]",
+            "templateId": "T-007",
+            "threatActor": "external",
+            "threatDescription": "Interface tampering — attacker physically or logically tampers with the interface",
+            "trustBoundaryDisplayId": "GPB",
+            "trustBoundaryId": "Bh1WS2LJNXF-039DZOge-1",
+            "trustBoundaryName": "Gateway [GPB]",
+            "workflowStatus": "open"
+          },
+          "MP1::D": {
+            "attackDescription": "Attacker floods the OT protocol interface with high-frequency frames starving legitimate traffic",
+            "causeDescription": "OT protocol stack has no rate limiting — flooding causes processing overload",
+            "dataFlow": null,
+            "displayId": "MP1-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "MP-1",
+              "elementId": "MP1",
+              "elementName": "Navigation ECU",
+              "elementType": "Multiprocess"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-003"
+              },
+              {
+                "id": "M-D-005"
+              },
+              {
+                "id": "M-D-006"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[NECU]",
+            "templateId": "D-001",
+            "threatActor": "external",
+            "threatDescription": "OT protocol flooding — attacker floods OT protocol stack causing denial of service",
+            "trustBoundaryDisplayId": "NECU",
+            "trustBoundaryId": "TB2",
+            "trustBoundaryName": "Externally-exposed zone (Navigation ECU) [NECU]",
+            "workflowStatus": "open"
+          },
+          "MP1::E": {
+            "attackDescription": "Attacker connects JTAG probe, halts CPU, reads/writes memory and bypasses all software security controls",
+            "causeDescription": "JTAG interface is accessible and not locked via OTP fuse",
+            "dataFlow": null,
+            "displayId": "MP1-E-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "MP-1",
+              "elementId": "MP1",
+              "elementName": "Navigation ECU",
+              "elementType": "Multiprocess"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-E-001"
+              },
+              {
+                "id": "M-E-006"
+              },
+              {
+                "id": "M-IF-E-001"
+              },
+              {
+                "id": "M-E-007"
+              },
+              {
+                "id": "M-I-006"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-E-001"
+              },
+              {
+                "id": "V-E-004"
+              },
+              {
+                "id": "V-IF-E-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "E",
+            "table": "[NECU]",
+            "templateId": "E-001",
+            "threatActor": "external",
+            "threatDescription": "JTAG privilege escalation — attacker gains full processor control via JTAG interface",
+            "trustBoundaryDisplayId": "NECU",
+            "trustBoundaryId": "TB2",
+            "trustBoundaryName": "Externally-exposed zone (Navigation ECU) [NECU]",
+            "workflowStatus": "open"
+          },
+          "MP1::I": {
+            "attackDescription": "Attacker uses debug interface or firmware extraction to read memory and recover cryptographic keys",
+            "causeDescription": "Authenticator storage is software-only — keys reside in flash or RAM without hardware protection",
+            "dataFlow": null,
+            "displayId": "MP1-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "MP-1",
+              "elementId": "MP1",
+              "elementName": "Navigation ECU",
+              "elementType": "Multiprocess"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-I-006"
+              },
+              {
+                "id": "M-CB-I-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-CB-I-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[NECU]",
+            "templateId": "I-001",
+            "threatActor": "external",
+            "threatDescription": "Cryptographic keys in software-only storage — extractable via memory dump or debug access",
+            "trustBoundaryDisplayId": "NECU",
+            "trustBoundaryId": "TB2",
+            "trustBoundaryName": "Externally-exposed zone (Navigation ECU) [NECU]",
+            "workflowStatus": "open"
+          },
+          "MP1::R": {
+            "attackDescription": "Embedded controller denies having sent a control command that another system received and acted upon",
+            "causeDescription": "No non-repudiation mechanism on embedded communication — messages are not cryptographically signed",
+            "dataFlow": null,
+            "displayId": "MP1-R-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "MP-1",
+              "elementId": "MP1",
+              "elementName": "Navigation ECU",
+              "elementType": "Multiprocess"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-R-001"
+              },
+              {
+                "id": "M-IF-R-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-R-001"
+              },
+              {
+                "id": "V-IF-R-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "R",
+            "table": "[NECU]",
+            "templateId": "R-001",
+            "threatActor": "external",
+            "threatDescription": "Embedded system action repudiation — embedded controller denies having sent data or executed a command",
+            "trustBoundaryDisplayId": "NECU",
+            "trustBoundaryId": "TB2",
+            "trustBoundaryName": "Externally-exposed zone (Navigation ECU) [NECU]",
+            "workflowStatus": "open"
+          },
+          "MP1::S": {
+            "attackDescription": "Attacker connects a rogue device to the OT network and impersonates a legitimate PLC or sensor",
+            "causeDescription": "OT protocol stack carries no sender authentication",
+            "dataFlow": null,
+            "displayId": "MP1-S-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "MP-1",
+              "elementId": "MP1",
+              "elementName": "Navigation ECU",
+              "elementType": "Multiprocess"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-S-001"
+              },
+              {
+                "id": "M-S-002"
+              },
+              {
+                "id": "M-S-003"
+              },
+              {
+                "id": "M-S-008"
+              },
+              {
+                "id": "M-S-006"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-S-001"
+              },
+              {
+                "id": "V-S-004"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "S",
+            "table": "[NECU]",
+            "templateId": "S-001",
+            "threatActor": "external",
+            "threatDescription": "OT protocol sender spoofing — attacker impersonates a legitimate OT device",
+            "trustBoundaryDisplayId": "NECU",
+            "trustBoundaryId": "TB2",
+            "trustBoundaryName": "Externally-exposed zone (Navigation ECU) [NECU]",
+            "workflowStatus": "open"
+          },
+          "MP1::T": {
+            "attackDescription": "Attacker replaces firmware with a malicious version that disables safety interlocks",
+            "causeDescription": "No cryptographic code signing enforced — unsigned firmware is accepted for execution",
+            "dataFlow": null,
+            "displayId": "MP1-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "MP-1",
+              "elementId": "MP1",
+              "elementName": "Navigation ECU",
+              "elementType": "Multiprocess"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-T-004"
+              },
+              {
+                "id": "M-T-006"
+              },
+              {
+                "id": "M-T-007"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-T-004"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[NECU]",
+            "templateId": "T-007",
+            "threatActor": "external",
+            "threatDescription": "Embedded firmware tampering — attacker modifies firmware on embedded controller",
+            "trustBoundaryDisplayId": "NECU",
+            "trustBoundaryId": "TB2",
+            "trustBoundaryName": "Externally-exposed zone (Navigation ECU) [NECU]",
+            "workflowStatus": "open"
+          },
+          "MP2::D": {
+            "attackDescription": "Attacker deploys ransomware that destroys system data; without a backup the system cannot be restored",
+            "causeDescription": "No automated backup or tested recovery procedure configured",
+            "dataFlow": null,
+            "displayId": "MP2-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "MP-2",
+              "elementId": "MP2",
+              "elementName": "Gateway ECU",
+              "elementType": "Multiprocess"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-006"
+              },
+              {
+                "id": "M-D-004"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-005"
+              },
+              {
+                "id": "V-D-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[OE]",
+            "templateId": "D-001",
+            "threatActor": "external",
+            "threatDescription": "No backup mechanism — system unrecoverable after ransomware, hardware failure, or destructive attack",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "MP2::E": {
+            "attackDescription": "Attacker uses unlocked JTAG to disable Secure Boot verification and install persistent malicious firmware",
+            "causeDescription": "RDP Level 2 not applied — JTAG can be re-enabled allowing firmware modification",
+            "dataFlow": null,
+            "displayId": "MP2-E-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "MP-2",
+              "elementId": "MP2",
+              "elementName": "Gateway ECU",
+              "elementType": "Multiprocess"
+            },
+            "proposedMitigations": [
+              {
+                "alreadyImplemented": true,
+                "id": "M-E-001",
+                "implementedByProperty": "malwareProtection",
+                "implementedByValue": "code_signing"
+              },
+              {
+                "id": "M-E-006"
+              },
+              {
+                "id": "M-CB-E-001"
+              },
+              {
+                "alreadyImplemented": true,
+                "id": "M-E-002",
+                "implementedByProperty": "malwareProtection",
+                "implementedByValue": "code_signing"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-E-001"
+              },
+              {
+                "id": "V-E-004"
+              },
+              {
+                "id": "V-CB-E-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "E",
+            "table": "[OE]",
+            "templateId": "E-002",
+            "threatActor": "external",
+            "threatDescription": "Secure Boot disable via RDP downgrade — attacker removes all debug protection",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "MP2::I": {
+            "attackDescription": "Attacker observes process output and extracts sensitive configuration data, credentials, or business information",
+            "causeDescription": "Process outputs or error messages contain sensitive information — no output filtering applied",
+            "dataFlow": null,
+            "displayId": "MP2-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "MP-2",
+              "elementId": "MP2",
+              "elementName": "Gateway ECU",
+              "elementType": "Multiprocess"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-I-002"
+              },
+              {
+                "id": "M-I-005"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-I-004"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[OE]",
+            "templateId": "I-001",
+            "threatActor": "external",
+            "threatDescription": "Process data leakage — sensitive data processed by the process is exposed",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "MP2::R": {
+            "attackDescription": "Process or its operator denies having executed a command that affected the system",
+            "causeDescription": "Audit log is absent, incomplete, or not tamper-proof",
+            "dataFlow": null,
+            "displayId": "MP2-R-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "MP-2",
+              "elementId": "MP2",
+              "elementName": "Gateway ECU",
+              "elementType": "Multiprocess"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-R-001"
+              },
+              {
+                "id": "M-R-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-R-001"
+              },
+              {
+                "id": "V-R-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "R",
+            "table": "[OE]",
+            "templateId": "R-002",
+            "threatActor": "external",
+            "threatDescription": "Process action repudiation — process denies having performed an action",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "MP2::S": {
+            "attackDescription": "Attacker uses credentials of a former employee that still exists locally on the device",
+            "causeDescription": "Account management is local-only — no central directory or IAM system",
+            "dataFlow": null,
+            "displayId": "MP2-S-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "MP-2",
+              "elementId": "MP2",
+              "elementName": "Gateway ECU",
+              "elementType": "Multiprocess"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-S-006"
+              },
+              {
+                "id": "M-S-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-S-005"
+              },
+              {
+                "id": "V-S-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "S",
+            "table": "[OE]",
+            "templateId": "S-001",
+            "threatActor": "external",
+            "threatDescription": "Local-only account management — stale accounts persist, no central revocation possible",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "MP2::T": {
+            "attackDescription": "Attacker modifies safety-critical configuration parameters stored on the embedded system",
+            "causeDescription": "Configuration storage lacks integrity protection — parameters can be modified without detection",
+            "dataFlow": null,
+            "displayId": "MP2-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "MP-2",
+              "elementId": "MP2",
+              "elementName": "Gateway ECU",
+              "elementType": "Multiprocess"
+            },
+            "proposedMitigations": [
+              {
+                "alreadyImplemented": true,
+                "id": "M-T-001",
+                "implementedByProperty": "malwareProtection",
+                "implementedByValue": "code_signing"
+              },
+              {
+                "id": "M-T-003"
+              },
+              {
+                "id": "M-T-007"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-T-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[OE]",
+            "templateId": "T-008",
+            "threatActor": "external",
+            "threatDescription": "Configuration tampering on embedded system — attacker modifies stored configuration",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "MP4::D": {
+            "attackDescription": "Attacker floods the OT protocol interface with high-frequency frames starving legitimate traffic",
+            "causeDescription": "OT protocol stack has no rate limiting — flooding causes processing overload",
+            "dataFlow": null,
+            "displayId": "MP4-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "MP-4",
+              "elementId": "MP4",
+              "elementName": "Camera ECU",
+              "elementType": "Multiprocess"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-003"
+              },
+              {
+                "id": "M-D-005"
+              },
+              {
+                "id": "M-D-006"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[OE]",
+            "templateId": "D-001",
+            "threatActor": "external",
+            "threatDescription": "OT protocol flooding — attacker floods OT protocol stack causing denial of service",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "MP4::E": {
+            "attackDescription": "Attacker connects JTAG probe, halts CPU, reads/writes memory and bypasses all software security controls",
+            "causeDescription": "JTAG interface is accessible and not locked via OTP fuse",
+            "dataFlow": null,
+            "displayId": "MP4-E-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "MP-4",
+              "elementId": "MP4",
+              "elementName": "Camera ECU",
+              "elementType": "Multiprocess"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-E-001"
+              },
+              {
+                "id": "M-E-006"
+              },
+              {
+                "id": "M-IF-E-001"
+              },
+              {
+                "id": "M-E-007"
+              },
+              {
+                "id": "M-I-006"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-E-001"
+              },
+              {
+                "id": "V-E-004"
+              },
+              {
+                "id": "V-IF-E-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "E",
+            "table": "[OE]",
+            "templateId": "E-001",
+            "threatActor": "external",
+            "threatDescription": "JTAG privilege escalation — attacker gains full processor control via JTAG interface",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "MP4::I": {
+            "attackDescription": "Attacker uses debug interface or firmware extraction to read memory and recover cryptographic keys",
+            "causeDescription": "Authenticator storage is software-only — keys reside in flash or RAM without hardware protection",
+            "dataFlow": null,
+            "displayId": "MP4-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "MP-4",
+              "elementId": "MP4",
+              "elementName": "Camera ECU",
+              "elementType": "Multiprocess"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-I-006"
+              },
+              {
+                "id": "M-CB-I-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-CB-I-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[OE]",
+            "templateId": "I-001",
+            "threatActor": "external",
+            "threatDescription": "Cryptographic keys in software-only storage — extractable via memory dump or debug access",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "MP4::R": {
+            "attackDescription": "Embedded controller denies having sent a control command that another system received and acted upon",
+            "causeDescription": "No non-repudiation mechanism on embedded communication — messages are not cryptographically signed",
+            "dataFlow": null,
+            "displayId": "MP4-R-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "MP-4",
+              "elementId": "MP4",
+              "elementName": "Camera ECU",
+              "elementType": "Multiprocess"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-R-001"
+              },
+              {
+                "id": "M-IF-R-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-R-001"
+              },
+              {
+                "id": "V-IF-R-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "R",
+            "table": "[OE]",
+            "templateId": "R-001",
+            "threatActor": "external",
+            "threatDescription": "Embedded system action repudiation — embedded controller denies having sent data or executed a command",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "MP4::S": {
+            "attackDescription": "Attacker connects a rogue device to the OT network and impersonates a legitimate PLC or sensor",
+            "causeDescription": "OT protocol stack carries no sender authentication",
+            "dataFlow": null,
+            "displayId": "MP4-S-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "MP-4",
+              "elementId": "MP4",
+              "elementName": "Camera ECU",
+              "elementType": "Multiprocess"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-S-001"
+              },
+              {
+                "id": "M-S-002"
+              },
+              {
+                "id": "M-S-003"
+              },
+              {
+                "id": "M-S-008"
+              },
+              {
+                "id": "M-S-006"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-S-001"
+              },
+              {
+                "id": "V-S-004"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "S",
+            "table": "[OE]",
+            "templateId": "S-001",
+            "threatActor": "external",
+            "threatDescription": "OT protocol sender spoofing — attacker impersonates a legitimate OT device",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "MP4::T": {
+            "attackDescription": "Attacker replaces firmware with a malicious version that disables safety interlocks",
+            "causeDescription": "No cryptographic code signing enforced — unsigned firmware is accepted for execution",
+            "dataFlow": null,
+            "displayId": "MP4-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "MP-4",
+              "elementId": "MP4",
+              "elementName": "Camera ECU",
+              "elementType": "Multiprocess"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-T-004"
+              },
+              {
+                "id": "M-T-006"
+              },
+              {
+                "id": "M-T-007"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-T-004"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[OE]",
+            "templateId": "T-007",
+            "threatActor": "external",
+            "threatDescription": "Embedded firmware tampering — attacker modifies firmware on embedded controller",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "MP5::D": {
+            "attackDescription": "Attacker floods the OT protocol interface with high-frequency frames starving legitimate traffic",
+            "causeDescription": "OT protocol stack has no rate limiting — flooding causes processing overload",
+            "dataFlow": null,
+            "displayId": "MP3-D-1",
+            "initialImpact": "medium",
+            "isTextCustomized": false,
+            "linkedAssetIds": [
+              "62558929-8ac8-42ad-942b-31266dd7ede8",
+              "fb4343f3-5605-499e-9af2-b7cd7c1cbddb"
+            ],
+            "linkedElement": {
+              "displayId": "MP-3",
+              "elementId": "MP5",
+              "elementName": "Body control ECU",
+              "elementType": "Multiprocess"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-003"
+              },
+              {
+                "id": "M-D-005"
+              },
+              {
+                "id": "M-D-006"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:full",
+            "strideCategory": "D",
+            "table": "[OE]",
+            "templateId": "D-001",
+            "threatActor": "external",
+            "threatDescription": "OT protocol flooding — attacker floods OT protocol stack causing denial of service",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "MP5::I": {
+            "attackDescription": "Attacker uses debug interface or firmware extraction to read memory and recover cryptographic keys",
+            "causeDescription": "Authenticator storage is software-only — keys reside in flash or RAM without hardware protection",
+            "dataFlow": null,
+            "displayId": "MP3-I-1",
+            "initialImpact": "medium",
+            "isTextCustomized": false,
+            "linkedAssetIds": [
+              "62558929-8ac8-42ad-942b-31266dd7ede8",
+              "fb4343f3-5605-499e-9af2-b7cd7c1cbddb"
+            ],
+            "linkedElement": {
+              "displayId": "MP-3",
+              "elementId": "MP5",
+              "elementName": "Body control ECU",
+              "elementType": "Multiprocess"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-I-006"
+              },
+              {
+                "id": "M-CB-I-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-CB-I-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:full",
+            "strideCategory": "I",
+            "table": "[OE]",
+            "templateId": "I-001",
+            "threatActor": "external",
+            "threatDescription": "Cryptographic keys in software-only storage — extractable via memory dump or debug access",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "MP5::T": {
+            "attackDescription": "Attacker replaces firmware with a malicious version that disables safety interlocks",
+            "causeDescription": "No cryptographic code signing enforced — unsigned firmware is accepted for execution",
+            "dataFlow": null,
+            "displayId": "MP3-T-1",
+            "initialImpact": "high",
+            "isTextCustomized": false,
+            "linkedAssetIds": [
+              "62558929-8ac8-42ad-942b-31266dd7ede8",
+              "fb4343f3-5605-499e-9af2-b7cd7c1cbddb"
+            ],
+            "linkedElement": {
+              "displayId": "MP-3",
+              "elementId": "MP5",
+              "elementName": "Body control ECU",
+              "elementType": "Multiprocess"
+            },
+            "proposedMitigations": [
+              {
+                "alreadyImplemented": true,
+                "id": "M-T-001",
+                "implementedByProperty": "malwareProtection",
+                "implementedByValue": "code_signing"
+              },
+              {
+                "id": "M-T-004"
+              },
+              {
+                "id": "M-T-006"
+              },
+              {
+                "id": "M-T-007"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-T-004"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:full",
+            "strideCategory": "T",
+            "table": "[OE]",
+            "templateId": "T-007",
+            "threatActor": "external",
+            "threatDescription": "Embedded firmware tampering — attacker modifies firmware on embedded controller",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "PB1::D": {
+            "attackDescription": "Attacker physically damages the device or cuts power, causing immediate loss of availability",
+            "causeDescription": "No physical protection or anchoring — device can be damaged, unplugged, or destroyed",
+            "dataFlow": null,
+            "displayId": "IB-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IB",
+              "elementId": "PB1",
+              "elementName": "Item boundary [IB]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-002"
+              },
+              {
+                "id": "M-PB-D-001"
+              },
+              {
+                "id": "M-PB-T-006"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-IF-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[IB]",
+            "templateId": "D-007",
+            "threatActor": "external",
+            "threatDescription": "Physical destruction or power disruption — device rendered unavailable by physical attack",
+            "trustBoundaryDisplayId": "IB",
+            "trustBoundaryId": "PB1",
+            "trustBoundaryName": "Item boundary [IB]",
+            "workflowStatus": "open"
+          },
+          "PB1::E": {
+            "attackDescription": "Attacker opens the physical boundary and connects to internal debug interface, bypassing all software authentication",
+            "causeDescription": "Physical access to device interior grants debug/hardware access — logical security can be bypassed",
+            "dataFlow": null,
+            "displayId": "IB-E-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IB",
+              "elementId": "PB1",
+              "elementName": "Item boundary [IB]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-E-001"
+              },
+              {
+                "id": "M-CB-E-001"
+              },
+              {
+                "id": "M-PB-T-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-E-001"
+              },
+              {
+                "id": "V-CB-E-001"
+              },
+              {
+                "id": "V-PB-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "E",
+            "table": "[IB]",
+            "templateId": "E-010",
+            "threatActor": "external",
+            "threatDescription": "Physical privilege escalation — attacker gains elevated system access via physical boundary breach",
+            "trustBoundaryDisplayId": "IB",
+            "trustBoundaryId": "PB1",
+            "trustBoundaryName": "Item boundary [IB]",
+            "workflowStatus": "open"
+          },
+          "PB1::I": {
+            "attackDescription": "Attacker measures power consumption or EM emissions and extracts cryptographic keys",
+            "causeDescription": "Physical boundary provides no electromagnetic shielding — internal operations are observable",
+            "dataFlow": null,
+            "displayId": "IB-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IB",
+              "elementId": "PB1",
+              "elementName": "Item boundary [IB]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-IF-I-001"
+              },
+              {
+                "id": "M-CB-I-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-IF-I-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[IB]",
+            "templateId": "I-005",
+            "threatActor": "external",
+            "threatDescription": "Side-channel observation — sensitive data extracted via physical measurements",
+            "trustBoundaryDisplayId": "IB",
+            "trustBoundaryId": "PB1",
+            "trustBoundaryName": "Item boundary [IB]",
+            "workflowStatus": "open"
+          },
+          "PB1::T": {
+            "attackDescription": "Attacker opens the enclosure without triggering any alarm, gaining access to internal components",
+            "causeDescription": "No tamper detection mechanism — unauthorized opening is undetected",
+            "dataFlow": null,
+            "displayId": "IB-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IB",
+              "elementId": "PB1",
+              "elementName": "Item boundary [IB]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-IF-T-001"
+              },
+              {
+                "id": "M-IF-T-003"
+              },
+              {
+                "id": "M-PB-T-001"
+              },
+              {
+                "id": "M-PB-T-006"
+              },
+              {
+                "id": "M-PB-T-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-IF-T-001"
+              },
+              {
+                "id": "V-PB-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[IB]",
+            "templateId": "T-001",
+            "threatActor": "external",
+            "threatDescription": "Physical boundary tampering — unauthorized physical access to boundary interior",
+            "trustBoundaryDisplayId": "IB",
+            "trustBoundaryId": "PB1",
+            "trustBoundaryName": "Item boundary [IB]",
+            "workflowStatus": "open"
+          },
+          "PB2::D": {
+            "attackDescription": "Attacker physically damages the device or cuts power, causing immediate loss of availability",
+            "causeDescription": "No physical protection or anchoring — device can be damaged, unplugged, or destroyed",
+            "dataFlow": null,
+            "displayId": "HS-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "HS",
+              "elementId": "PB2",
+              "elementName": "Headlamp system [HS]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-002"
+              },
+              {
+                "id": "M-PB-D-001"
+              },
+              {
+                "id": "M-PB-T-006"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-IF-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[HS]",
+            "templateId": "D-007",
+            "threatActor": "external",
+            "threatDescription": "Physical destruction or power disruption — device rendered unavailable by physical attack",
+            "trustBoundaryDisplayId": "HS",
+            "trustBoundaryId": "PB2",
+            "trustBoundaryName": "Headlamp system [HS]",
+            "workflowStatus": "open"
+          },
+          "PB2::E": {
+            "attackDescription": "Attacker opens the physical boundary and connects to internal debug interface, bypassing all software authentication",
+            "causeDescription": "Physical access to device interior grants debug/hardware access — logical security can be bypassed",
+            "dataFlow": null,
+            "displayId": "HS-E-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "HS",
+              "elementId": "PB2",
+              "elementName": "Headlamp system [HS]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-E-001"
+              },
+              {
+                "id": "M-CB-E-001"
+              },
+              {
+                "id": "M-PB-T-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-E-001"
+              },
+              {
+                "id": "V-CB-E-001"
+              },
+              {
+                "id": "V-PB-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "E",
+            "table": "[HS]",
+            "templateId": "E-010",
+            "threatActor": "external",
+            "threatDescription": "Physical privilege escalation — attacker gains elevated system access via physical boundary breach",
+            "trustBoundaryDisplayId": "HS",
+            "trustBoundaryId": "PB2",
+            "trustBoundaryName": "Headlamp system [HS]",
+            "workflowStatus": "open"
+          },
+          "PB2::I": {
+            "attackDescription": "Attacker measures power consumption or EM emissions and extracts cryptographic keys",
+            "causeDescription": "Physical boundary provides no electromagnetic shielding — internal operations are observable",
+            "dataFlow": null,
+            "displayId": "HS-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "HS",
+              "elementId": "PB2",
+              "elementName": "Headlamp system [HS]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-IF-I-001"
+              },
+              {
+                "id": "M-CB-I-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-IF-I-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[HS]",
+            "templateId": "I-005",
+            "threatActor": "external",
+            "threatDescription": "Side-channel observation — sensitive data extracted via physical measurements",
+            "trustBoundaryDisplayId": "HS",
+            "trustBoundaryId": "PB2",
+            "trustBoundaryName": "Headlamp system [HS]",
+            "workflowStatus": "open"
+          },
+          "PB2::T": {
+            "attackDescription": "Attacker opens the enclosure without triggering any alarm, gaining access to internal components",
+            "causeDescription": "No tamper detection mechanism — unauthorized opening is undetected",
+            "dataFlow": null,
+            "displayId": "HS-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "HS",
+              "elementId": "PB2",
+              "elementName": "Headlamp system [HS]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-IF-T-001"
+              },
+              {
+                "id": "M-IF-T-003"
+              },
+              {
+                "id": "M-PB-T-001"
+              },
+              {
+                "id": "M-PB-T-006"
+              },
+              {
+                "id": "M-PB-T-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-IF-T-001"
+              },
+              {
+                "id": "V-PB-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[HS]",
+            "templateId": "T-001",
+            "threatActor": "external",
+            "threatDescription": "Physical boundary tampering — unauthorized physical access to boundary interior",
+            "trustBoundaryDisplayId": "HS",
+            "trustBoundaryId": "PB2",
+            "trustBoundaryName": "Headlamp system [HS]",
+            "workflowStatus": "open"
+          },
+          "SE1::D": {
+            "attackDescription": "Attacker jams, drops or floods the sensor channel",
+            "causeDescription": "No freshness check or safe-state on missing readings",
+            "dataFlow": null,
+            "displayId": "SE1-D-1",
+            "initialImpact": "medium",
+            "isTextCustomized": false,
+            "linkedAssetIds": [
+              "62558929-8ac8-42ad-942b-31266dd7ede8"
+            ],
+            "linkedElement": {
+              "displayId": "SE-1",
+              "elementId": "SE1",
+              "elementName": "Headlamp switch",
+              "elementType": "Sensor"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-011"
+              },
+              {
+                "id": "M-D-012"
+              },
+              {
+                "id": "M-D-013"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-009"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:full",
+            "strideCategory": "D",
+            "table": "[OE]",
+            "templateId": "D-007",
+            "threatActor": "external",
+            "threatDescription": "Reading denial — an attacker suppresses, delays or floods sensor readings so the system loses timely input",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "SE1::T": {
+            "attackDescription": "Attacker manipulates the sensor signal or data frame, or influences the physical quantity the sensor measures (e.g. applied field, local heating, obscuring) so a genuine-looking but false value is reported",
+            "causeDescription": "The acquisition path lacks integrity protection and readings are not cross-checked against an independent measurement",
+            "dataFlow": null,
+            "displayId": "SE1-T-1",
+            "initialImpact": "medium",
+            "isTextCustomized": false,
+            "linkedAssetIds": [
+              "62558929-8ac8-42ad-942b-31266dd7ede8"
+            ],
+            "linkedElement": {
+              "displayId": "SE-1",
+              "elementId": "SE1",
+              "elementName": "Headlamp switch",
+              "elementType": "Sensor"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-014"
+              },
+              {
+                "id": "M-T-015"
+              },
+              {
+                "id": "M-T-016"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-009"
+              },
+              {
+                "id": "V-T-010"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:full",
+            "strideCategory": "T",
+            "table": "[OE]",
+            "templateId": "T-015",
+            "threatActor": "external",
+            "threatDescription": "Measurement tampering — an attacker alters the value the system acts on, either in the signal/data path or by manipulating the physical stimulus the sensor measures",
+            "trustBoundaryDisplayId": "OE",
+            "trustBoundaryId": "TB1",
+            "trustBoundaryName": "Operational environment (in-vehicle connectivity) [OE]",
+            "workflowStatus": "open"
+          },
+          "fPkPk87EWpCrjZb76VBo-3::D": {
+            "attackDescription": "Attacker applies excessive electrical input or flooding signals to the interface causing it to fail",
+            "causeDescription": "Interface has no protection against electrical stress or signal flooding — it can be disabled by physical or signal attack",
+            "dataFlow": null,
+            "displayId": "GPB-IF1-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-1",
+              "elementId": "fPkPk87EWpCrjZb76VBo-3",
+              "elementName": "CAN",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-D-001"
+              },
+              {
+                "id": "M-IF-D-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-D-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[GPB]",
+            "templateId": "D-006",
+            "threatActor": "external",
+            "threatDescription": "Interface denial of service — attacker renders the interface unavailable",
+            "trustBoundaryDisplayId": "GPB",
+            "trustBoundaryId": "Bh1WS2LJNXF-039DZOge-1",
+            "trustBoundaryName": "Gateway [GPB]",
+            "workflowStatus": "open"
+          },
+          "fPkPk87EWpCrjZb76VBo-3::E": {
+            "attackDescription": "Attacker exploits the interface to run privileged commands and bypass access controls, or uploads unsigned malicious firmware that disables security controls or installs a persistent backdoor",
+            "causeDescription": "Interface exposes privileged functions without sufficient authentication and accepts firmware updates without signature verification",
+            "dataFlow": null,
+            "displayId": "GPB-IF1-E-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-1",
+              "elementId": "fPkPk87EWpCrjZb76VBo-3",
+              "elementName": "CAN",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-E-006"
+              },
+              {
+                "id": "M-IF-E-001"
+              },
+              {
+                "id": "M-IF-E-002"
+              },
+              {
+                "id": "M-IF-E-003"
+              },
+              {
+                "alreadyImplemented": true,
+                "id": "M-IF-T-001",
+                "implementedByProperty": "implementedControls.physicalAccessProtection",
+                "implementedByValue": "inside_enclosure"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-E-004"
+              },
+              {
+                "id": "V-IF-E-001"
+              },
+              {
+                "id": "V-IF-E-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "E",
+            "table": "[GPB]",
+            "templateId": "E-004",
+            "threatActor": "external",
+            "threatDescription": "Interface privilege escalation — attacker uses the interface to gain elevated access or inject unauthorized firmware",
+            "trustBoundaryDisplayId": "GPB",
+            "trustBoundaryId": "Bh1WS2LJNXF-039DZOge-1",
+            "trustBoundaryName": "Gateway [GPB]",
+            "workflowStatus": "open"
+          },
+          "fPkPk87EWpCrjZb76VBo-3::I": {
+            "attackDescription": "Attacker attaches monitoring equipment to the physical interface and captures transmitted data",
+            "causeDescription": "Physical interface transmits data without encryption — signals are readable with basic test equipment",
+            "dataFlow": null,
+            "displayId": "GPB-IF1-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-1",
+              "elementId": "fPkPk87EWpCrjZb76VBo-3",
+              "elementName": "CAN",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "alreadyImplemented": true,
+                "id": "M-IF-I-001",
+                "implementedByProperty": "implementedControls.signalProtection",
+                "implementedByValue": "twisted_pair"
+              },
+              {
+                "id": "M-IF-I-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-I-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[GPB]",
+            "templateId": "I-007",
+            "threatActor": "external",
+            "threatDescription": "Interface eavesdropping — attacker intercepts data on the physical interface",
+            "trustBoundaryDisplayId": "GPB",
+            "trustBoundaryId": "Bh1WS2LJNXF-039DZOge-1",
+            "trustBoundaryName": "Gateway [GPB]",
+            "workflowStatus": "open"
+          },
+          "fPkPk87EWpCrjZb76VBo-3::R": {
+            "attackDescription": "Attacker connects to the physical interface and denies having accessed it because no log record exists",
+            "causeDescription": "No logging of physical interface connections — who connected and when is unknown",
+            "dataFlow": null,
+            "displayId": "GPB-IF1-R-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-1",
+              "elementId": "fPkPk87EWpCrjZb76VBo-3",
+              "elementName": "CAN",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-R-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-R-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "R",
+            "table": "[GPB]",
+            "templateId": "R-005",
+            "threatActor": "external",
+            "threatDescription": "Interface access repudiation — physical interface access cannot be attributed",
+            "trustBoundaryDisplayId": "GPB",
+            "trustBoundaryId": "Bh1WS2LJNXF-039DZOge-1",
+            "trustBoundaryName": "Gateway [GPB]",
+            "workflowStatus": "open"
+          },
+          "fPkPk87EWpCrjZb76VBo-3::S": {
+            "attackDescription": "Attacker connects a rogue device to the interface and impersonates a legitimate system, gaining unauthorized access",
+            "causeDescription": "No hardware authentication on the interface — any device connecting is trusted without verification",
+            "dataFlow": null,
+            "displayId": "GPB-IF1-S-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-1",
+              "elementId": "fPkPk87EWpCrjZb76VBo-3",
+              "elementName": "CAN",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-S-001"
+              },
+              {
+                "id": "M-S-008"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-S-001"
+              },
+              {
+                "id": "V-IF-S-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "S",
+            "table": "[GPB]",
+            "templateId": "S-005",
+            "threatActor": "external",
+            "threatDescription": "Interface identity spoofing — attacker impersonates a legitimate device on the interface",
+            "trustBoundaryDisplayId": "GPB",
+            "trustBoundaryId": "Bh1WS2LJNXF-039DZOge-1",
+            "trustBoundaryName": "Gateway [GPB]",
+            "workflowStatus": "open"
+          },
+          "fPkPk87EWpCrjZb76VBo-3::T": {
+            "attackDescription": "Attacker modifies the interface hardware or firmware to intercept, inject, or block communications",
+            "causeDescription": "Interface lacks tamper detection and physical protection — unauthorized modification is possible without detection",
+            "dataFlow": null,
+            "displayId": "GPB-IF1-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-1",
+              "elementId": "fPkPk87EWpCrjZb76VBo-3",
+              "elementName": "CAN",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "alreadyImplemented": true,
+                "id": "M-IF-T-001",
+                "implementedByProperty": "implementedControls.physicalAccessProtection",
+                "implementedByValue": "inside_enclosure"
+              },
+              {
+                "id": "M-IF-T-002"
+              },
+              {
+                "id": "M-IF-T-003"
+              },
+              {
+                "id": "M-IF-T-004"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[GPB]",
+            "templateId": "T-007",
+            "threatActor": "external",
+            "threatDescription": "Interface tampering — attacker physically or logically tampers with the interface",
+            "trustBoundaryDisplayId": "GPB",
+            "trustBoundaryId": "Bh1WS2LJNXF-039DZOge-1",
+            "trustBoundaryName": "Gateway [GPB]",
+            "workflowStatus": "open"
+          },
+          "fPkPk87EWpCrjZb76VBo-5::R": {
+            "attackDescription": "External entity denies having sent a command that the system received and acted upon",
+            "causeDescription": "No non-repudiation mechanism — requests from external entities are not cryptographically bound to the sender",
+            "dataFlow": null,
+            "displayId": "EE2-R-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "EE-2",
+              "elementId": "fPkPk87EWpCrjZb76VBo-5",
+              "elementName": "Other ECUs",
+              "elementType": "ExternalEntity"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-R-001"
+              },
+              {
+                "id": "M-R-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-R-001"
+              },
+              {
+                "id": "V-R-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "R",
+            "table": "[EE]",
+            "templateId": "R-001",
+            "threatActor": "external",
+            "threatDescription": "External entity repudiation — external entity denies having sent a request",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "External Entities",
+            "workflowStatus": "open"
+          },
+          "fPkPk87EWpCrjZb76VBo-5::S": {
+            "attackDescription": "Attacker crafts requests that appear to originate from a legitimate external entity",
+            "causeDescription": "No authentication mechanism enforced for external entities",
+            "dataFlow": null,
+            "displayId": "EE2-S-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "EE-2",
+              "elementId": "fPkPk87EWpCrjZb76VBo-5",
+              "elementName": "Other ECUs",
+              "elementType": "ExternalEntity"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-S-001"
+              },
+              {
+                "id": "M-S-002"
+              },
+              {
+                "id": "M-S-004"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-S-001"
+              },
+              {
+                "id": "V-S-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "S",
+            "table": "[EE]",
+            "templateId": "S-001",
+            "threatActor": "external",
+            "threatDescription": "External entity identity spoofing — attacker impersonates a legitimate external entity",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "External Entities",
+            "workflowStatus": "open"
+          }
+        }
+      },
+      "per-interaction": {
+        "skipped": "disabled by the regulation preset"
+      }
+    }
+  }
+}
