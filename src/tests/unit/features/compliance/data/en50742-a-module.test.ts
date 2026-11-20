@@ -8,6 +8,7 @@ import { readFileSync } from "node:fs";
 import {
   EDITION_EN50742_A,
   EN50742_A_REQUIREMENT_IDS,
+  EN50742_B_REQUIREMENT_IDS,
   EN50742_A_RULES,
   EN50742_A_TEXTS,
   REQUIREMENT_IDS,
@@ -115,7 +116,9 @@ describe("one lookup for every family", () => {
   it("EN 50742 ids never collide with IEC 62443 ids", () => {
     const iec = new Set<string>(REQUIREMENT_IDS);
     expect(EN50742_A_REQUIREMENT_IDS.filter((id) => iec.has(id))).toEqual([]);
-    expect(RULES_BY_ID.size).toBe(REQUIREMENT_IDS.length + EN50742_A_REQUIREMENT_IDS.length);
-    expect(Object.keys(TEXTS_BY_ID)).toHaveLength(REQUIREMENT_IDS.length + EN50742_A_REQUIREMENT_IDS.length);
+    // + the ids Approach B adds (en50742-b-module.test.ts)
+    const all = REQUIREMENT_IDS.length + EN50742_A_REQUIREMENT_IDS.length + EN50742_B_REQUIREMENT_IDS.length;
+    expect(RULES_BY_ID.size).toBe(all);
+    expect(Object.keys(TEXTS_BY_ID)).toHaveLength(all);
   });
 });

@@ -7,7 +7,9 @@
 // (coverage §9.3). Selected by the tag EN50742_A and its aliases (standard
 // registry). Scope is the whole machine — the family has no component.
 
-import type { Edition, EditionRow, En50742RequirementId } from "../models/compliance-types";
+import type { Edition, EditionRow, EN50742_A_REQUIREMENT_IDS } from "../models/compliance-types";
+
+type En50742RequirementId = (typeof EN50742_A_REQUIREMENT_IDS)[number];
 
 /** The row groups of Approach A, in display order (model coverage plan §8.1). */
 export const EN50742_A_GROUPS = [

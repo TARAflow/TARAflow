@@ -5,10 +5,10 @@
 // the content: en-50742-rq-coverage.md §9.2). checklistDe: the German
 // checklist of the rule, same order.
 
-import type { En50742RequirementId } from "../models/compliance-types";
+import type { EN50742_A_REQUIREMENT_IDS } from "../models/compliance-types";
 import type { RequirementText } from "./requirement-texts";
 
-export const EN50742_A_TEXTS: Readonly<Record<En50742RequirementId, RequirementText>> = {
+export const EN50742_A_TEXTS: Readonly<Record<(typeof EN50742_A_REQUIREMENT_IDS)[number], RequirementText>> = {
   // ── Threat assessment ──────────────────────────────────────────────────
   "en-4.3-217": {
     title: "Threat assessment based on the risk assessment",

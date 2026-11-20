@@ -1,6 +1,6 @@
 # TARAflow — prEN 50742 requirement coverage
 
-**Status:** v0.4 · 2026-11-14 · v0.4: Approach B rows from the text (§6: Clauses 6 and 8 complete, findings B-F1 … B-F8 decided (O13 – O16, user 2026-11-14), row list of the sub-tab `en-50742-b`; 0.20, roadmap) — source checked again: BSI DPC 25/30551049 DC (2025-12-05) carries the same CENELEC enquiry draft, line numbers identical · v0.3: CT-A rows evaluate (CM-12, CM-12b) and are in the report (CM-13) — §4, §5, §7 rows with a CT-A row set to met / tracked with test references · v0.2: the §9.2 rows are the module `en-50742-a` (CM-11; completeness test) · source: prEN 50742:2025 (E), Draft for Enquiry
+**Status:** v0.5 · 2026-11-20 · v0.5: Approach B data in the code (0.20 patch 09: edition `en-50742-b` derived from the 2019 edition and Table 4, rules and texts of the new EN rows; not switched on yet — evaluation patch 10, retention field 11, preset / tag / UI / report 12) · v0.4: Approach B rows from the text (§6: Clauses 6 and 8 complete, findings B-F1 … B-F8 decided (O13 – O16, user 2026-11-14), row list of the sub-tab `en-50742-b`; 0.20, roadmap) — source checked again: BSI DPC 25/30551049 DC (2025-12-05) carries the same CENELEC enquiry draft, line numbers identical · v0.3: CT-A rows evaluate (CM-12, CM-12b) and are in the report (CM-13) — §4, §5, §7 rows with a CT-A row set to met / tracked with test references · v0.2: the §9.2 rows are the module `en-50742-a` (CM-11; completeness test) · source: prEN 50742:2025 (E), Draft for Enquiry
 (CLC/TC 44X), licensed copy · code base: `main` 3570655c (CM-2) · v0.1: rows of Approach A
 mapped to the Compliance sub-tab `en-50742-a` (§9, user 2026-11-02); Approach B deferred
 **Belongs to:** `en-50742-approach-a-design.md` (Approach A) and the Compliance sub-tab
@@ -197,7 +197,8 @@ the status; the HDR / NDR / SAR variants appear as "recommended (analogy, B-F3)"
 out of the met / open summary [D]. If the final EN corrects Table 4, the recommendation
 becomes a required row — a data change under O1.
 
-**B-F4 — Scope: "for their safety function(s)".** Tables 3 and 4 apply to the system /
+**B-F4 — Scope: "for their safety function(s)".** *(O15 below is replaced by **O17** —
+scope from the interfaces, user 2026-11-20; §10.)* Tables 3 and 4 apply to the system /
 component **for its safety functions**; 8.3/479–480 extends a mixed component to the full
 table. TARAflow can derive the safety path already (§9.2, CM-12b: from safety-function
 assets backwards along the flows). **Decided (O15, user 2026-11-14):** the rows are evaluated on the DFD elements on a path to
@@ -264,6 +265,15 @@ requirement ids, same model rules, statements shared inside the family `iec-6244
 
 26 counted rows from the 2019 edition plus 12 recommended ones (O14). The completeness test of the
 module reads this table, as `en50742-a-module.test.ts` does for §9.2.
+
+**Implemented (0.20 patch 09):** `features/compliance/data/edition-en-50742-b.ts` derives the
+Table 4 rows from the 2019 edition (`EN50742_B_TABLE_4`: listed requirement + its REs with
+lowest SL-C ≤ the SL of the FR; the HDR / NDR / SAR variants of the EDR-only rows as
+`recommended`), `family: "iec-62443-4-2"` on those rows (statements shared, K-6),
+`fixedSlTarget`; the new EN ids `en-6-257`, `en-8.2-458`, `en-8.3-471`, `en-8.3-473`,
+`en-8.3-479`, `en-8.5-487` (rules and texts — statements until patches 10 / 11 give
+8.3/473, 8.3/479 and 8.5 their checks); 8.4 uses `en-7.5-444`. Test:
+`en50742-b-module.test.ts` reads this table.
 
 ## 7. Clause 9 — Information for use
 
@@ -388,3 +398,4 @@ of rows per status. Header kind `srsl` next to `security-levels` and `conformanc
 | O14 | B-F3: Table 4 EDR-only rows. **Decided 2026-11-14:** literal for the status; HDR / NDR / SAR variants shown as recommended, not counted. Re-check with the final EN (O1). | done |
 | O15 | B-F4: scope. **Decided 2026-11-14:** elements on a path to a safety function (CM-12b search), mixed elements in full, outside = out of scope, no safety function = unknown. | done |
 | O16 | B-F7. **Decided 2026-11-14:** preset `en-50742-b` = the `standard` factors without `motive` (4.3/242 is common to both approaches). | done |
+| O17 | **Scope = interfaces (user 2026-11-20), replaces O15 for B and applies to A too.** EN 50742 is about the interfaces to the safety functions and the data flows crossing them. The model rows of both approaches are evaluated on: the interfaces on a path to a safety function, the data flows crossing them, and the elements those flows reach directly (the process / store behind the interface, its chip and physical boundary). Elements without such a crossing flow are out of scope (listed, never met); a mixed element in scope is evaluated in full (8.3/479); no safety function = `unknown`. For A this changes the results of the model rows (7.3.2, 7.3.3, 7.3.5, 7.4.3.5.1 — today the whole machine): release note, results dump. | 0.20 patch 10 |

@@ -13,7 +13,9 @@
 // R and P are read from the En50742View (CM-12, evaluate-en50742.ts). Type
 // A / B / C as for IEC 62443 (D-11).
 
-import type { EvidenceRule, En50742RequirementId } from "../models/compliance-types";
+import type { EvidenceRule, EN50742_A_REQUIREMENT_IDS } from "../models/compliance-types";
+
+type En50742RequirementId = (typeof EN50742_A_REQUIREMENT_IDS)[number];
 
 /** Elements that log interventions: a process recording them, or an audit log store. */
 const LOGGING = [
