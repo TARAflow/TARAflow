@@ -213,6 +213,11 @@ export const MODEL_CONDITIONS = {
     const certificate = (v: unknown) => v === "certificate" || v === "mtls" || v === "mutual_tls";
     return channels.length > 0 || certificate(prop(c.element, "boundaryAuthentication")) || certificate(prop(c.element, "authenticationRequired"));
   },
+  /** The data store holds audit logs (storedDataTypes contains audit_logs). */
+  storesAuditRecords: (c: VisibilityContext): boolean => {
+    const types = prop(c.element, "storedDataTypes");
+    return c.element.type === "DataStore" && Array.isArray(types) && types.includes("audit_logs");
+  },
   /** Updates are installed automatically (F-27 updateDelivery = automatic on an updatable element). */
   automaticUpdates: (c: VisibilityContext): boolean =>
     MODEL_CONDITIONS.updatable(c) && prop(c.element, "updateDelivery") === "automatic",
@@ -316,6 +321,14 @@ export const SECURITY_CONFIG_REPORTING_VALUES = ["not_specified", "none", "reada
  * DataStore.deletionMechanism (CR 4.2).
  */
 export const USER_DATA_DELETION_VALUES = ["not_specified", "none", "by_user", "factory_reset", "both"] as const;
+
+/**
+ * EN 50742 (B-F6, O8, 0.20): how long the audit records a store holds are
+ * kept — 8.5 (Approach B: CR 2.8 records ≥ 5 years) and 7.3.4 (Approach A:
+ * the last intervention per type ≥ 5 years). Steps, not a number (user
+ * 2026-11-20); only on stores that hold audit logs.
+ */
+export const AUDIT_RECORD_RETENTION_VALUES = ["not_specified", "under_1_year", "1_to_5_years", "at_least_5_years", "unlimited"] as const;
 
 /** Stored data types that count as user data (EN 303 645 5.11-1: personal data, user configuration, keys and passwords). */
 const USER_DATA_TYPES: readonly unknown[] = ["pii", "credentials", "keys_certificates", "config"];
@@ -487,6 +500,13 @@ export const MODEL_FIELDS: readonly ModelField[] = [
     elementTypes: ["Process", "Multiprocess"],
     values: ROLE_MAPPING_VALUES,
     shownWhen: MODEL_CONDITIONS.roleBasedAuthorization,
+  },
+  {
+    property: "auditRecordRetention",
+    group: "data",
+    elementTypes: ["DataStore"],
+    values: AUDIT_RECORD_RETENTION_VALUES,
+    shownWhen: MODEL_CONDITIONS.storesAuditRecords,
   },
   inside("innerInputValidation", INNER_INPUT_VALIDATION_VALUES, "robustness"),
   inside("innerErrorHandling", INNER_ERROR_HANDLING_VALUES, "robustness"),

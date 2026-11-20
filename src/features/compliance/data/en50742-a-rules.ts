@@ -63,7 +63,26 @@ const RULES = [
     targets: LOGGING,
     checklist: ["the evidence can be read", "the access to it is documented", "it is collected automatically"],
   },
-  { id: "en-7.3.4-317", type: "C", targets: [] },
+  {
+    // B-F6 (0.20): the retention field of the audit-record store (≥ 5 years)
+    id: "en-7.3.4-317",
+    type: "B",
+    quantifier: "any",
+    withoutTarget: { status: "gap", reason: "noAuditRecordStore" },
+    targets: [
+      // the records must be kept somewhere: some store in scope holds audit
+      // logs for ≥ 5 years — none (or a shorter one) is a gap a statement can
+      // close (e.g. "the records are kept in the plant's log server")
+      {
+        elementTypes: ["DataStore"],
+        satisfiedIfAll: [
+          { property: "storedDataTypes", in: ["audit_logs"] },
+          { property: "auditRecordRetention", in: ["at_least_5_years", "unlimited"] },
+        ],
+      },
+    ],
+    checklist: ["the last intervention of each type is kept, counted from putting into service"],
+  },
   {
     id: "en-7.3.5-321",
     type: "B",

@@ -36,5 +36,6 @@ export const EN50742_B_TEXTS: Readonly<Record<(typeof EN50742_B_REQUIREMENT_IDS)
     title: "Audit records kept for 5 years",
     en: "The audit records of the safety functions (CR 2.8) are kept for at least five years.",
     de: "Die Audit-Aufzeichnungen der Sicherheitsfunktionen (CR 2.8) bleiben mindestens fünf Jahre erhalten.",
+    checklistDe: ["die Aufzeichnungen überstehen einen Neustart und den Austausch der Komponente"],
   },
 };

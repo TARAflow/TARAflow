@@ -126,3 +126,9 @@ the `en-50742-a` sub-tab that list unrated risks (7.4.2, 7.4.3.x, 4.3/229) no lo
 the process and store risks of Simple_Test_Project (R-P1-*, R-DB-S-1) and the flow risks
 off the path (R-DF4-*). No status changes in the examples.
 
+**Patch 13 — retention of the audit records (B-F6).** EN-7.3.4 of Approach A is a model
+row now (was a statement row): some data store in scope holds audit logs for at least
+5 years. Simple_Test_Project (both): no data store in the scope → *gap* "no data store in
+scope keeps the audit logs" (was *needs statement*); cnc-ref: *unknown* (no relevant
+interface, patch 11).
+

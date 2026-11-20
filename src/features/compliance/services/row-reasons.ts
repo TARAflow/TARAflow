@@ -37,6 +37,7 @@ export const REASON_TEXTS = {
   noElRatedInterface: "no EL-rated interface yet: {{list}}",
   srslZeroExposed: "SRSL 0 on an interface above EL0",
   noSrsl: "no SRSL determined",
+  noAuditRecordStore: "no data store in scope keeps the audit logs — keep them for at least 5 years or state where they are kept",
   noSystemCountermeasure: "no Table 4 requirement is met only with countermeasures of the machinery system",
   nameCountermeasures: "met only with countermeasures of the machinery system — name them in the information for use: {{list}}",
   evaluatedInFull: "the relevant elements are evaluated in full, not only their safety part",

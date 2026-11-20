@@ -565,6 +565,16 @@
             "both": "Both"
           }
         },
+        "auditRecordRetention": {
+          "label": "Audit records kept",
+          "help": "How long the audit records of this store are kept. EN 50742 asks for at least five years: 8.5 (Approach B, the auditable events of CR 2.8 for the safety functions) and 7.3.4 (Approach A, the last intervention of each type). Shown only for stores that hold audit logs.",
+          "values": {
+            "under_1_year": "Less than 1 year",
+            "1_to_5_years": "1 to 5 years",
+            "at_least_5_years": "At least 5 years",
+            "unlimited": "Unlimited"
+          }
+        },
         "loginLockout": {
           "label": "After failed logins",
           "help": "What this element does after consecutive failed login attempts: nothing, a delay or rate limit, a lock for a period, or a lock until an administrator unlocks. It counts the attempts because it verifies the login — a port does not see logins. IEC 62443-4-2 CR 1.11 asks for a limit and a lock; ETSI EN 303 645 5.1-5 and EN 18031 AUM-6 also accept a delay.",

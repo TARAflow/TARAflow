@@ -187,6 +187,7 @@
       "noSrsl": "kein SRSL ermittelt",
       "noSafetyScope": "keine Safety-Zone und keine Safety Function — die Schnittstellen, die EN 50742 bewertet, sind nicht bekannt",
       "noRelevantInterface": "kein Interface und kein Datenfluss kreuzt die Safety-Zone oder führt zu einer Safety Function — Safety Functions mit dem DFD verknüpfen oder die Zone zeichnen",
+      "noAuditRecordStore": "kein Datenspeicher im Scope hält die Audit-Logs — mindestens 5 Jahre aufbewahren oder angeben, wo sie aufbewahrt werden",
       "noSystemCountermeasure": "keine Anforderung aus Tabelle 4 ist nur mit Gegenmassnahmen des Maschinensystems erfüllt",
       "nameCountermeasures": "nur mit Gegenmassnahmen des Maschinensystems erfüllt — in der Benutzerinformation nennen: {{list}}",
       "evaluatedInFull": "die relevanten Elemente werden vollständig bewertet, nicht nur ihr Sicherheitsteil"

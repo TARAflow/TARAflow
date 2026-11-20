@@ -98,3 +98,39 @@ describe("EN 50742 A — risks on not relevant anchors have no SRSL at all (O18)
     for (const r of none) expect(!r.anchorId || !relevant.has(r.anchorId), r.label).toBe(true);
   });
 });
+
+describe("EN 50742 — retention of the audit records (B-F6, patch 13)", () => {
+  const withAuditStore = (retention?: string) => {
+    const p = project();
+    const ds = p.dfd!.elements.find((e) => e.id === "DS-3")!; // in the relevance scope
+    ds.properties = {
+      ...(ds.properties as object),
+      storedDataTypes: ["audit_logs"],
+      ...(retention ? { auditRecordRetention: retention } : {}),
+    } as typeof ds.properties;
+    (p.dfd as unknown as Record<string, unknown>).graph = undefined;
+    return p;
+  };
+  const statusOf = (p: Project, edition: typeof EDITION_EN50742_B | typeof EDITION_EN50742_A, label: string) =>
+    rowOf(prepareProjectCompliance(p)!.evaluate(edition).achieved.rows, label).status;
+
+  it("B 8.5 and A 7.3.4: at least 5 years meets the model part, less fails it, unset is unknown", () => {
+    for (const [edition, label] of [[EDITION_EN50742_B, "EN-8.5/487–488"], [EDITION_EN50742_A, "EN-7.3.4/317–319"]] as const) {
+      expect(statusOf(withAuditStore("at_least_5_years"), edition, label), label).toBe("met");
+      expect(statusOf(withAuditStore("unlimited"), edition, label), label).toBe("met");
+      expect(statusOf(withAuditStore("1_to_5_years"), edition, label), label).toBe("gap");
+      expect(statusOf(withAuditStore(), edition, label), label).toBe("unknown");
+    }
+  });
+
+  it("no audit-log store in the scope: a gap a statement can close — never n/a", () => {
+    // a scope without any data store (Simple_Test_Project-like): still a gap
+    const noStores = project();
+    noStores.dfd = { ...noStores.dfd!, elements: noStores.dfd!.elements.filter((e) => e.type !== "DataStore") };
+    (noStores.dfd as unknown as Record<string, unknown>).graph = undefined;
+    const row = rowOf(prepareProjectCompliance(noStores)!.evaluate(EDITION_EN50742_B).achieved.rows, "EN-8.5/487–488");
+    expect(row).toMatchObject({ status: "gap", reason: { code: "noAuditRecordStore" } });
+    expect(statusOf(project(), EDITION_EN50742_B, "EN-8.5/487–488")).toBe("gap");
+    expect(statusOf(project(), EDITION_EN50742_A, "EN-7.3.4/317–319")).toBe("gap");
+  });
+});

@@ -119,7 +119,7 @@ sets `likelihoodFactorIds: ["exposure_level", "attacker_capability"]`.
 | EN-7.3.1/281 | Types of interventions to be considered (list a–e) | – | track | [N] | **tracked** — CT-A statement row | CT-A | `evaluate-matrix.en50742.test.ts`, report `compliance-matrix-chapter.test.ts` |
 | EN-7.3.2/295–296 | Record interventions that change software or data; minimum content | 1.1.9, 1.2.1f | track | [N] | **tracked** — CT-A model row (logging element) + checklist | CT-A | `evaluate-matrix.en50742.test.ts`, report `compliance-matrix-chapter.test.ts` |
 | EN-7.3.3/304–311 | Means for traceability; readable/accessible evidence; documentation how to access; automatic collection | 1.1.9, 1.2.1f | track | [N] | **tracked** — CT-A model row + checklist (readable, documented access, automatic) | CT-A | `evaluate-matrix.en50742.test.ts`, report `compliance-matrix-chapter.test.ts` |
-| EN-7.3.4/317–319 | Storage: last intervention of each type; ≥ 5 years; from putting into service | 1.1.9, 1.2.1f | track | [N] | **tracked** — CT-A statement row (B with the audit cluster F-11 … F-14) | CT-A | `evaluate-matrix.en50742.test.ts`, report `compliance-matrix-chapter.test.ts` |
+| EN-7.3.4/317–319 | Storage: last intervention of each type; ≥ 5 years; from putting into service | 1.1.9, 1.2.1f | track | [N] | **tracked** — CT-A row B: retention field of the audit-log store (0.20 patch 13) + checklist | CT-A | `evaluate-matrix.en50742.test.ts`, report `compliance-matrix-chapter.test.ts` |
 | EN-7.3.5/321–322 | Logs protected against tampering; deletion only by authorised procedure | – | track | [N] | **tracked** — CT-A model row (audit log stores integrity protected) + checklist | CT-A | `evaluate-matrix.en50742.test.ts`, report `compliance-matrix-chapter.test.ts` |
 
 ### 7.4 Protection measures against corruption
@@ -163,7 +163,7 @@ and 8 (text checked 2026-11-14).
 | EN-8.3/473–478 | Compensating countermeasures of the machinery system may count for a component (CCSC 2): a component may have a lower SL-C than Table 4 when the system provides countermeasures so that the system reaches the SL-C of Table 3; then the component's information for use names the needed countermeasures and the CRs it does not meet | 1.1.9, 1.2.1f | track + doc | [N] | **partial** — supporting measures and claims exist (D-14, "with measures of the system"); the link to Table 3 and to the information for use is missing | CT-B | supporting-measure evaluation of the 62443 sub-tabs |
 | EN-8.3/479–480 | Components serving safety **and** non-safety functions comply with Table 4 as well | 1.1.9, 1.2.1f | track | [N] | **gap** — scope rule (B-F4) | CT-B | – |
 | EN-8.4/482–484 | Software versions and configuration relevant for safety functions available on demand, human-readable (built-in or external tool) | 1.2.1f | track | [N] | **gap** — same content as EN-7.5/444–445 of Approach A (statement row, O9) | CT-B | – |
-| EN-8.5/487–488 | Audit records of CR 2.8 (auditable events) persist for at least 5 years; for safety functions only (NOTE) | – (B-F2) | track | [N] | **gap** — no retention field (O8, B-F6) | CT-B | – |
+| EN-8.5/487–488 | Audit records of CR 2.8 (auditable events) persist for at least 5 years; for safety functions only (NOTE) | – (B-F2) | track | [N] | **tracked** — CT-B row B: `auditRecordRetention` of the audit-log store in the safety scope ≥ 5 years (0.20 patch 13) + checklist | CT-B | `evaluate-matrix.en50742-b.test.ts` |
 
 ### 6.1 Findings from the B pass (decide before coding)
 
@@ -281,8 +281,10 @@ carry `recommended` and are left out of the SL-C (`vectorOf`); the scope is the 
 relevance scope (O17, as Approach A); 8.3/479 is a project check `safety-scope` (met when
 the scope has elements); 8.3/473 (CCSC 2) is met by the model when no Table 4 row is met
 only with countermeasures of the system, otherwise it lists those rows for a statement
-(`withSystemCountermeasures`). Test: `evaluate-matrix.en50742-b.test.ts`. Still a statement:
-8.5 (retention field, patch 13). Not switched on (patch 14).
+(`withSystemCountermeasures`). Test: `evaluate-matrix.en50742-b.test.ts`. 8.5 and 7.3.4 read the
+retention field `auditRecordRetention` of the data stores in scope (patch 13: some store
+holds audit logs ≥ 5 years; none → gap with a statement to close it, never n/a). Not
+switched on (patch 14).
 
 ## 7. Clause 9 — Information for use
 
@@ -345,7 +347,7 @@ Row ids are the ids of this list (unqualified inside the family `en-50742`, name
 | Information collection (7.3) | EN-7.3.1/281 | C | S | statement: which intervention types a–e the machine has and which are logged | CR 2.8 |
 | | EN-7.3.2/295–296 | B | M + S | an element on the safety path logs changes (`nonRepudiation` ∈ audit_log / digital_signature / hardware_backed, or an `audit_logs` store). Checklist: minimum content of each record | CR 2.8, CR 2.9 |
 | | EN-7.3.3/304–311 | B | M + S | as above, plus a readable access path. Checklist: evidence readable, access documented, collection automatic | CR 2.8 |
-| | EN-7.3.4/317–319 | C | S | statement: last intervention per type kept ≥ 5 years from putting into service (B once the audit cluster F-11 … F-14 brings a retention field) | CR 2.9 |
+| | EN-7.3.4/317–319 | B | M + S | the audit-log store has `auditRecordRetention` ≥ 5 years (B-F6, 0.20 patch 13); checklist: last intervention per type, counted from putting into service | CR 2.9 |
 | | EN-7.3.5/321–322 | B | M + S | every `audit_logs` store has `integrityProtection` ≠ none. Checklist: deletion only by an authorised procedure | CR 3.9 |
 | SW identification (7.5) | EN-7.5/444–445 | C | S | statement: safety-relevant software versions and configuration readable on demand (B once F-25b `securityConfigReporting` and a version-reporting field exist, §10 O9) | HDR 3.2 RE(1), CR 7.6 |
 | Protection measures (7.4.3) | EN-7.4.3.1/347–349 | A | R | summary: every clause row below is met for every (safety function, interface) | — |

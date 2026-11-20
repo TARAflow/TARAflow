@@ -4,7 +4,7 @@
     "inputCommit": "70201b564caab195a6caa053d12e59fcf4f89beb",
     "inputFile": "Simple_Test_Project.tara.json",
     "inputSha256": "9c0f0e290cf07c10b1251a9b4e7733fb09b09d8542b4cba9d9588dddc8c16db0",
-    "taraflowCommit": "582a81de5074e94113850862198f3e02ffda9b75+modified",
+    "taraflowCommit": "1124dfed76a184db4088f993a3459fd86dca19c0+modified",
     "taraflowVersion": "0.19.0-beta",
     "threatCatalogVersion": 1
   },
@@ -197,8 +197,12 @@
             "label": "EN-7.3.4/317–319",
             "minSl": null,
             "mitigationIds": [],
-            "modelStatus": "needs-statement",
-            "status": "needs-statement",
+            "modelStatus": "gap",
+            "reason": {
+              "code": "noAuditRecordStore"
+            },
+            "reasoning": "no data store in scope keeps the audit logs — keep them for at least 5 years or state where they are kept",
+            "status": "gap",
             "supportingElements": [],
             "supportingMeasuresAllowed": false,
             "unknown": []
@@ -701,8 +705,12 @@
             "label": "EN-7.3.4/317–319",
             "minSl": null,
             "mitigationIds": [],
-            "modelStatus": "needs-statement",
-            "status": "needs-statement",
+            "modelStatus": "gap",
+            "reason": {
+              "code": "noAuditRecordStore"
+            },
+            "reasoning": "no data store in scope keeps the audit logs — keep them for at least 5 years or state where they are kept",
+            "status": "gap",
             "supportingElements": [],
             "supportingMeasuresAllowed": false,
             "unknown": []

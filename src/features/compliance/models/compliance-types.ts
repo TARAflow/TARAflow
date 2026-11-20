@@ -162,6 +162,13 @@ export interface EvidenceRule<R extends string = RequirementId> {
   /** Empty = the component as a whole (always applicable). */
   targets: readonly EvidenceTarget[];
   quantifier?: EvidenceQuantifier;
+  /**
+   * No element in scope is a target: by default the row does not apply
+   * (n/a). "gap" when the requirement holds anyway and the model just shows
+   * nothing that meets it (EN 50742 7.3.4 / 8.5: the audit records must be
+   * kept somewhere) — with this reason; a statement can close it.
+   */
+  withoutTarget?: { status: "gap"; reason: "noAuditRecordStore" };
   /** Criteria the model cannot show (type B); paraphrased, i18n in IEC-2b. */
   checklist?: readonly string[];
   /** Checklist items model fields answer (type B). */

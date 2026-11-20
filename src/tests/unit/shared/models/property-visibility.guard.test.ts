@@ -29,6 +29,8 @@ const DECLARATIVE = [
   "shared/models/field-purpose-register.ts", // names every field with its purpose, reads none
   "features/dfd/models/element-properties.ts", // the property types
   "features/compliance/data/evidence-rules.ts", // rules; the evaluator masks hidden fields
+  "features/compliance/data/en50742-a-rules.ts", // rules (EN 50742 A), masked the same way
+  "features/compliance/data/en50742-b-rules.ts", // rules (EN 50742 B), masked the same way
   "app/services/versions/", // migrations write the stored form
 ];
 const PREDICATE_USE = /\b(isFieldShown|readModelField|withoutHiddenFields)\b/;

@@ -49,6 +49,7 @@ import type {
   KEY_RENEWAL_VALUES,
   USER_ACCOUNTS_VALUES,
   USER_DATA_DELETION_VALUES,
+  AUDIT_RECORD_RETENTION_VALUES,
 } from "shared";
 
 // ==================== SHARED: IDENTITY (model coverage F-1 … F-3b, F-29) ====================
@@ -1024,6 +1025,14 @@ export interface DataStoreProperties {
    * When true: mandatory threats: Tampering (integrity), DoS (availability)
    */
   containsSafetyRelevantData?: boolean;
+
+  /**
+   * EN 50742 (B-F6, 0.20): how long the audit records of this store are kept
+   * — 8.5 / 7.3.4 ask for at least 5 years. Shown only when the store holds
+   * audit logs (MODEL_CONDITIONS.storesAuditRecords). Optional, never written
+   * as a default (roadmap rule 5).
+   */
+  auditRecordRetention?: (typeof AUDIT_RECORD_RETENTION_VALUES)[number];
 
   /**
    * Rationale for safety classification.

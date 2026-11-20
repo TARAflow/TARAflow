@@ -69,6 +69,7 @@ export const EN50742_A_TEXTS: Readonly<Record<(typeof EN50742_A_REQUIREMENT_IDS)
     title: "Retention of the evidence",
     en: "The last intervention of each kind is kept for years after putting into service.",
     de: "Der letzte Eingriff jeder Art bleibt über Jahre ab Inbetriebnahme erhalten.",
+    checklistDe: ["der letzte Eingriff jeder Art wird aufbewahrt, gezählt ab Inbetriebnahme"],
   },
   "en-7.3.5-321": {
     title: "Protection of the evidence",

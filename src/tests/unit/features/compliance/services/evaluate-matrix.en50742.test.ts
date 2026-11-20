@@ -74,9 +74,13 @@ describe("rows on risk and project evidence (until CM-12)", () => {
   });
 
   it("statement rows (type C) need a statement", () => {
-    for (const label of ["EN-7.3.1/281", "EN-7.3.4/317–319", "EN-7.5/444–445", "EN-9/491–496"]) {
+    for (const label of ["EN-7.3.1/281", "EN-7.5/444–445", "EN-9/491–496"]) {
       expect(row(run(model), label).status, label).toBe("needs-statement");
     }
+  });
+
+  it("7.3.4 reads the retention field of the audit-log store (B-F6, 0.20) — no statement row any more", () => {
+    expect(row(run(model), "EN-7.3.4/317–319").status).not.toBe("needs-statement");
   });
 });
 

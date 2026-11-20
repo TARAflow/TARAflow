@@ -235,6 +235,7 @@ export const FIELD_PURPOSE_REGISTER: Readonly<Record<RegisteredInterface, Readon
     accessModelRationale: DOC,
     multiTenant: calc("features/threats/utils/stride-modifier.ts"),
     containsSafetyRelevantData: calc("features/threats/utils/stride-modifier.ts"),
+    auditRecordRetention: calc("features/compliance/data/en50742-a-rules.ts", "features/compliance/data/en50742-b-rules.ts"),
     safetyRationale: DOC,
     securityControlOwnership: calc("app/hooks/use-security-drift.ts", "features/dfd/services/apply-control-suggestion.ts"),
     owner: DOC,

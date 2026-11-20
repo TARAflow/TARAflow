@@ -379,6 +379,7 @@ function evaluateRule(rule: EvidenceRule<AnyRequirementId>, graph: Graph, input:
         ...because("standIn", { types: targetTypes(rule.targets) }),
       });
     }
+    if (rule.withoutTarget) return outcome(rule.withoutTarget.status, because(rule.withoutTarget.reason));
     return outcome("n/a", because("noApplicable", { types: targetTypes(rule.targets) }));
   }
 

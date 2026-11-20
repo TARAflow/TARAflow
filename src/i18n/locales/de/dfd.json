@@ -565,6 +565,16 @@
             "both": "Beides"
           }
         },
+        "auditRecordRetention": {
+          "label": "Audit-Aufzeichnungen aufbewahrt",
+          "help": "Wie lange die Audit-Aufzeichnungen dieses Speichers aufbewahrt werden. EN 50742 verlangt mindestens fünf Jahre: 8.5 (Approach B, die auditierbaren Ereignisse von CR 2.8 für die Sicherheitsfunktionen) und 7.3.4 (Approach A, der letzte Eingriff je Art). Nur bei Speichern mit Audit-Logs sichtbar.",
+          "values": {
+            "under_1_year": "Weniger als 1 Jahr",
+            "1_to_5_years": "1 bis 5 Jahre",
+            "at_least_5_years": "Mindestens 5 Jahre",
+            "unlimited": "Unbegrenzt"
+          }
+        },
         "loginLockout": {
           "label": "Nach fehlgeschlagenen Logins",
           "help": "Was dieses Element nach aufeinanderfolgenden fehlgeschlagenen Anmeldeversuchen tut: nichts, eine Verzögerung bzw. Ratenbegrenzung, eine Sperre für eine Zeit oder eine Sperre bis zur Freigabe durch einen Administrator. Es zählt die Versuche, weil es die Anmeldung prüft — ein Port sieht keine Logins. IEC 62443-4-2 CR 1.11 verlangt Grenze und Sperre; ETSI EN 303 645 5.1-5 und EN 18031 AUM-6 akzeptieren auch eine Verzögerung.",
