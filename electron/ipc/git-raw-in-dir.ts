@@ -10,7 +10,8 @@
 // test 2026-11-16). The errors plugin turns every non-zero exit into an
 // error; the exit code and the output are kept from the result itself.
 
-import { simpleGit } from "simple-git";
+import { simpleGit, type SimpleGitOptions } from "simple-git";
+import { refuseGitArgs } from "./git-arg-policy";
 
 export interface RawGitResult {
   stdout: string;
@@ -18,11 +19,32 @@ export interface RawGitResult {
   code: number;
 }
 
+/**
+ * The renderer's channel (git:rawInDir): READ-ONLY git calls only
+ * (git-arg-policy.ts — roadmap 0.20). A refused call is answered like a git
+ * failure (code 128, the reason in stderr), never run. No user environment
+ * and no allowUnsafe* option: the arguments come from the renderer.
+ */
 export async function rawGitInDir(dir: string, args: string[]): Promise<RawGitResult> {
+  const refused = refuseGitArgs(args);
+  if (refused) return { stdout: "", stderr: `refused: ${refused}`, code: 128 };
+  return runGitInDir(dir, args);
+}
+
+/**
+ * Runs git in `dir` with the real exit code; never throws. For the main
+ * process's own calls with FIXED arguments (git-fixed-ops.ts) — they may pass
+ * the user's git environment and the simple-git options it needs.
+ */
+export async function runGitInDir(
+  dir: string,
+  args: string[],
+  environment?: { env: Record<string, string>; options: Partial<SimpleGitOptions> },
+): Promise<RawGitResult> {
   let exit: { code: number; stdout: string; stderr: string } | undefined;
   try {
-    const stdout = await simpleGit(dir, {
-      unsafe: { allowUnsafeHooksPath: true },
+    const git = simpleGit(dir, {
+      ...environment?.options,
       errors(error, result) {
         if (result.exitCode !== 0) {
           exit = {
@@ -34,7 +56,9 @@ export async function rawGitInDir(dir: string, args: string[]): Promise<RawGitRe
         }
         return error;
       },
-    }).raw(args);
+    });
+    const env = environment && Object.keys(environment.env).length > 0 ? environment.env : undefined;
+    const stdout = await (env ? git.env(env) : git).raw(args);
     return { stdout, stderr: "", code: 0 };
   } catch (err: unknown) {
     const e = err as { git?: { stdout?: string }; message?: string; exitCode?: number };

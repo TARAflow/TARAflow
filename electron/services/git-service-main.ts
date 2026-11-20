@@ -15,11 +15,15 @@ import type {
 import type { AuditConfig } from "audit/models/audit-types";
 import { credentialService } from "./credential-service-main";
 import { resolveGitSigning, signingFromConfig } from "./git-signing";
+import { userGitEnvironment } from "./git-environment";
 
 // ==================== GIT SERVICE ====================
 
 export class GitService {
+  /** Fixed-argument operations (commit, push, …) — with the user's git environment. */
   private git: SimpleGit;
+  /** The renderer's read-only calls (git:raw) — no user environment (roadmap 0.20). */
+  private plain: SimpleGit;
   private repoPath: string;
 
   constructor(repoPath: string) {
@@ -31,7 +35,11 @@ export class GitService {
       maxConcurrentProcesses: 6,
     };
 
-    this.git = simpleGit(options);
+    // The user's git variables (SSH command, askpass, CA certificates, config
+    // through the environment) reach commit and push — git-environment.ts.
+    const user = userGitEnvironment();
+    this.git = simpleGit({ ...options, ...user.options }).env(user.env);
+    this.plain = simpleGit(options);
   }
 
   // ==================== REPOSITORY INIT ====================
@@ -474,7 +482,8 @@ export class GitService {
    */
   async raw(command: string[]): Promise<GitOperationResult<string>> {
     try {
-      const result = await this.git.raw(command);
+      // policy-checked in git-handlers.ts (read-only); no user environment
+      const result = await this.plain.raw(command);
       return { success: true, data: result };
     } catch (error) {
       return {

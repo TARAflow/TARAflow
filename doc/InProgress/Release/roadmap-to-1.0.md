@@ -174,6 +174,14 @@ loads, and saved again loads, with the content hash 0.19 recorded at its import
   uses (rev-parse, merge-base, cat-file, show, ls-files, status, tag, log, rev-list,
   symbolic-ref); `-c` and `--config-env` refused; `core.hooksPath` set only through its
   own IPC channel without free arguments.
+  **Done** (0.20 patch 07, user 2026-11-20: `git:raw` — the bound audit repository, also
+  free arguments from the renderer — gets the same rule): `electron/ipc/git-arg-policy.ts`
+  allows read-only subcommands only (the list above plus check-attr, check-ignore,
+  `config [--get] <key>`, `remote get-url`, `tag` listing only), refuses global options
+  before the subcommand and options that run a program or write a file; init, the hooks
+  path, untracking the hook file and the component fetch run through `git:fixedOp` with
+  arguments fixed in the main process (`git-fixed-ops.ts`); `allowUnsafeHooksPath` only for
+  the fixed `.tara/hooks`.
 - **The user's git environment** (review 2026-11-20): simple-git 4 removes every `GIT_*`
   variable (and editor / pager) from the environment of the app's git calls unless named
   in `allowEnvironment` — GIT_SSH_COMMAND, GIT_SSL_CAINFO, GIT_ASKPASS, GIT_CONFIG_* do
@@ -181,6 +189,17 @@ loads, and saved again loads, with the content hash 0.19 recorded at its import
   passes them since 0.19. Decide with the rawInDir hardening: a fixed list for the main
   process's calls with fixed arguments (GitService, Resolve); none for rawInDir, whose
   arguments come from the renderer.
+  **Done** (0.20 patch 07): `electron/services/git-environment.ts` — GitService (commit,
+  push), Resolve and the component fetch inherit GIT_SSH_COMMAND, GIT_SSH(_VARIANT),
+  GIT_ASKPASS, SSH_ASKPASS, GIT_SSL_CAINFO/CAPATH/CERT/KEY, GIT_CONFIG_GLOBAL/SYSTEM/NOSYSTEM,
+  GIT_CONFIG_COUNT with its KEY/VALUE pairs, and GIT_TERMINAL_PROMPT=0; nothing else of the
+  guarded set (exec path, proxy command, template dir, external diff, editor, pager). Resolve
+  allowed every variable before. The read-only channels get none.
+- **The PAT is written into the remote URL** (found 2026-11-20 with patch 07): `push` with a
+  personal access token sets `remote set-url origin https://<token>@…` and never restores
+  it — the token stays in `.git/config` of the audit repository. To fix with the SSH key
+  field (pass the credential per call, e.g. an askpass helper or `http.extraHeader` via
+  `-c`, never in the stored URL).
 - **The SSH key field of the Audit settings** (`auth.sshKeyPath`, review 2026-11-20) never
   reaches git: it is shown, stored and remembered per project, but no code in the main
   process reads it — push and fetch use the default key, ssh-agent and `~/.ssh/config`,

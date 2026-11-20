@@ -14,7 +14,13 @@ import { rawGitInDir } from "../ipc/git-raw-in-dir";
 let dir = "";
 let first = "";
 let second = "";
-const git = (...args: string[]) => execFileSync("git", args, { cwd: dir }).toString().trim();
+const git = (...args: string[]) => {
+  try {
+    return execFileSync("git", args, { cwd: dir, stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
+  } catch {
+    return ""; // config --get of an unset key exits 1
+  }
+};
 
 beforeAll(() => {
   dir = mkdtempSync(join(tmpdir(), "raw-in-dir-"));
@@ -54,5 +60,19 @@ describe("rawGitInDir", () => {
     const r = await rawGitInDir(dir, ["show", "nope:x"]);
     expect(r.code).not.toBe(0);
     expect(r.stderr).toMatch(/nope/);
+  });
+});
+
+describe("rawGitInDir — read-only (roadmap 0.20)", () => {
+  it("refuses a hooks path through -c and never runs it: code 128, the reason in stderr", async () => {
+    const r = await rawGitInDir(dir, ["-c", "core.hooksPath=/tmp/evil", "status"]);
+    expect(r.code).toBe(128);
+    expect(r.stderr).toMatch(/^refused: /);
+  });
+
+  it("refuses setting a config value — the repository's config stays unchanged", async () => {
+    const r = await rawGitInDir(dir, ["config", "core.hooksPath", "/tmp/evil"]);
+    expect(r.code).toBe(128);
+    expect(git("config", "--get", "core.hooksPath") || "").toBe("");
   });
 });

@@ -193,6 +193,13 @@ declare global {
       ) => Promise<
         GitOperationResult<{ stdout: string; stderr: string; code: number }>
       >;
+      /** Repository changes with arguments fixed in the main process (git-fixed-ops.ts). */
+      fixedOp: (
+        op: "initRepo" | "setHooksPath" | "untrackHookFile" | "fetchTags",
+        dir: string,
+      ) => Promise<
+        GitOperationResult<{ stdout: string; stderr: string; code: number }>
+      >;
       setRepoPath: (root: string) => Promise<GitOperationResult<void>>;
 
       // Source Version Binding (Phase 2) — no bound repo needed, works via
