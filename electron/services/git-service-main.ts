@@ -16,6 +16,7 @@ import type { AuditConfig } from "audit/models/audit-types";
 import { credentialService } from "./credential-service-main";
 import { resolveGitSigning, signingFromConfig } from "./git-signing";
 import { userGitEnvironment } from "./git-environment";
+import { pushAuthConfig, storedUrlRepair } from "./git-push-auth";
 
 // ==================== GIT SERVICE ====================
 
@@ -25,6 +26,7 @@ export class GitService {
   /** The renderer's read-only calls (git:raw) — no user environment (roadmap 0.20). */
   private plain: SimpleGit;
   private repoPath: string;
+  private options: Partial<SimpleGitOptions>;
 
   constructor(repoPath: string) {
     this.repoPath = repoPath;
@@ -38,6 +40,7 @@ export class GitService {
     // The user's git variables (SSH command, askpass, CA certificates, config
     // through the environment) reach commit and push — git-environment.ts.
     const user = userGitEnvironment();
+    this.options = options;
     this.git = simpleGit({ ...options, ...user.options }).env(user.env);
     this.plain = simpleGit(options);
   }
@@ -331,27 +334,36 @@ export class GitService {
         branch = currentBranch;
       }
 
-      // Setup authentication if PAT is configured
-      if (config?.auth.method === "pat" && config.auth.patAccount) {
-        const token = await credentialService.getGitToken(
-          config.auth.patAccount,
-        );
-        if (token) {
-          // Inject token into remote URL temporarily
-          const remotes = await this.git.getRemotes(true);
-          const remoteObj = remotes.find((r) => r.name === remote);
-          if (remoteObj) {
-            const urlWithAuth = this.injectTokenIntoUrl(
-              remoteObj.refs.push,
-              token,
-            );
-            await this.git.remote(["set-url", remote, urlWithAuth]);
-          }
-        }
-      }
+      // The push URL of the remote — and, if an earlier push stored a token
+      // in it (before 0.20 the token was written into the URL and never
+      // removed), the URL without it.
+      const remotes = await this.git.getRemotes(true);
+      const remoteObj = remotes.find((r) => r.name === remote);
+      const repaired = storedUrlRepair(remoteObj?.refs.push);
+      if (repaired) await this.git.remote(["set-url", remote, repaired]);
+      const remoteUrl = repaired ?? remoteObj?.refs.push;
+
+      // Credentials for this one call (git-push-auth.ts): the token as an
+      // HTTP header, the key of the SSH key field as core.sshCommand — never
+      // stored in the repository.
+      const token =
+        config?.auth.method === "pat" && config.auth.patAccount
+          ? await credentialService.getGitToken(config.auth.patAccount)
+          : null;
+      const user = userGitEnvironment();
+      const auth = pushAuthConfig({
+        method: config?.auth.method,
+        token,
+        sshKeyPath: config?.auth.sshKeyPath,
+        remoteUrl,
+        env: user.env,
+      });
+      const git = auth.config.length
+        ? simpleGit({ ...this.options, ...user.options, config: auth.config }).env(user.env)
+        : this.git;
 
       // Push with upstream tracking
-      const result = await this.git.push([remote, branch, "--set-upstream"]);
+      const result = await git.push([remote, branch, "--set-upstream"]);
 
       // Transform simple-git result to our GitPushResult
       const transformedResult: GitPushResult = {
@@ -369,19 +381,6 @@ export class GitService {
         error: `Failed to push: ${error}`,
       };
     }
-  }
-
-  /**
-   * Inject Personal Access Token into HTTPS URL
-   * @param url - Original URL
-   * @param token - Personal Access Token
-   */
-  private injectTokenIntoUrl(url: string, token: string): string {
-    // GitHub/GitLab format: https://TOKEN@github.com/user/repo.git
-    if (url.startsWith("https://")) {
-      return url.replace("https://", `https://${token}@`);
-    }
-    return url;
   }
 
   // ==================== LOG ====================

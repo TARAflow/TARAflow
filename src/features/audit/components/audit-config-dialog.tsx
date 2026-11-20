@@ -696,7 +696,7 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
                 <Alert severity="info">
                   {t("audit.config.sshInfo", {
                     defaultValue:
-                      "SSH authentication uses your system's SSH keys (~/.ssh/id_rsa or ~/.ssh/id_ed25519).",
+                      "SSH authentication uses your SSH setup: ssh-agent, ~/.ssh/config and the default keys (~/.ssh/id_ed25519, ~/.ssh/id_rsa).",
                   })}
                 </Alert>
 
@@ -723,7 +723,8 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
                     }
                     placeholder="~/.ssh/id_ed25519"
                     helperText={t("audit.config.sshKeyPathHelp", {
-                      defaultValue: "Leave empty to use default SSH key",
+                      defaultValue:
+                        "Push uses this key (IdentitiesOnly). Empty: your SSH setup decides. GIT_SSH_COMMAND or GIT_SSH in your environment take precedence over this field.",
                     })}
                     size="small"
                     fullWidth

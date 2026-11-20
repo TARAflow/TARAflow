@@ -200,6 +200,11 @@ loads, and saved again loads, with the content hash 0.19 recorded at its import
   it — the token stays in `.git/config` of the audit repository. To fix with the SSH key
   field (pass the credential per call, e.g. an askpass helper or `http.extraHeader` via
   `-c`, never in the stored URL).
+  **Fixed** (0.20 patch 08): the token goes into the one push as
+  `-c http.extraHeader="Authorization: Basic …"` (the same credentials the URL carried);
+  a remote URL that still carries a token from an earlier push is cleaned before the
+  push. A token that was stored is still in `.git/config` backups and must be revoked —
+  release note.
 - **The SSH key field of the Audit settings** (`auth.sshKeyPath`, review 2026-11-20) never
   reaches git: it is shown, stored and remembered per project, but no code in the main
   process reads it — push and fetch use the default key, ssh-agent and `~/.ssh/config`,
@@ -208,6 +213,10 @@ loads, and saved again loads, with the content hash 0.19 recorded at its import
   the git environment: bind it (`-c core.sshCommand="ssh -i <path> -o IdentitiesOnly=yes"`
   per call in the main process; simple-git 4 needs allowUnsafeSshCommand) or remove it and
   point to `~/.ssh/config`.
+  **Bound** (0.20 patch 08, user 2026-11-20): a push with auth method "ssh" and a key path
+  runs with `-c core.sshCommand="ssh -i '<path>' -o IdentitiesOnly=yes"` for that call
+  (`electron/services/git-push-auth.ts`); GIT_SSH_COMMAND / GIT_SSH of the environment win;
+  help texts say so.
 - **Interfaces of an imported component on its physical boundary** (user 2026-11-19) appear
   on the machine's top page as attached reference copies on the border of the case copy,
   where the boundary flows cross them, set again on an update.
