@@ -54,6 +54,11 @@ export interface PhaseIndicatorInput {
   /** Stored threats the current rules would no longer / additionally generate. */
   threatDrift?: { obsolete: number; added: number };
   /**
+   * The oldest threat catalogue version among the methods whose generated
+   * threats are outdated (catalogue divergence phase A); absent = current.
+   */
+  threatCatalog?: { stored: number; current: number };
+  /**
    * DFD elements, flows and assets without a description (display ids):
    * the DFD is complete only when everything is described — a tooltip
    * without them gave no reason for "in progress" (manual test 2026-11-17).
@@ -181,8 +186,19 @@ export function phaseIndicators(input: PhaseIndicatorInput): PhaseIndicators {
   // Threats: generation drift (not a validation finding).
   const obsolete = input.threatDrift?.obsolete ?? 0;
   const added = input.threatDrift?.added ?? 0;
-  counts[PhaseId.Threats] = { errors: 0, warnings: obsolete + added };
+  const catalog = input.threatCatalog;
+  counts[PhaseId.Threats] = { errors: 0, warnings: obsolete + added + (catalog ? 1 : 0) };
   const drift: string[] = [];
+  if (catalog) {
+    drift.push(
+      t("phases.details.threatCatalog", {
+        stored: catalog.stored,
+        current: catalog.current,
+        defaultValue:
+          "Generated with threat catalogue v{{stored}}, current is v{{current}} — regenerate in the Threats tab to re-evaluate the threats",
+      }),
+    );
+  }
   if (obsolete > 0) {
     drift.push(
       t("tabs.threats.drift.banner.obsolete", {

@@ -92,6 +92,7 @@
       "credentialsInUrl": "Quell-Referenz {{url}} enthält Zugangsdaten in der URL — bereinigen (Übersicht → Quellen) und das Token beim Anbieter zurückziehen",
       "undescribed": "Ohne Beschreibung ({{count}}): {{list}}",
       "unrated": "Noch nicht entschieden — nicht bewertet oder unsicher ({{count}}): {{list}}",
+      "threatCatalog": "Mit Bedrohungskatalog v{{stored}} erzeugt, aktuell ist v{{current}} — im Threats-Tab neu generieren, um die Bedrohungen neu zu bewerten",
       "more": "… {{count}} weitere",
       "field": {
         "name": "Name",

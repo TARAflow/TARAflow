@@ -128,8 +128,8 @@ everything else.
   **Done** (0.20 patch 01): `npm run dump:results`, reference in
   `doc/Testing/results-dump/0.19/`, what it holds and what it showed in its README.
 - **Threat catalogue version stamp** (catalogue divergence design, phase A).
-  **Stamp, version, guard test, audit diff done** (0.20 patch 02); banner, tooltip and
-  report in patch 03. Every later catalogue change bumps `THREAT_CATALOG_VERSION`.
+  **Done** (0.20 patches 02 + 03): stamp per method, guard test, audit diff, banner,
+  phase tooltip, methodology. Every later catalogue change bumps `THREAT_CATALOG_VERSION`.
 - **Field purpose register + guard test** (`model-field-purpose-and-rating-context-design.md`
   phase 1) — infrastructure, no effect on files or results.
 - **`no-feature-to-feature`** depcruise rule in CI with a baseline list (rule 3.4).

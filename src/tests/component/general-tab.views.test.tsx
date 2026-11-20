@@ -278,6 +278,7 @@ describe("Overview sub-tabs (A-1)", () => {
           securityProperties: ["C", "I", "A"],
           riskMatrix: true,
           calcStamps: { risk: "iso-21434 · risk-1 · abc", path: "iso-21434 · feasibility-1 · def" },
+          threatCatalog: { current: 2, stored: { "per-element": 1 } },
         }}
         onOpenRiskTab={onOpenRiskTab}
       />,
@@ -287,6 +288,8 @@ describe("Overview sub-tabs (A-1)", () => {
     const view_ = screen.getByTestId("methodology-view");
     expect(view_.textContent).toContain("Avoid · Reduce · Share · Retain");
     expect(view_.textContent).toContain("iso-21434 · risk-1 · abc");
+    // catalogue divergence phase A: the version of the stored threats and the current one
+    expect(view_.textContent).toContain("Per element v1 · Current v2");
     expect(screen.getByTestId("methodology-scale-warning")).toBeTruthy();
     fireEvent.click(screen.getByTestId("methodology-open-risk"));
     expect(onOpenRiskTab).toHaveBeenCalled();

@@ -113,6 +113,7 @@ export type { GenerationDrift } from "./services/threat-generation-drift";
 export {
   THREAT_CATALOG_VERSION,
   isCatalogOutdated,
+  outdatedCatalog,
 } from "./services/threat-catalog-version";
 
 export { formatDataFlowDisplay } from "./models/per-interaction-types";

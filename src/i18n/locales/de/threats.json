@@ -31,6 +31,7 @@
         "review": "{{id}}: nach einer Änderung des DFD oder einer Komponente zu prüfen — {{description}}",
         "noDescription": "{{id}}: keine Bedrohungsbeschreibung",
         "orphaned": "{{id}}: sein Element oder Datenfluss ist nicht mehr im DFD — als manuelle Bedrohung behalten oder löschen — {{description}}",
+        "catalog": "Bedrohungskatalog geändert (v{{stored}} → v{{current}}): neu generieren, um die Bedrohungen neu zu bewerten — Relevanz und Notizen bleiben erhalten",
         "drift": "Generierungsregeln geändert: {{obsolete}} gespeicherte Bedrohung(en) würden nicht mehr erzeugt, {{added}} kämen hinzu"
       },
       "groups": {
@@ -374,6 +375,7 @@
           "withRisk_other": "davon {{count}} mit Risikobewertung",
           "added_one": "{{count}} Bedrohung käme hinzu",
           "added_other": "{{count}} Bedrohungen kämen hinzu",
+          "catalog": "mit Bedrohungskatalog v{{stored}} erzeugt, aktuell ist v{{current}} — neu generieren, um sie neu zu bewerten; Relevanz und Notizen bleiben erhalten",
           "review": "Prüfen"
         },
         "dialog": {

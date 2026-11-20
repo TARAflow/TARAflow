@@ -94,6 +94,7 @@
       "credentialsInUrl": "Source reference {{url}} carries credentials in its URL — clean it (Overview → Sources) and revoke the token at the provider",
       "undescribed": "Without a description ({{count}}): {{list}}",
       "unrated": "Not decided yet — unrated or uncertain ({{count}}): {{list}}",
+      "threatCatalog": "Generated with threat catalogue v{{stored}}, current is v{{current}} — regenerate in the Threats tab to re-evaluate the threats",
       "more": "… {{count}} more",
       "field": {
         "name": "Name",

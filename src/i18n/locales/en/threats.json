@@ -31,6 +31,7 @@
         "review": "{{id}}: to review after a change of the DFD or a component — {{description}}",
         "noDescription": "{{id}}: no threat description",
         "orphaned": "{{id}}: its element or flow is no longer in the DFD — keep it as a manual threat or delete it — {{description}}",
+        "catalog": "Threat catalogue changed (v{{stored}} → v{{current}}): regenerate to re-evaluate the threats — relevance and notes are kept",
         "drift": "Generation rules changed: {{obsolete}} stored threat(s) would no longer be generated, {{added}} would be added"
       },
       "groups": {
@@ -375,6 +376,7 @@
           "withRisk_other": "{{count}} of them with a risk assessment",
           "added_one": "{{count}} threat would be added",
           "added_other": "{{count}} threats would be added",
+          "catalog": "generated with threat catalogue v{{stored}}, current is v{{current}} — regenerate to re-evaluate them; relevance and notes are kept",
           "review": "Review"
         },
         "dialog": {

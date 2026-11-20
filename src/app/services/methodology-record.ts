@@ -38,6 +38,8 @@ import {
 } from "features/risks/models/risk-treatment-vocabulary";
 import type { RiskTreatment } from "features/risks/models/risk-scale-types";
 import { ISO_RISK_MATRIX_H8 } from "features/risks/models/iso-risk-matrix";
+import { THREAT_CATALOG_VERSION } from "features/threats/services/threat-catalog-version";
+import { storedCatalogVersion } from "shared/models/threat-catalog-stamp";
 
 export interface MethodologyRecord {
   /** Regulation preset (from the project tags) and its i18n name key. */
@@ -78,6 +80,29 @@ export interface MethodologyRecord {
   calcStamps?: { risk: CalcStamp; path: CalcStamp };
   /** Risk value method (iso-21434): the matrix of Annex H.8 (3a). */
   riskMatrix?: typeof ISO_RISK_MATRIX_H8;
+  /**
+   * Threat catalogue (catalogue divergence phase A): the version the stored
+   * generated threats of each method were generated with (only methods with
+   * generated threats; files before 0.20 count as 1) and the current one.
+   */
+  threatCatalog: ThreatCatalogRecord;
+}
+
+export interface ThreatCatalogRecord {
+  current: number;
+  stored: Partial<Record<"per-element" | "per-interaction", number>>;
+}
+
+function threatCatalogOf(project: Project): ThreatCatalogRecord {
+  const threats = project.threats;
+  const stored: ThreatCatalogRecord["stored"] = {};
+  const tables = { "per-element": threats?.perElementTables, "per-interaction": threats?.perInteractionTables };
+  for (const method of ["per-element", "per-interaction"] as const) {
+    if ((tables[method] ?? []).some((t) => t.threats.some((x) => x.source !== "manual"))) {
+      stored[method] = storedCatalogVersion(threats, method);
+    }
+  }
+  return { current: THREAT_CATALOG_VERSION, stored };
 }
 
 export function buildMethodologyRecord(project: Project): MethodologyRecord {
@@ -120,6 +145,7 @@ export function buildMethodologyRecord(project: Project): MethodologyRecord {
     },
     // Same set and order as the threat generator's CIANAAA_TO_STRIDE.
     securityProperties: Object.keys(CIANAAA_TO_STRIDE) as SecurityGoalType[],
+    threatCatalog: threatCatalogOf(project),
     ...(presetId === "iso-21434"
       ? {
           riskMatrix: ISO_RISK_MATRIX_H8,

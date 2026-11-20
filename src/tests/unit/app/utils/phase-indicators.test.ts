@@ -167,4 +167,19 @@ describe("phase indicators", () => {
     });
     expect(details[PhaseId.DFD]).toBeUndefined();
   });
+
+  it("threats generated with an older catalogue: one warning naming the versions", () => {
+    const { counts, details } = phaseIndicators({
+      phaseStatus: stored,
+      info,
+      dfdValidation: null,
+      threatDrift: { obsolete: 0, added: 0 },
+      threatCatalog: { stored: 1, current: 2 },
+      t,
+    });
+    expect(counts[PhaseId.Threats]).toEqual({ errors: 0, warnings: 1 });
+    expect(details[PhaseId.Threats]).toEqual([
+      "Generated with threat catalogue v1, current is v2 — regenerate in the Threats tab to re-evaluate the threats",
+    ]);
+  });
 });

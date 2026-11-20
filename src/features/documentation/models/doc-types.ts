@@ -587,6 +587,11 @@ export interface DocMethodology {
   calcStamps?: { risk: CalcStamp; path: CalcStamp };
   /** iso-21434: risk matrix (impact → feasibility → value 1–5), Annex H.8. */
   riskMatrix?: Readonly<Record<string, Readonly<Record<string, number>>>>;
+  /** Threat catalogue version per method with generated threats, and the current one. */
+  threatCatalog?: {
+    current: number;
+    stored: Partial<Record<"per-element" | "per-interaction", number>>;
+  };
 }
 
 // ==================== COMPLETE PROJECT DATA ====================

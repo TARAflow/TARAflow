@@ -100,6 +100,13 @@
           "AuthN": "Authentication (AuthN)",
           "Acc": "Accountability (Acc)"
         },
+        "threatCatalog": "Threat catalogue",
+        "threatCatalogIntro": "The catalogue version the generated threats were produced with. Threats from an older version may differ from what the current rules produce; a regeneration re-evaluates them and keeps the analyst's decisions.",
+        "threatMethod": "STRIDE method",
+        "catalogGenerated": "Generated with",
+        "catalogCurrent": "Current",
+        "perElement": "Per element",
+        "perInteraction": "Per interaction",
         "stamps": "Calculation versions",
         "stampsIntro": "Values computed now carry these stamps. A risk or attack-tree analysis with another stamp was computed with another version or other tables.",
         "stamp": "Stamp",

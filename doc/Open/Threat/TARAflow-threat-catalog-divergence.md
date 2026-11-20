@@ -1,8 +1,8 @@
 # TARAflow — Threat Catalog Divergence: Findings & Remediation Plan
 
-**Status:** Phase A in progress (0.20): stamp, version, guard test and audit diff done
-(0.20 patch 02, 2026-11-20); banner, phase tooltip and report in patch 03. Phases B–D
-open. See §8 for what changed since the analysis.
+**Status:** Phase A done (0.20 patches 02 + 03, 2026-11-20): stamp, version, guard test,
+audit diff, banner, phase tooltip, methodology. Phases B–D open. See §8 for what changed
+since the analysis.
 **Scope:** `src/features/threats/services/{per-element,per-interaction}/*`, `threat-types`, `ThreatSyncBanner`, `audit`
 **Related work:** debug-interface fix (`stride-modifier.ts` `!== true`), ChipBoundary connectivity fix (`connection-validator.ts`) — both committed
 **Author context:** raised by the question "what happens when users run TARAflow on a real project across tool updates?"
@@ -258,7 +258,14 @@ it.
   v1 → v2") — a regeneration that changes no threat is still a listed change, not an
   "unlisted" one.
 - **Results dump:** the header names `threatCatalogVersion`.
-- **Patch 03:** outdated stamp → own line in the drift banner of the Threats tab (action:
-  the regeneration with preview) and in the phase tooltip; the report's methodology names
-  the catalogue version.
+- **Display (patch 03):** generated threats of the shown method with an outdated stamp →
+  a line in the drift banner of the Threats tab (also with an empty drift) and an info row
+  in its findings panel, both leading to the regeneration with preview; the Threats phase
+  tab counts one warning and names both versions in its tooltip (the oldest outdated
+  method). Manual threats alone are nothing to re-evaluate and show nothing.
+- **Methodology:** the methodology record names the version per method with generated
+  threats and the current one — shown in the Overview's Methodology view (every preset)
+  and as a table in the report's methodology chapter (iso-21434 only, as the chapter).
+  A CRA / IEC 62443 report has no methodology chapter yet, so it does not name the
+  catalogue version.
 

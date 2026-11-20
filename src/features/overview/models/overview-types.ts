@@ -140,6 +140,11 @@ export interface MethodologySummary {
   riskMatrix: boolean;
   /** "iso-21434 · risk-1+feasibility-1 · 3f2a…" (iso-21434) */
   calcStamps?: { risk: string; path: string };
+  /** Threat catalogue version per method with generated threats, and the current one. */
+  threatCatalog?: {
+    current: number;
+    stored: Partial<Record<"per-element" | "per-interaction", number>>;
+  };
 }
 
 // ==================== VERIFICATION STATUS ====================

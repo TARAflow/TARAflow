@@ -4,6 +4,7 @@ import { describe, it, expect } from "vitest";
 import {
   THREAT_CATALOG_VERSION,
   isCatalogOutdated,
+  outdatedCatalog,
   stampCatalog,
 } from "features/threats/services/threat-catalog-version";
 import { storedCatalogVersion, UNSTAMPED_CATALOG_VERSION } from "shared";
@@ -38,5 +39,25 @@ describe("threat catalogue version", () => {
     expect(parseAndRepair(structuredClone(raw))!.threats!.catalogStamp).toBeUndefined();
     raw.threats.catalogStamp = { "per-element": 1, "per-interaction": 1 };
     expect(parseAndRepair(raw)!.threats!.catalogStamp).toEqual({ "per-element": 1, "per-interaction": 1 });
+  });
+
+  it("outdatedCatalog: the oldest outdated method with generated threats; manual threats alone count not", () => {
+    const tables = (source: string) => [{ trustBoundaryId: null, trustBoundaryName: "", displayIdentifier: "", threats: [{ source }] }] as never;
+    const threats = (pe: string, pi: string, catalogStamp?: Record<string, number>) => ({
+      perElementTables: tables(pe),
+      perInteractionTables: tables(pi),
+      ...(catalogStamp ? { catalogStamp } : {}),
+    });
+    const current = THREAT_CATALOG_VERSION;
+    expect(outdatedCatalog(null)).toBeNull();
+    expect(outdatedCatalog(threats("generated", "generated", { "per-element": current, "per-interaction": current }))).toBeNull();
+    expect(outdatedCatalog(threats("generated", "manual", { "per-element": current - 1, "per-interaction": current - 2 }))).toEqual({
+      stored: current - 1,
+      current,
+    });
+    expect(outdatedCatalog(threats("generated", "generated", { "per-element": current - 1, "per-interaction": current - 2 }))).toEqual({
+      stored: current - 2,
+      current,
+    });
   });
 });

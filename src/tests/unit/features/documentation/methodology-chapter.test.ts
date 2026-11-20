@@ -201,3 +201,31 @@ describe("methodology chapter — other presets and formats", () => {
     expect(doc.computed.methodology).toEqual(buildMethodologyRecord(ISO()));
   });
 });
+
+describe("methodology chapter — threat catalogue (catalogue divergence phase A)", () => {
+  const withThreats = (catalogStamp?: Record<string, number>) => {
+    const p = ISO();
+    (p as unknown as Record<string, unknown>).threats = {
+      configuration: { activeMethod: "per-element" },
+      perElementTables: [{ threats: [{ id: "t", source: "generated:cianaaa" }] }],
+      perInteractionTables: [{ threats: [{ id: "m", source: "manual" }] }],
+      ...(catalogStamp ? { catalogStamp } : {}),
+      lastModified: "",
+    };
+    return p;
+  };
+
+  it("names the version per method with generated threats — a file before 0.20 as v1", () => {
+    const record = buildMethodologyRecord(withThreats());
+    expect(record.threatCatalog.stored).toEqual({ "per-element": 1 });
+    const c = chapter(MarkdownGenerator, withThreats({ "per-element": 1 }));
+    expect(c.content).toContain("### Threat catalogue");
+    expect(c.content).toContain(`| Per element | v1 | v${record.threatCatalog.current} |`);
+    // manual threats alone: nothing generated, no row
+    expect(c.content).not.toContain("| Per interaction |");
+  });
+
+  it("no generated threats → no section", () => {
+    expect(chapter(MarkdownGenerator, ISO()).content).not.toContain("Threat catalogue");
+  });
+});

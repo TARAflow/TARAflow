@@ -39,6 +39,7 @@ import {
   removeThreats,
   NO_DRIFT,
 } from "../services/threat-generation-drift";
+import { THREAT_CATALOG_VERSION, isCatalogOutdated } from "../services/threat-catalog-version";
 import { ElementThreatsView } from "./per-element/element-threats-view";
 import { InteractionThreatsView } from "./per-interaction/interaction-threats-view";
 import { DFDPreviewPanel, FindingsPanel, type PanelFinding } from "shared";
@@ -51,6 +52,7 @@ import type { DFDAnalysisContext } from "shared";
 import {
   getDisabledThreatGenerators,
   regulationPresetFromTags,
+  storedCatalogVersion,
   EMPTY_PROJECT_TAGS,
 } from "shared";
 import { StrategyIndicator } from "./shared/strategy-indicator";
@@ -650,6 +652,24 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
       otherMethod,
     ],
   );
+  // ── Threat catalogue (catalogue divergence phase A) ─────────────────────
+  // The shown method's generated threats come from an older catalogue: the
+  // same key can carry other content today (texts, actor, mitigations) —
+  // invisible to the drift above. Re-evaluated by the regeneration with
+  // preview, which keeps the analyst's data. Manual threats alone: nothing
+  // to re-evaluate.
+  const hasGeneratedThreats = useMemo(
+    () => activeHook.tables.some((tb) => tb.threats.some((x) => x.source !== "manual")),
+    [activeHook.tables],
+  );
+  const catalog = useMemo(
+    () =>
+      hasGeneratedThreats && isCatalogOutdated(project.threats, activeMethod)
+        ? { stored: storedCatalogVersion(project.threats, activeMethod), current: THREAT_CATALOG_VERSION }
+        : null,
+    [hasGeneratedThreats, project.threats, activeMethod],
+  );
+
   const methodsDrifting = useMemo(
     () => [...(hasDrift(drift) ? [activeMethod] : []), ...(hasDrift(otherDrift) ? [otherMethod] : [])],
     [drift, otherDrift, activeMethod, otherMethod],
@@ -678,14 +698,31 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
         clickable: true,
       });
     }
+    if (catalog) {
+      rows.push({
+        id: "threat-catalog",
+        severity: "info",
+        text: t("tabs.threats.notifications.catalog", {
+          stored: catalog.stored,
+          current: catalog.current,
+          defaultValue:
+            "Threat catalogue changed (v{{stored}} → v{{current}}): regenerate to re-evaluate the threats — relevance and notes are kept",
+        }),
+        clickable: true,
+      });
+    }
     return rows;
     // FINDING_TEXT is a constant of the render
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tableFindings, drift, t]);
+  }, [tableFindings, drift, catalog, t]);
   const openFinding = useCallback(
     (id: string) => {
       if (id === "threat-drift") {
         setShowDriftDialog(true);
+        return;
+      }
+      if (id === "threat-catalog") {
+        openGenerateConfirm();
         return;
       }
       const f = tableFindings.find((x) => x.id === id);
@@ -693,13 +730,13 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
       setSelectedThreat({ tableIndex: f.tableIndex, threatId: f.threatId });
       setShowThreatDialog(true);
     },
-    [tableFindings],
+    [tableFindings, openGenerateConfirm],
   );
 
-  // A new drift (different counts) re-shows a dismissed banner.
+  // A new drift (different counts) or catalogue state re-shows a dismissed banner.
   useEffect(() => {
-    if (hasDrift(drift)) setShowDriftWarning(true);
-  }, [drift.obsolete.length, drift.addedCount]);
+    if (hasDrift(drift) || catalog) setShowDriftWarning(true);
+  }, [drift.obsolete.length, drift.addedCount, catalog?.stored, catalog?.current]);
 
   const handleDriftApply = useCallback(
     (keepIds: Set<string>, removeIds: Set<string>) => {
@@ -809,10 +846,11 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
       </Collapse>
 
       {/* Generation drift — stored threats vs. current rules */}
-      <Collapse in={hasDrift(drift) && showDriftWarning}>
+      <Collapse in={(hasDrift(drift) || catalog !== null) && showDriftWarning}>
         <Box sx={{ px: 2, py: 1 }}>
           <ThreatDriftBanner
             drift={drift}
+            catalog={catalog}
             riskAttachments={project.riskAttachments}
             onReview={() => setShowDriftDialog(true)}
             onRegenerate={openGenerateConfirm}

@@ -11,6 +11,12 @@ import type { ThreatRiskAttachment } from "../../models/threat-types";
 
 export interface ThreatDriftBannerProps {
   drift: GenerationDrift;
+  /**
+   * The stored threats were generated with an older threat catalogue
+   * (catalogue divergence phase A): their content may differ from today's
+   * rules although their keys match. Null = current.
+   */
+  catalog?: { stored: number; current: number } | null;
   riskAttachments?: Record<string, ThreatRiskAttachment>;
   onReview: () => void;
   onRegenerate: () => void;
@@ -18,7 +24,7 @@ export interface ThreatDriftBannerProps {
 }
 
 export const ThreatDriftBanner = React.memo<ThreatDriftBannerProps>(
-  ({ drift, riskAttachments, onReview, onRegenerate, onDismiss }) => {
+  ({ drift, catalog, riskAttachments, onReview, onRegenerate, onDismiss }) => {
     const { t } = useTranslation();
     const obsolete = drift.obsolete.length;
     const withRisk = drift.obsolete.filter(
@@ -47,6 +53,17 @@ export const ThreatDriftBanner = React.memo<ThreatDriftBannerProps>(
         t("tabs.threats.drift.banner.added", {
           count: drift.addedCount,
           defaultValue: "{{count}} threats would be added",
+        }),
+      );
+    }
+
+    if (catalog) {
+      parts.push(
+        t("tabs.threats.drift.banner.catalog", {
+          stored: catalog.stored,
+          current: catalog.current,
+          defaultValue:
+            "generated with threat catalogue v{{stored}}, current is v{{current}} — regenerate to re-evaluate them; relevance and notes are kept",
         }),
       );
     }

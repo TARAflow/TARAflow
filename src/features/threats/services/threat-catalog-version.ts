@@ -48,3 +48,24 @@ export function stampCatalog(
 ): ThreatCatalogStamp {
   return { ...stamp, [method]: THREAT_CATALOG_VERSION };
 }
+
+/**
+ * The oldest catalogue version among the methods whose stored GENERATED
+ * threats are outdated — for surfaces outside the Threats tab (the phase
+ * tooltip). Null when every method with generated threats is current.
+ * Manual threats alone are nothing to re-evaluate.
+ */
+export function outdatedCatalog(
+  threats: Pick<ThreatData, "catalogStamp" | "perElementTables" | "perInteractionTables"> | null | undefined,
+): { stored: number; current: number } | null {
+  if (!threats) return null;
+  const tables = { "per-element": threats.perElementTables, "per-interaction": threats.perInteractionTables } as const;
+  let oldest: number | null = null;
+  for (const method of ["per-element", "per-interaction"] as const) {
+    const generated = (tables[method] ?? []).some((t) => t.threats.some((x) => x.source !== "manual"));
+    if (!generated || !isCatalogOutdated(threats, method)) continue;
+    const stored = storedCatalogVersion(threats, method);
+    oldest = oldest === null ? stored : Math.min(oldest, stored);
+  }
+  return oldest === null ? null : { stored: oldest, current: THREAT_CATALOG_VERSION };
+}
