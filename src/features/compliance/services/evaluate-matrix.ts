@@ -571,6 +571,7 @@ function evaluateRow(row: AnyEditionRow, graph: Graph, input: ComplianceInput): 
     claimIds: [] as string[],
     checklist: [] as string[],
     supportingMeasuresAllowed: row.supportingMeasuresAllowed,
+    ...(row.recommended ? { recommended: row.recommended } : {}),
   };
 
   // Step 1 — void row.
@@ -698,7 +699,8 @@ export function countsWithSupport(row: RowResult): boolean {
 export function vectorOf(rows: readonly RowResult[], counts: (row: RowResult) => boolean): SlVector {
   const vector = {} as SlVector;
   for (const fr of FOUNDATIONAL_REQUIREMENTS as readonly FoundationalRequirement[]) {
-    const blocking = rows.filter((r) => r.group === fr && r.minSl !== null && !counts(r)).map((r) => r.minSl as number);
+    // recommended rows (EN 50742 B, O14) are shown, never counted
+    const blocking = rows.filter((r) => r.group === fr && r.minSl !== null && !r.recommended && !counts(r)).map((r) => r.minSl as number);
     vector[fr] = (blocking.length > 0 ? Math.min(...blocking) - 1 : 4) as SecurityLevel;
   }
   return vector;
@@ -706,9 +708,45 @@ export function vectorOf(rows: readonly RowResult[], counts: (row: RowResult) =>
 
 // ==================== ENTRY ====================
 
+/**
+ * EN 50742 B, 8.3/473 – 478 (CCSC 2): a Table 4 row the component meets only
+ * with countermeasures of the machinery system (a supporting measure, a
+ * claim, a statement "with supporting measures") must be named in the
+ * information for use, with the countermeasure. None → the row is met by
+ * the model; some → a statement confirms they are named (unless one exists).
+ */
+export const CCSC2_REQUIREMENT_ID = "en-8.3-473";
+
+function withSystemCountermeasures(rows: RowResult[], edition: ComplianceInput["edition"]): RowResult[] {
+  const index = edition.rows.findIndex((r) => r.requirementIds.includes(CCSC2_REQUIREMENT_ID as never));
+  if (index < 0) return rows;
+  const row = rows[index];
+  if (row.source === "statement") return rows;
+  const viaSystem = rows.filter(
+    (r, i) =>
+      edition.rows[i].family !== undefined &&
+      edition.rows[i].family !== edition.family &&
+      !r.recommended &&
+      (r.source === "supporting-measure" || r.source === "claim" || (r.source === "statement" && !!r.statementSupportingMeasure)),
+  );
+  const next: RowResult =
+    viaSystem.length === 0
+      ? { ...row, status: "met", modelStatus: "met", source: "model", ...because("noSystemCountermeasure") }
+      : {
+          ...row,
+          status: "needs-statement",
+          modelStatus: "needs-statement",
+          ...because("nameCountermeasures", { values: { list: viaSystem.map((r) => r.label).join(", ") } }),
+        };
+  return rows.map((r, i) => (i === index ? next : r));
+}
+
 export function evaluateMatrix(input: ComplianceInput): ComplianceResult {
   const graph = buildGraph(input);
-  const rows = input.edition.rows.map((row) => evaluateRow(row, graph, input));
+  const rows = withSystemCountermeasures(
+    input.edition.rows.map((row) => evaluateRow(row, graph, input)),
+    input.edition,
+  );
   return {
     rows,
     component: vectorOf(rows, countsForComponent),

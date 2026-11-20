@@ -37,6 +37,9 @@ export const REASON_TEXTS = {
   noElRatedInterface: "no EL-rated interface yet: {{list}}",
   srslZeroExposed: "SRSL 0 on an interface above EL0",
   noSrsl: "no SRSL determined",
+  noSystemCountermeasure: "no Table 4 requirement is met only with countermeasures of the machinery system",
+  nameCountermeasures: "met only with countermeasures of the machinery system — name them in the information for use: {{list}}",
+  evaluatedInFull: "the relevant elements are evaluated in full, not only their safety part",
   noSafetyScope: "no safety zone and no safety function — the interfaces EN 50742 assesses are not known",
   noRelevantInterface: "no interface or data flow crosses the safety zone or leads to a safety function — link the safety functions to the DFD or draw the zone",
 } as const;

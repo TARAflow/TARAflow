@@ -187,6 +187,11 @@ export interface RowResult {
   statementModelChanged?: boolean;
   /** A statement on a device row that no longer applies is kept, not deleted (K-C1). */
   statementSuperseded?: boolean;
+  /**
+   * Shown and evaluated, not counted — outside the met / open summary and
+   * the SL-C (EN 50742 B, O14), with the reason.
+   */
+  recommended?: string;
   /** The statement names a supporting measure. */
   statementSupportingMeasure?: string;
   supportingMeasuresAllowed: boolean;

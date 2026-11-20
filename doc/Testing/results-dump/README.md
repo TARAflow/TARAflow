@@ -120,3 +120,9 @@ examples change; the other twelve are as in 0.19.
   interface or data flow crosses the safety zone or leads to a safety function" instead
   of a list of unset properties.
 
+**Patch 12 — risks without SRSL are not "unrated".** A risk on an anchor that is not
+EN 50742 relevant has no SRSL at all (undefined), not "not rated yet" (null): the rows of
+the `en-50742-a` sub-tab that list unrated risks (7.4.2, 7.4.3.x, 4.3/229) no longer name
+the process and store risks of Simple_Test_Project (R-P1-*, R-DB-S-1) and the flow risks
+off the path (R-DF4-*). No status changes in the examples.
+

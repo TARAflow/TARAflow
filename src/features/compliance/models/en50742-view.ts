@@ -60,6 +60,11 @@ export interface En50742View {
    */
   interfaces: { exposed: readonly string[]; unrated: readonly string[] };
   risks: readonly En50742Risk[];
+  /**
+   * O17 / O18: how the EN 50742 relevant interfaces and flows were found
+   * and how many there are (0 = the model rows have no scope).
+   */
+  relevance?: { mode: "zone" | "path" | "none"; count: number };
 }
 
 export interface En50742SafetyFunction {

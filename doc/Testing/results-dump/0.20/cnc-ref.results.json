@@ -4,7 +4,7 @@
     "inputCommit": "70201b564caab195a6caa053d12e59fcf4f89beb",
     "inputFile": "cnc-ref.tara.json",
     "inputSha256": "e2e57b65329ec60bdb4a6ecda548ebbd59444a59c12509e06ec80adfae29f99d",
-    "taraflowCommit": "72d7fb35b1f1677f4bc954e4dc67640af2034265+modified",
+    "taraflowCommit": "582a81de5074e94113850862198f3e02ffda9b75+modified",
     "taraflowVersion": "0.19.0-beta",
     "threatCatalogVersion": 1
   },

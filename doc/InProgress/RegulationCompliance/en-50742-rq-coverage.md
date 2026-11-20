@@ -275,6 +275,15 @@ lowest SL-C ≤ the SL of the FR; the HDR / NDR / SAR variants of the EDR-only r
 8.3/473, 8.3/479 and 8.5 their checks); 8.4 uses `en-7.5-444`. Test:
 `en50742-b-module.test.ts` reads this table.
 
+**Evaluated (0.20 patch 12):** the Table 4 rows read the statements of the family
+`iec-62443-4-2` (`editionStatements` per row family, K-6); recommended rows are evaluated,
+carry `recommended` and are left out of the SL-C (`vectorOf`); the scope is the EN 50742
+relevance scope (O17, as Approach A); 8.3/479 is a project check `safety-scope` (met when
+the scope has elements); 8.3/473 (CCSC 2) is met by the model when no Table 4 row is met
+only with countermeasures of the system, otherwise it lists those rows for a statement
+(`withSystemCountermeasures`). Test: `evaluate-matrix.en50742-b.test.ts`. Still a statement:
+8.5 (retention field, patch 13). Not switched on (patch 14).
+
 ## 7. Clause 9 — Information for use
 
 | ID | Requirement | ZZ | Role | Marker | Status | Plan | Code / Test |

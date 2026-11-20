@@ -140,7 +140,14 @@ export type ExternalEvidence =
   | { kind: "project"; check: ProjectCheckId };
 
 /** The project checks of EN 50742 A (coverage §9.2, evidence P). */
-export type ProjectCheckId = "hazards-linked" | "system-definition" | "interfaces-assessed" | "srsl-complete" | "srsl-consistent";
+export type ProjectCheckId =
+  | "hazards-linked"
+  | "system-definition"
+  | "interfaces-assessed"
+  | "srsl-complete"
+  | "srsl-consistent"
+  // EN 50742 B, 8.3/479: the relevant elements are evaluated in full (O17)
+  | "safety-scope";
 
 export interface EvidenceRule<R extends string = RequirementId> {
   id: R;

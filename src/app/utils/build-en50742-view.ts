@@ -30,7 +30,7 @@ import { formatRiskLabel } from "shared";
 import { DONE_MITIGATION_STATUSES } from "shared/models/control-instance";
 import type { Project } from "../models/project-types";
 import { pathAnchors, type SafetyPathInput } from "./safety-function-paths";
-import type { En50742Relevance } from "./en50742-relevance";
+import { threatRelevance, type En50742Relevance } from "./en50742-relevance";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
@@ -82,9 +82,13 @@ export function buildEn50742View(project: Project, paths: SafetyPathInput, relev
   const safetyIds = new Set(safetyFunctions.map((s) => s.id));
 
   const risks: En50742Risk[] = ((project.risks?.risks ?? []) as Any[]).map((risk) => {
-    const anchor = anchorOf(threats.get(risk.threatId));
+    const threat = threats.get(risk.threatId);
+    const anchor = anchorOf(threat);
+    // O18: a risk on an anchor that is not EN 50742 relevant has no SRSL at
+    // all (rated L × I) — undefined, not "not rated yet" (null).
+    const relevant = !relevance || !threat || threatRelevance(threat, relevance).relevant;
     const srsl: SrslLevel | null | undefined =
-      risk.calculatedSrsl === undefined ? undefined : risk.calculatedSrsl === null ? null : SRSL_LEVEL[risk.calculatedSrsl as Srsl];
+      !relevant || risk.calculatedSrsl === undefined ? undefined : risk.calculatedSrsl === null ? null : SRSL_LEVEL[risk.calculatedSrsl as Srsl];
     const elRating = (risk.factorRatings ?? []).find((f: Any) => f.factorId === "exposure_level")?.value ?? 0;
     const el = en50742LevelFromRating("exposure_level", elRating);
     const mandated =
@@ -138,5 +142,6 @@ export function buildEn50742View(project: Project, paths: SafetyPathInput, relev
     safetyFunctions,
     interfaces: { exposed, unrated },
     risks,
+    ...(relevance ? { relevance: { mode: relevance.mode, count: relevance.relevant.size } } : {}),
   };
 }

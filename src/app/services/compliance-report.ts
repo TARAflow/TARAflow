@@ -312,7 +312,11 @@ export function prepareProjectCompliance(project: Project): ProjectComplianceCon
         scope: familyScope,
         componentId: familyComponent,
         // D-31: statements per requirement, found by each row's requirement ids.
-        statements: editionStatements(edition, familyData.statements),
+        statements: editionStatements(
+          edition,
+          familyData.statements,
+          (family) => familyCompliance(project.compliance, family).statements,
+        ),
         mitigations,
         deviceCategories: familyData.deviceCategories,
         claims: matrixClaims(edition),
