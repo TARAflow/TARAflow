@@ -132,6 +132,8 @@ everything else.
   phase tooltip, methodology. Every later catalogue change bumps `THREAT_CATALOG_VERSION`.
 - **Field purpose register + guard test** (`model-field-purpose-and-rating-context-design.md`
   phase 1) — infrastructure, no effect on files or results.
+  **Done** (0.20 patch 04): 246 fields — 155 calculation, 45 documentation, 46 pending
+  (frozen, may only shrink).
 - **`no-feature-to-feature`** depcruise rule in CI with a baseline list (rule 3.4).
 - **EN 50742 Approach B** — coverage done (`en-50742-rq-coverage.md` §6, patch 112,
   decisions O13 – O16): component role (Table 4, fixed SL-T, 26 counted rows + 12

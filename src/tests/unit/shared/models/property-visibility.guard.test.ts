@@ -26,6 +26,7 @@ const ELEMENT_TYPES = [
 /** Files that name fields without reading them for a decision. */
 const DECLARATIVE = [
   "shared/models/property-visibility.ts", // the registry
+  "shared/models/field-purpose-register.ts", // names every field with its purpose, reads none
   "features/dfd/models/element-properties.ts", // the property types
   "features/compliance/data/evidence-rules.ts", // rules; the evaluator masks hidden fields
   "app/services/versions/", // migrations write the stored form

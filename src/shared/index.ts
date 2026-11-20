@@ -57,6 +57,9 @@ export {
 // Calculation stamp (ISO/SAE 21434 conformance plan 0c)
 export type { CalcStamp } from "./models/calc-stamp";
 export type { ThreatCatalogStamp } from "./models/threat-catalog-stamp";
+// Field purpose register (model field purpose design, phase 1)
+export { FIELD_PURPOSE_REGISTER, REGISTERED_ELEMENT_TYPES } from "./models/field-purpose-register";
+export type { FieldPurpose, RegisteredInterface } from "./models/field-purpose-register";
 export { UNSTAMPED_CATALOG_VERSION, storedCatalogVersion } from "./models/threat-catalog-stamp";
 
 // CIANAAA
