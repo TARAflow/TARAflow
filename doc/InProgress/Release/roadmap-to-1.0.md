@@ -1,6 +1,6 @@
 # TARAflow — roadmap to 1.0.0
 
-**Status:** v0.7 · 2026-11-20 · v0.7: 0.20 also hardens git:rawInDir and shows a component's boundary interfaces (review / user 2026-11-19/20) · v0.6: acknowledged audit findings in 0.20 (user 2026-11-17) · v0.5: snapshot hash test from 0.20 (reference 0.19, re-based in 0.21); where R-6 / R-7 go if decided for 1.0; the deliberate exception of 0.23 to rule 2 (review of cb0eabe5, second instance) · v0.4: review of the order against the design documents and
+**Status:** v0.8 · 2026-11-20 · v0.8: the Audit SSH key field without effect (review 2026-11-20) · v0.7: 0.20 also hardens git:rawInDir and shows a component's boundary interfaces (review / user 2026-11-19/20) · v0.6: acknowledged audit findings in 0.20 (user 2026-11-17) · v0.5: snapshot hash test from 0.20 (reference 0.19, re-based in 0.21); where R-6 / R-7 go if decided for 1.0; the deliberate exception of 0.23 to rule 2 (review of cb0eabe5, second instance) · v0.4: review of the order against the design documents and
 the code (second instance, user 2026-11-14) — guard rails first in 0.20 (results dump,
 catalogue stamp, field register + guard test, `no-feature-to-feature` with a baseline);
 the ISO/SAE 21434 risk model as a release of its own (0.23), two releases before the RC;
@@ -163,6 +163,14 @@ everything else.
   passes them since 0.19. Decide with the rawInDir hardening: a fixed list for the main
   process's calls with fixed arguments (GitService, Resolve); none for rawInDir, whose
   arguments come from the renderer.
+- **The SSH key field of the Audit settings** (`auth.sshKeyPath`, review 2026-11-20) never
+  reaches git: it is shown, stored and remembered per project, but no code in the main
+  process reads it — push and fetch use the default key, ssh-agent and `~/.ssh/config`,
+  while the help text says the opposite (unlike the signing key, which is used through
+  `user.signingkey`). An input without effect, like the retired asset fields. Decide with
+  the git environment: bind it (`-c core.sshCommand="ssh -i <path> -o IdentitiesOnly=yes"`
+  per call in the main process; simple-git 4 needs allowUnsafeSshCommand) or remove it and
+  point to `~/.ssh/config`.
 - **Interfaces of an imported component on its physical boundary** (user 2026-11-19) appear
   on the machine's top page as attached reference copies on the border of the case copy,
   where the boundary flows cross them, set again on an update.
