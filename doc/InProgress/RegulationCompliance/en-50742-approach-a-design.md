@@ -421,9 +421,13 @@ information-for-use.
 
 ### 3.9 SRSL0 special case
 
-- [ ] SRSL0 emerges from AP0 in Table B.6, but Table 2 also describes it as
+- [x] SRSL0 emerges from AP0 in Table B.6, but Table 2 also describes it as
   "completely isolated safety function (no external interfaces)". Decide whether
   SRSL0 is purely AP-driven or also gated on "no external interfaces".
+  **Decided (0.20 patch 21):** gated. Table 2 is normative and B.6 informative. B.6
+  SRSL0 on an interface above EL0 is raised to SRSL1, per risk (= per interface, as
+  SRSL applies per safety function and interface). The result carries `srslRaised`,
+  and the risk dialog explains it. `guardSrslZero` in `en50742-approach-a-core.ts`.
 
 ### 3.10 7.4.3.4.2 wording quirk (carry faithfully)
 

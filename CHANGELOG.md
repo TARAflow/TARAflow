@@ -46,6 +46,11 @@
   the order of the tags (ISO 21434, then ETSI TVRA, then EN 50742 B, then A). Removing
   the A tag removes the SRSL of the risks on the next update. Results of existing
   projects do not change.
+- **EN 50742 A — SRSL 0 only for an isolated interface:** normative Table 2 reserves
+  SRSL 0 for a completely isolated safety function, but informative Table B.6 gives
+  SRSL 0 for every attack potential AP0, which a physical interface (EL1) can reach. An
+  interface above EL0 now gets at least SRSL 1. The risk dialog says when this applies.
+  Existing EN 50742 A projects can change.
 - **Warning before a tag change deletes risk ratings:** a tag change that switches off
   risk factors (e.g. EN 50742 A removed: exposure level and attacker capability; ETSI TVRA
   added or removed) deletes their ratings. Saving the project information now asks first,

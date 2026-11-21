@@ -135,7 +135,7 @@ export function evaluateApproachA(
   severity: Severity,
 ): { attackPotential: AttackPotentialResult; srsl: Srsl } {
   const attackPotential = computeAttackPotential(ap);
-  return { attackPotential, srsl: determineSrsl(attackPotential.band, severity) };
+  return { attackPotential, srsl: guardSrslZero(determineSrsl(attackPotential.band, severity), ap.exposureLevel).srsl };
 }
 
 // ---------------------------------------------------------------------------
@@ -483,6 +483,24 @@ export interface EN50742LikelihoodEval {
    * as the caller's overall unrated case (§ EN50742CalculationResult.srsl).
    */
   srsl: Srsl | null;
+  /**
+   * Table B.6 gave SRSL0, but the interface is not isolated (EL above EL0):
+   * raised to SRSL1 (guardSrslZero). Shown in the risk dialog.
+   */
+  srslRaised?: true;
+}
+
+/**
+ * SRSL0 only for an isolated interface (0.20, coverage F2 / O3, design
+ * §3.9): normative Table 2 reserves SRSL0 for a completely isolated safety
+ * function, while informative Table B.6 gives SRSL0 for every AP0 — and a
+ * physical interface (EL1) with a small WoO and AC scores AP0. Table 2 wins:
+ * an interface above EL0 gets at least SRSL1. Per risk, i.e. per interface
+ * (SRSL applies per safety function and interface, line 590), as the
+ * Compliance check `srsl-consistent` reads it.
+ */
+export function guardSrslZero(srsl: Srsl, exposureLevel: ExposureLevel): { srsl: Srsl; raised: boolean } {
+  return srsl === "SRSL0" && exposureLevel !== "EL0" ? { srsl: "SRSL1", raised: true } : { srsl, raised: false };
 }
 
 export function evaluateEN50742Likelihood(
@@ -490,9 +508,11 @@ export function evaluateEN50742Likelihood(
   severity: Severity | undefined,
 ): EN50742LikelihoodEval {
   const attackPotential = computeAttackPotential(ap);
+  const guarded = severity ? guardSrslZero(determineSrsl(attackPotential.band, severity), ap.exposureLevel) : undefined;
   return {
     attackPotential,
     likelihoodOrdinal: en50742LikelihoodOrdinal(attackPotential.band),
-    srsl: severity ? determineSrsl(attackPotential.band, severity) : null,
+    srsl: guarded?.srsl ?? null,
+    ...(guarded?.raised ? { srslRaised: true as const } : {}),
   };
 }

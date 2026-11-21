@@ -73,7 +73,9 @@ external interfaces). AP0 covers scores 0–5; a physical interface (EL1 = 2) wi
 WoO and AC can score ≤ 5. → B.6 can yield SRSL0 for a non-isolated function.
 Proposal: validator "SRSL0 only if every interface of the safety function has EL0;
 otherwise at least SRSL1" ([N], Table 2 wins over informative B.6). Candidate for an
-enquiry comment.
+enquiry comment. **Done (0.20 patch 21):** the calculation applies it per risk, that is
+per interface (`guardSrslZero`): B.6 SRSL0 on an interface above EL0 becomes SRSL1, and
+the risk dialog says why. The check `srsl-consistent` stays for files stored before.
 
 **F3 — PLr as severity source.** Annex B NOTE 1 (l. 585–588): PLr/SIL from the separate
 safety risk assessment can express the safety impact. Severity in B.6 is only "low / e.g.
@@ -415,7 +417,7 @@ of rows per status. Header kind `srsl` next to `security-levels` and `conformanc
 |---|---|---|
 | O1 | Draft line numbers change with the final EN; remap IDs on publication. Check whether the final text changes Annex B / Table 2. | Juergen (standards body) |
 | O2 | F1: re-classify the Annex B method as [K] in `en-50742-approach-a-design.md` §1. | design doc |
-| O3 | F2: validator SRSL0 ⇒ all interfaces EL0; consider an enquiry comment on B.6 vs Table 2. | Juergen / design doc |
+| O3 | F2: validator SRSL0 ⇒ all interfaces EL0; consider an enquiry comment on B.6 vs Table 2. **Calculation guard done (0.20 patch 21, per interface); the enquiry comment is still open.** | Juergen / design doc |
 | O4 | F3: PLr as severity input for B.6 (link to hazard import HI-5). | design doc |
 | O5 | 7.2.2 cryptography and 7.3.1 list items: confirm whether they contain normative "shall" beyond the extracted lines. | completion pass |
 | O6 | Rows "met?" / "tracked?" need a test reference before they count (rule). | per step |

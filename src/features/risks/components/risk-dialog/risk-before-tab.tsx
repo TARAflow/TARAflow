@@ -329,6 +329,20 @@ export function RiskBeforeTab({ m }: { m: RiskDialogModel }) {
                         srsl={beforeValues.srsl}
                         apBand={beforeValues.apBand}
                       />
+                      {beforeValues.srslRaised && (
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          display="block"
+                          sx={{ mt: 0.5 }}
+                          data-testid="srsl-raised"
+                        >
+                          {t("tabs.risks.dialog.srslRaised", {
+                            defaultValue:
+                              "Table B.6 gives SRSL0, but the interface is not isolated (EL above EL0): SRSL1 — Table 2 reserves SRSL0 for an isolated safety function.",
+                          })}
+                        </Typography>
+                      )}
                     </Box>
                   </Stack>
                 ) : (

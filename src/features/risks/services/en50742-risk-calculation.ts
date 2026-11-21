@@ -52,6 +52,8 @@ export interface EN50742CalculationResult {
   srsl: Srsl | null;
   apScore: number | null;
   apBand: AttackPotentialBand | null;
+  /** B.6 gave SRSL0 on an interface above EL0 — raised to SRSL1 (guardSrslZero). */
+  srslRaised?: true;
 }
 
 type NormaliseFn = (value: number, sourceLevels: number, targetLevels: number) => number;
@@ -106,6 +108,7 @@ export function en50742RiskFromResolved(
     srsl: evaluated.srsl,
     apScore: evaluated.attackPotential.score,
     apBand: evaluated.attackPotential.band,
+    ...(evaluated.srslRaised ? { srslRaised: true as const } : {}),
   };
 }
 
@@ -368,6 +371,8 @@ export interface GatedRiskCalculationResult {
   srsl?: Srsl | null;
   apScore?: number | null;
   apBand?: AttackPotentialBand | null;
+  /** B.6 gave SRSL0 on an interface above EL0 — raised to SRSL1 (guardSrslZero). */
+  srslRaised?: true;
 }
 
 /**
@@ -429,5 +434,6 @@ export function calculateGatedRiskValues(
     srsl: evaluated.srsl,
     apScore: evaluated.attackPotential.score,
     apBand: evaluated.attackPotential.band,
+    ...(evaluated.srslRaised ? { srslRaised: true as const } : {}),
   };
 }
