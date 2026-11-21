@@ -142,6 +142,8 @@ export function repairProject(raw: any): Project | null {
         raw.settings?.autoSaveInterval ?? DEFAULT_SETTINGS.autoSaveInterval,
       regulationPreset:
         raw.settings?.regulationPreset ?? DEFAULT_SETTINGS.regulationPreset,
+      // absent = on — only an explicit "off" is kept
+      ...(raw.settings?.dfdBadges === false ? { dfdBadges: false } : {}),
     },
     status: raw.status ?? "draft",
     hazards: raw.hazards ?? null,

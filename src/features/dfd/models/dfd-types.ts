@@ -423,6 +423,8 @@ export interface DFDProjectData {
   settings: {
     autoSave: boolean;
     autoSaveInterval?: number;
+    /** EL badges in the diagram (0.20) — absent = on. */
+    dfdBadges?: boolean;
   };
   /** The project follows EN 50742 (its tags) — asks for the safety zone (O18). */
   en50742?: boolean;

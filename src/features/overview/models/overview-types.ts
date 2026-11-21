@@ -62,6 +62,11 @@ export interface ProjectSettingsData {
    * see regulation-preset-service.applyRegulationPreset.
    */
   regulationPreset?: RegulationPresetId;
+  /**
+   * EL badges at the top right of boundaries and interfaces in the diagram
+   * (0.20). Absent → on; only `false` is stored.
+   */
+  dfdBadges?: boolean;
 }
 
 // ==================== PROJECT PROGRESS ====================

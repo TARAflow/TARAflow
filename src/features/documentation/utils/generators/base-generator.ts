@@ -93,6 +93,7 @@ import type { Iso21434Feasibility as Iso21434FeasibilityLevel } from "../../../r
 import { assetImpactResolver } from "../../../assets/services/asset-impact-resolver";
 import { buildSecurityGoalDocRows } from "../security-goal-doc-rows";
 import { dfdStatsTable } from "../dfd-stats-table";
+import { dfdBadgeLegend } from "../dfd-badge-legend";
 import {
   methodologyContent,
   type MethodologySection,
@@ -719,7 +720,7 @@ export abstract class BaseDocumentGenerator {
     const values = {
       dfdFigures: sections ? "" : this.formatDfdFigure(dfd.thumbnail || "dfd.png", alt),
       dfdPages: dfdPages + dfdParentLevel,
-      dfdStatsTable: this.formatStatsTable(dfdStatsTable(dfd, this.ctx.lang, this.ctx.t)),
+      dfdStatsTable: this.formatStatsTable(dfdStatsTable(dfd, this.ctx.lang, this.ctx.t)) + this.dfdLegend(dfd.xml),
     };
 
     const content = replacePlaceholders(this.getDfdTemplate(), values);
@@ -730,6 +731,12 @@ export abstract class BaseDocumentGenerator {
       content,
       hasContent: true,
     };
+  }
+
+  /** Legend of the EL badges and the safety zone in the figure (0.20); empty without marks. */
+  protected dfdLegend(xml: string | undefined): string {
+    const legend = dfdBadgeLegend(xml, this.ctx.lang);
+    return legend ? this.formatStatsTable(legend) : "";
   }
 
   /** One row of an element overview table (classic, or a page section). */

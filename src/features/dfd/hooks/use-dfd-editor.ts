@@ -33,6 +33,7 @@ import { useDFDValidation } from "./use-dfd-validation";
 import { useDFDPersistence } from "./use-dfd-persistence";
 import { useDFDThumbnail } from "./use-dfd-thumbnail";
 import { useDFDAutoNumbering } from "./use-dfd-auto-numbering";
+import { useDfdBadges } from "./use-dfd-badges";
 import { useDFDExportImport } from "./use-dfd-export-import";
 import { useCellIdentity } from "./use-cell-identity";
 import { withPageThumbnails } from "../services/leveled/page-thumbnails";
@@ -516,6 +517,14 @@ export function useDFDEditor(
     validationDelay: 500,
     getPages: getProjectPages,
     getLockedPageIds: options.getLockedPageIds,
+  });
+
+  // EL badges and the safety-zone style (0.20) — written by the app, read-only in draw.io
+  useDfdBadges(bridge, persistence, {
+    elements: project.dfd?.elements,
+    pages: project.dfd?.pages,
+    enabled: project.settings?.dfdBadges !== false,
+    en50742: project.en50742 === true,
   });
 
   // Export/Import layer

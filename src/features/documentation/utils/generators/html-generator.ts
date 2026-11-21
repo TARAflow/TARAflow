@@ -314,7 +314,7 @@ export class HtmlGenerator extends BaseDocumentGenerator {
       '<table class="stats-table">',
       `  <tr>${cells("th", table.headers)}</tr>`,
       ...table.rows.map((r) => `  <tr>${cells("td", r)}</tr>`),
-      `  <tr>${cells("td", table.total, true)}</tr>`,
+      ...(table.total.length > 0 ? [`  <tr>${cells("td", table.total, true)}</tr>`] : []),
       "</table>",
     ].join("\n") + "\n";
   }

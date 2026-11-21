@@ -9,6 +9,14 @@
   *IEC 62443*; the two matrices share their statements. The risks use the standard
   factors without the attacker's motive. New data store field *Audit records kept*
   (only for stores holding audit logs) for 8.5 and Approach A 7.3.4.
+- **Exposure levels in the diagram:** trust, chip and physical boundaries and interfaces
+  show their exposure level (EL / PEL) as a small text at the top right, as in the
+  examples of EN 50742; context copies on child pages too. The text is written by the
+  app and cannot be edited in draw.io — the value is changed in the side panel. The
+  safety zone is drawn yellow and dashed, its text reads *Safety · EL2*. A new project
+  setting (*Diagram*, on by default) turns the texts off. The report explains the marks
+  in a legend below the DFD statistics. Opening a project with exposure levels adds the
+  texts to its diagram (one change to save).
 
 ### Changed
 - **EN 50742 relevance:** EN 50742 is about the interfaces to the safety functions and
