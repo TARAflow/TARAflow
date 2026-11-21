@@ -166,9 +166,10 @@ loads, and saved again loads, with the content hash 0.19 recorded at its import
   - Patch 18: Approach A as an overlay on the base method (TVRA + A); results unchanged.
   - Patch 19: docs and the manual test `doc/Testing/manual/en-50742.md`. Its last section
     makes the two example projects with a safety zone for the examples repository.
-- **EN 50742 A:** SRSL 0 only when every interface is EL0. **Done (0.20 patch 21):** B.6
-  SRSL0 on an interface above EL0 becomes SRSL1. This can change results, but no example
-  changes (no rated AP0 above EL0 there; results dump SAME).
+- **EN 50742 A:** SRSL 0 only when every interface is EL0. **Done.** Patch 21 applies it
+  per interface; patch 22 per safety function — every interface on its paths EL0, the
+  stricter reading, user 2026-11-21. This can change results, but no example changes (no
+  rated AP0 there; results dump SAME).
 - **Raw i18n keys** can end up as saved threat / risk text — repair on load
   (`persisted-threat-text-fix.md`; its schema numbers are stale: 6 → 7 there, 14 now).
 - **Acknowledged audit findings** (user 2026-11-17, manual test of 0.19): old findings

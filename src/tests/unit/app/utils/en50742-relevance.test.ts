@@ -170,3 +170,26 @@ describe("EN 50742 A model rows on the relevance scope (compliance context)", ()
     for (const row of rows) expect([row.label, row.status]).toEqual([row.label, "unknown"]);
   });
 });
+
+describe("en50742Isolation — from a project (patch 22)", () => {
+  it("SmokeDetector: one entry per safety function; external interfaces make some reachable", () => {
+    const project = parseAndRepair(loadProjectFixture("SmokeDetector.tara.json"))!;
+    const isolation = prepareProjectCompliance(project)!.en50742Isolation();
+    const functions = (project.assets?.assets ?? []).filter((a) => !!(a as { physicalImpact?: string }).physicalImpact).map((a) => a.id);
+    expect([...isolation.keys()].sort()).toEqual([...functions].sort());
+    expect([...isolation.values()].some((f) => !f.isolated)).toBe(true);
+    for (const f of isolation.values()) expect(f.isolated).toBe(f.exposedBy.length === 0);
+  });
+
+  it("every interface and flow at EL0: every safety function is isolated", () => {
+    const project = parseAndRepair(loadProjectFixture("SmokeDetector.tara.json"))!;
+    for (const e of [...project.dfd!.elements, ...project.dfd!.connections] as { type?: string; properties?: Record<string, unknown> }[]) {
+      // manual: a derived EL is derived again from the interface's location
+      if (e.properties && (e.type === "Interface" || "from" in e)) Object.assign(e.properties, { exposureLevel: "EL0", exposureLevelSource: "manual" });
+    }
+    (project.dfd as unknown as Record<string, unknown>).graph = undefined;
+    const isolation = prepareProjectCompliance(project)!.en50742Isolation();
+    expect(isolation.size).toBeGreaterThan(0);
+    for (const f of isolation.values()) expect(f).toEqual({ isolated: true, exposedBy: [] });
+  });
+});

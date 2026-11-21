@@ -91,6 +91,8 @@ export function useRiskDialogDerived({
   // (a manual EL from before stays in the ratings, it no longer counts).
   const en50742NotRelevant = isEN50742 && currentThreatRef?.en50742?.relevant === false;
   const en50742Reason = currentThreatRef?.en50742?.reason;
+  /** What makes the safety function reachable — why SRSL0 was raised (patch 22). */
+  const en50742IsolationReason = currentThreatRef?.en50742?.isolationReason;
   const hasExposureAnchor = useMemo(
     () =>
       !en50742NotRelevant &&
@@ -134,9 +136,16 @@ export function useRiskDialogDerived({
             configuration,
             linkedAssets,
             currentThreatRef?.en50742?.relevant,
+            currentThreatRef?.en50742?.functionIsolated,
           )
         : { impact: 0, likelihood: 0, risk: 0 },
-    [local?.factorRatings, configuration, linkedAssets, currentThreatRef?.en50742?.relevant],
+    [
+      local?.factorRatings,
+      configuration,
+      linkedAssets,
+      currentThreatRef?.en50742?.relevant,
+      currentThreatRef?.en50742?.functionIsolated,
+    ],
   );
   // mitigatedFactorRatings NEVER go through the §11.2 gate — SRSL is a target
   // level satisfied by controls, not "mitigated down" (§3.8); the After lens
@@ -363,6 +372,7 @@ export function useRiskDialogDerived({
     hasExposureAnchor,
     en50742NotRelevant,
     en50742Reason,
+    en50742IsolationReason,
     srslFormula,
     beforeValues,
     afterValues,

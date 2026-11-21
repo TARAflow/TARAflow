@@ -92,8 +92,14 @@ export interface ThreatReference {
    * app layer (en50742-relevance.ts) for EN 50742 projects; absent = no
    * decision (other projects, imported component threats): the risk is
    * calculated as before.
+   *
+   * functionIsolated (0.20 patch 22): whether every safety function the
+   * threat is linked to is completely isolated (all interfaces on its paths
+   * EL0) — only then may its SRSL be SRSL0 (Table 2). isolationReason names
+   * what makes it reachable. Absent = no linked safety function: the SRSL0
+   * guard falls back to the risk's own interface.
    */
-  en50742?: { relevant: boolean; reason?: string };
+  en50742?: { relevant: boolean; reason?: string; functionIsolated?: boolean; isolationReason?: string };
   /**
    * Derived CIANAAA impact level from UnifiedStrategy.getInitialImpact().
    * Phase 3b: used to pre-fill matching Risk impact factor.

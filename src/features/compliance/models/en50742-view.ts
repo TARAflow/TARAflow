@@ -34,6 +34,11 @@ export interface En50742Risk {
   srsl: SrslLevel | null | undefined;
   /** The anchor's EL is above EL0; undefined = EL not rated. */
   exposed?: boolean;
+  /**
+   * Its safety functions are completely isolated — every interface on their
+   * paths EL0 (patch 22, Table 2); undefined = no safety function linked.
+   */
+  functionIsolated?: boolean;
   /** Clauses mandated at its SRSL for its anchor and STRIDE (design §11.4). */
   mandated: readonly string[];
   /** Several clauses mandated (Interface × T): one of them done suffices. */

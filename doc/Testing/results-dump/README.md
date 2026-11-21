@@ -132,8 +132,9 @@ row now (was a statement row): some data store in scope holds audit logs for at 
 scope keeps the audit logs" (was *needs statement*); cnc-ref: *unknown* (no relevant
 interface, patch 11).
 
-**Patch 21 — SRSL 0 only for an isolated interface (F2).** When Table B.6 gives SRSL0 for
-an interface above EL0, the SRSL is now SRSL1. No example changes: the examples have no
+**Patches 21 + 22 — SRSL 0 only for an isolated safety function (F2).** When Table B.6
+gives SRSL0, the SRSL is now SRSL1 if the interface is above EL0 (21) or if any interface on
+a path to the risk's safety function is (22). No example changes: the examples have no
 risk rated to AP0 on such an interface (the one rated SRSL is SRSL1). The A example with a
 safety zone, made by the manual test (`doc/Testing/manual/en-50742.md` §9), is the first
 to show the guard once it is in the examples repository.

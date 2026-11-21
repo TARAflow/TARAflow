@@ -20,7 +20,7 @@ import { SrslBadge } from "../shared/srsl-badge";
 import { SrslReferenceTables } from "../shared/srsl-reference-tables";
 
 export function RiskBeforeTab({ m }: { m: RiskDialogModel }) {
-  const { t, configuration, currentRisk, local, setLocal, showSrslTables, setShowSrslTables, isEN50742, isISO, linkedAssets, en50742Severity, hasExposureAnchor, en50742NotRelevant, en50742Reason, srslFormula, beforeValues, effectiveCauseDescription, impactFactors, likelihoodFactors, elFactor, acFactor, liveIso, hasTreeIsoFactors } = m;
+  const { t, configuration, currentRisk, local, setLocal, showSrslTables, setShowSrslTables, isEN50742, isISO, linkedAssets, en50742Severity, hasExposureAnchor, en50742NotRelevant, en50742Reason, en50742IsolationReason, srslFormula, beforeValues, effectiveCauseDescription, impactFactors, likelihoodFactors, elFactor, acFactor, liveIso, hasTreeIsoFactors } = m;
   const renderFactorRow = (factor: FactorRowFactor, mitigated: boolean) => renderFactorRowOf(m, factor, mitigated);
   const renderIsoFactorRow = (factorId: string, mitigated: boolean) => renderIsoFactorRowOf(m, factorId, mitigated);
   const renderTreeFactorRow = (mitigated: boolean) => renderTreeFactorRowOf(m, mitigated);
@@ -337,10 +337,16 @@ export function RiskBeforeTab({ m }: { m: RiskDialogModel }) {
                           sx={{ mt: 0.5 }}
                           data-testid="srsl-raised"
                         >
-                          {t("tabs.risks.dialog.srslRaised", {
-                            defaultValue:
-                              "Table B.6 gives SRSL0, but the interface is not isolated (EL above EL0): SRSL1 — Table 2 reserves SRSL0 for an isolated safety function.",
-                          })}
+                          {en50742IsolationReason
+                            ? t("tabs.risks.dialog.srslRaisedFunction", {
+                                reason: en50742IsolationReason,
+                                defaultValue:
+                                  "Table B.6 gives SRSL0, but the safety function is not isolated ({{reason}}): SRSL1 — Table 2 reserves SRSL0 for an isolated safety function.",
+                              })
+                            : t("tabs.risks.dialog.srslRaised", {
+                                defaultValue:
+                                  "Table B.6 gives SRSL0, but the interface is not isolated (EL above EL0): SRSL1 — Table 2 reserves SRSL0 for an isolated safety function.",
+                              })}
                         </Typography>
                       )}
                     </Box>

@@ -24,7 +24,13 @@ import { i18n } from "i18n";
 import type { Project } from "../models/project-types";
 import { buildAnalysisView, buildDfdGraph, analyseLeveled, isLeveled } from "features/dfd";
 import { withComponentMeasures } from "../utils/component-treatments";
-import { en50742Relevance, en50742Scope, type En50742Relevance } from "../utils/en50742-relevance";
+import {
+  en50742Relevance,
+  en50742Scope,
+  safetyFunctionIsolation,
+  type En50742Relevance,
+  type FunctionIsolation,
+} from "../utils/en50742-relevance";
 import { instanceClaims } from "./component-import/cited-claims";
 import { withComponentThreats } from "../utils/component-threats";
 import { getAllMitigations } from "features/threats";
@@ -160,6 +166,8 @@ export interface ProjectComplianceContext {
   en50742View: () => En50742View;
   /** EN 50742 A and B: the relevant interfaces and flows — safety zone, else the path (O17 / O18). */
   en50742Relevance: () => En50742Relevance;
+  /** Per safety function (asset id): is it isolated — every interface on its paths EL0 (patch 22)? */
+  en50742Isolation: () => ReadonlyMap<string, FunctionIsolation>;
 }
 
 /**
@@ -284,8 +292,29 @@ export function prepareProjectCompliance(project: Project): ProjectComplianceCon
         })),
       paths,
     }));
+  let isolation: Map<string, FunctionIsolation> | undefined;
+  const en50742IsolationOf = () => {
+    if (isolation) return isolation;
+    const items = new Map<string, { type?: string; exposureLevel?: string }>();
+    for (const e of [...(dfd.elements as Any[]), ...((dfd.connections ?? []) as Any[])]) {
+      items.set(e.id, { type: e.type ?? "DataFlow", exposureLevel: e.properties?.exposureLevel });
+    }
+    isolation = new Map(
+      ((project.assets?.assets ?? []) as Any[])
+        .filter((a) => !!a.physicalImpact)
+        .map((a) => [
+          a.id as string,
+          safetyFunctionIsolation(
+            ((a.linkedDFDElements ?? []) as Any[]).map((l) => l.elementId as string).filter(Boolean),
+            paths,
+            (id) => items.get(id),
+          ),
+        ]),
+    );
+    return isolation;
+  };
   let en50742: ReturnType<typeof buildEn50742View> | undefined;
-  const en50742View = () => (en50742 ??= buildEn50742View(project, paths, en50742RelevanceOf()));
+  const en50742View = () => (en50742 ??= buildEn50742View(project, paths, en50742RelevanceOf(), en50742IsolationOf()));
   // O17: the model rows of EN 50742 (A and B) on the relevant interfaces,
   // flows and what the flows reach directly.
   let en50742ScopeSet: Set<string> | undefined;
@@ -300,6 +329,7 @@ export function prepareProjectCompliance(project: Project): ProjectComplianceCon
     scopeName: nameOf(componentId),
     en50742View,
     en50742Relevance: en50742RelevanceOf,
+    en50742Isolation: en50742IsolationOf,
     evaluate: (edition) => {
       const familyData = familyCompliance(project.compliance, edition.family);
       const familyComponent = complianceComponentOf(project.compliance, edition.family);

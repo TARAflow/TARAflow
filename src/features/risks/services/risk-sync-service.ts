@@ -416,6 +416,31 @@ export function applySafetyRemovalDecision(
 
 // ==================== SYNC STATUS ====================
 
+/**
+ * The stored SRSL no longer matches what the gate computes from the current
+ * ratings, relevance and isolation of the safety functions (O18, patches 21 /
+ * 22) — or the overlay is off and an SRSL is still stored. null and
+ * undefined count as the same (as the results dump compares them), so files
+ * written before the gate never all count as changed.
+ */
+function srslStale(
+  risk: Risk,
+  ratings: FactorRating[],
+  configuration: RiskConfiguration,
+  linkedAssets: AssetReference[],
+  threat: ThreatReference,
+): boolean {
+  if (!hasEn50742Overlay(configuration)) return risk.calculatedSrsl !== undefined;
+  const now = calculateGatedRiskValues(
+    ratings,
+    configuration,
+    linkedAssets,
+    threat.en50742?.relevant,
+    threat.en50742?.functionIsolated,
+  ).srsl;
+  return (risk.calculatedSrsl ?? null) !== (now ?? null);
+}
+
 export function checkRiskSyncStatus(
   riskData: RiskData,
   allThreats: ThreatReference[],
@@ -454,12 +479,15 @@ export function checkRiskSyncStatus(
       threat,
       dfd,
     );
-    // O18: an SRSL on a risk whose anchor is no longer EN 50742 relevant
-    // (a manual EL stays, the SRSL goes) — the sync takes it away.
-    // Without the overlay (the A tag removed) a stored SRSL goes as well.
-    const srslGatedAway = hasEn50742Overlay(riskData.configuration)
-      ? threat.en50742?.relevant === false && risk.calculatedSrsl != null
-      : risk.calculatedSrsl !== undefined;
+    // O18 / patches 21 – 22: the stored SRSL differs from what the gate
+    // computes now (relevance, isolation of the safety functions, the A tag
+    // removed). Needs the assets for the severity; without them the
+    // relevance rule as before.
+    const srslGatedAway = assetDataRef
+      ? srslStale(risk, withEl, riskData.configuration, resolveLinkedAssets(threat.linkedAssetIds, assetDataRef), threat)
+      : hasEn50742Overlay(riskData.configuration)
+        ? threat.en50742?.relevant === false && risk.calculatedSrsl != null
+        : risk.calculatedSrsl !== undefined;
     return srslGatedAway || !sameContent(withEl, risk.factorRatings);
   }).length;
 
@@ -550,12 +578,15 @@ export function recalculateRiskValues(
   assetDataRef?: AssetDataReference,
   /** O18: the EN 50742 relevance of the risk's anchor (undefined = no decision). */
   en50742Relevant?: boolean,
+  /** Patch 22: its safety functions are completely isolated (undefined = none linked). */
+  functionIsolated?: boolean,
 ): Risk {
   const before = calculateGatedRiskValues(
     risk.factorRatings,
     configuration,
     resolveLinkedAssets(risk.linkedAssetIds, assetDataRef),
     en50742Relevant,
+    functionIsolated,
   );
   return {
     ...risk,
@@ -742,10 +773,9 @@ export function syncRisksFromThreats(
 
     // O18: an anchor that is no longer EN 50742 relevant takes its SRSL away
     // even when no rating changed (a safety zone was drawn, a flow moved).
-    // Without the overlay (the A tag removed) a stored SRSL goes as well.
-    const srslGatedAway = hasEn50742Overlay(updatedConfiguration)
-      ? threat.en50742?.relevant === false && risk.calculatedSrsl != null
-      : risk.calculatedSrsl !== undefined;
+    // Without the overlay (the A tag removed) a stored SRSL goes as well;
+    // a change of the safety functions' isolation (patch 22) is caught too.
+    const srslGatedAway = srslStale(risk, updatedFactorRatings, updatedConfiguration, linkedAssets, threat);
 
     if (
       srslGatedAway ||
@@ -764,6 +794,7 @@ export function syncRisksFromThreats(
         updatedConfiguration,
         linkedAssets,
         threat.en50742?.relevant,
+        threat.en50742?.functionIsolated,
       );
       // mitigatedFactorRatings NEVER go through the gate — SRSL is a target
       // level satisfied by controls, not "mitigated down" (§3.8); the After
@@ -839,6 +870,7 @@ export function syncRisksFromThreats(
       updatedConfiguration,
       linkedAssets,
       threat.en50742?.relevant,
+      threat.en50742?.functionIsolated,
     );
 
     return {

@@ -173,3 +173,77 @@ export function en50742Scope(
   }
   return scope;
 }
+
+// ==================== ISOLATION OF A SAFETY FUNCTION ====================
+
+/**
+ * Whether a safety function is completely isolated (EN 50742 Table 2,
+ * SRSL0; 0.20 patch 22, user 2026-11-21 — the stricter reading of F2): every
+ * interface on a path to it has EL0. An interface whose EL is not set and a
+ * flow with an EL above EL0 make it not isolated. `exposedBy` names them.
+ * Patch 21 applied the rule per interface; the risks of a function that is
+ * not isolated now get no SRSL0 on any of its interfaces (the internal bus of
+ * a controller with a USB port included).
+ */
+export interface FunctionIsolation {
+  isolated: boolean;
+  /** Interfaces / flows on its paths that make it reachable, with their EL ("unset" if none). */
+  exposedBy: { id: string; el: string }[];
+}
+
+export function safetyFunctionIsolation(
+  linkedIds: readonly string[],
+  paths: SafetyPathInput,
+  itemOf: (id: string) => { type?: string; exposureLevel?: string } | undefined,
+): FunctionIsolation {
+  const anchors = pathAnchors(linkedIds, paths);
+  // An interface the function is linked to directly ("invokes" / "monitors").
+  for (const id of linkedIds) if (itemOf(id)?.type === "Interface") anchors.add(id);
+  const exposedBy: { id: string; el: string }[] = [];
+  for (const id of [...anchors].sort()) {
+    const item = itemOf(id);
+    if (!item) continue;
+    const el = item.exposureLevel;
+    if (item.type === "Interface") {
+      if (el !== "EL0") exposedBy.push({ id, el: el ?? "unset" });
+    } else if (el && el !== "EL0") {
+      exposedBy.push({ id, el });
+    }
+  }
+  return { isolated: exposedBy.length === 0, exposedBy };
+}
+
+/**
+ * The isolation of a threat's safety functions: isolated only when all of
+ * them are. Undefined when the threat is linked to no safety function.
+ */
+export function threatIsolation(
+  linkedAssetIds: readonly string[] | undefined,
+  isolation: ReadonlyMap<string, FunctionIsolation>,
+): { isolated: boolean; notIsolated: { functionId: string; exposedBy: FunctionIsolation["exposedBy"] }[] } | undefined {
+  const functions = (linkedAssetIds ?? []).filter((id) => isolation.has(id));
+  if (functions.length === 0) return undefined;
+  const notIsolated = functions
+    .map((functionId) => ({ functionId, exposedBy: isolation.get(functionId)!.exposedBy }))
+    .filter((f) => f.exposedBy.length > 0);
+  return { isolated: notIsolated.length === 0, notIsolated };
+}
+
+/** English default of the isolation text: "E-Stop via IF-1 USB (EL1), IF-2 JTAG (unset)". */
+export function threatIsolationText(
+  notIsolated: { functionId: string; exposedBy: FunctionIsolation["exposedBy"] }[],
+  labelOf: (id: string) => string,
+  t: Translate,
+): string {
+  const parts = notIsolated.map((f) =>
+    t("tabs.risks.en50742Isolation.function", {
+      fn: labelOf(f.functionId),
+      via: f.exposedBy
+        .slice(0, 3)
+        .map((x) => `${labelOf(x.id)} (${x.el === "unset" ? t("tabs.risks.en50742Isolation.unset", { defaultValue: "EL not set" }) : x.el})`)
+        .join(", ") + (f.exposedBy.length > 3 ? ", …" : ""),
+      defaultValue: "{{fn}} is reachable via {{via}}",
+    }),
+  );
+  return parts.join("; ");
+}

@@ -428,6 +428,10 @@ information-for-use.
   SRSL0 on an interface above EL0 is raised to SRSL1, per risk (= per interface, as
   SRSL applies per safety function and interface). The result carries `srslRaised`,
   and the risk dialog explains it. `guardSrslZero` in `en50742-approach-a-core.ts`.
+  **Tightened (patch 22, user 2026-11-21):** per safety function, as Table 2 describes the
+  function. The function must be completely isolated: every interface on its paths has
+  EL0 (`safetyFunctionIsolation` in `app/utils/en50742-relevance.ts`). Otherwise no risk
+  of it gets SRSL0. To check against the final EN.
 
 ### 3.10 7.4.3.4.2 wording quirk (carry faithfully)
 

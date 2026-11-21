@@ -78,6 +78,8 @@ export function en50742RiskFromResolved(
   severity: Severity | undefined,
   scaleLevels: number,
   normalise: NormaliseFn,
+  /** See guardSrslZero (patch 22). */
+  functionIsolated?: boolean,
 ): EN50742CalculationResult {
   if (!el || !ac) {
     return {
@@ -93,6 +95,7 @@ export function en50742RiskFromResolved(
   const evaluated = evaluateEN50742Likelihood(
     { exposureLevel: el, windowOfOpportunity, attackerCapability: ac },
     severity,
+    functionIsolated,
   );
   const likelihood = normalise(
     evaluated.likelihoodOrdinal,
@@ -391,6 +394,8 @@ export function calculateGatedRiskValues(
    * follows the ratings as before.
    */
   en50742Relevant?: boolean,
+  /** The risk's safety functions are completely isolated (patch 22, guardSrslZero); undefined = none linked. */
+  functionIsolated?: boolean,
 ): GatedRiskCalculationResult {
   // SRSL and R = L × I are SEPARATE assessments (EN 50742 Approach A yields an
   // SRSL + mandated controls; the residual risk stays the standard L × I).
@@ -428,6 +433,7 @@ export function calculateGatedRiskValues(
       attackerCapability: ac,
     },
     severity,
+    functionIsolated,
   );
   return {
     ...generic,

@@ -499,16 +499,32 @@ export interface EN50742LikelihoodEval {
  * (SRSL applies per safety function and interface, line 590), as the
  * Compliance check `srsl-consistent` reads it.
  */
-export function guardSrslZero(srsl: Srsl, exposureLevel: ExposureLevel): { srsl: Srsl; raised: boolean } {
-  return srsl === "SRSL0" && exposureLevel !== "EL0" ? { srsl: "SRSL1", raised: true } : { srsl, raised: false };
+export function guardSrslZero(
+  srsl: Srsl,
+  exposureLevel: ExposureLevel,
+  /**
+   * Patch 22 (user 2026-11-21, the stricter reading of F2): the risk's safety
+   * functions are completely isolated — every interface on their paths EL0.
+   * false raises SRSL0 even on an EL0 interface (the internal bus of a
+   * controller with a USB port); undefined (no linked safety function) leaves
+   * the rule per interface.
+   */
+  functionIsolated?: boolean,
+): { srsl: Srsl; raised: boolean } {
+  const notIsolated = exposureLevel !== "EL0" || functionIsolated === false;
+  return srsl === "SRSL0" && notIsolated ? { srsl: "SRSL1", raised: true } : { srsl, raised: false };
 }
 
 export function evaluateEN50742Likelihood(
   ap: AttackPotentialInput,
   severity: Severity | undefined,
+  /** See guardSrslZero. */
+  functionIsolated?: boolean,
 ): EN50742LikelihoodEval {
   const attackPotential = computeAttackPotential(ap);
-  const guarded = severity ? guardSrslZero(determineSrsl(attackPotential.band, severity), ap.exposureLevel) : undefined;
+  const guarded = severity
+    ? guardSrslZero(determineSrsl(attackPotential.band, severity), ap.exposureLevel, functionIsolated)
+    : undefined;
   return {
     attackPotential,
     likelihoodOrdinal: en50742LikelihoodOrdinal(attackPotential.band),

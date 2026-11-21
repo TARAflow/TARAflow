@@ -21,7 +21,7 @@ import { buildAssetDataReference } from "app/utils/build-asset-data-reference";
 import { buildAssetHazardLinks } from "app/utils/build-asset-hazard-links";
 import { computeIsoRisks, isIsoProject } from "app/utils/commit-iso-risk-values";
 import { componentExcludedIds } from "app/services/component-import/component-scope";
-import { threatRelevance } from "app/utils/en50742-relevance";
+import { threatIsolation, threatRelevance } from "app/utils/en50742-relevance";
 import { DFDGraphAnalysisContext } from "features/dfd";
 import {
   DEFAULT_THREAT_CONFIGURATION,
@@ -236,10 +236,13 @@ function dumpRisks(project: Project) {
     : undefined;
   const iso = isIsoProject(project) ? computeIsoRisks(project).risks?.risks : undefined;
   // EN 50742 (O18): the relevance of each risk's anchor, as the Risk tab gets it.
-  const relevance =
+  const prepared =
     en50742ApproachFromTags(project.info?.tags ?? EMPTY_PROJECT_TAGS) !== undefined
-      ? prepareProjectCompliance(project)?.en50742Relevance()
+      ? prepareProjectCompliance(project)
       : undefined;
+  const relevance = prepared?.en50742Relevance();
+  // Patch 22: SRSL0 only for a completely isolated safety function.
+  const isolation = prepared?.en50742Isolation();
   const threatsById = new Map(
     [...(project.threats?.perElementTables ?? []), ...(project.threats?.perInteractionTables ?? [])]
       .flatMap((t) => t.threats)
@@ -249,11 +252,15 @@ function dumpRisks(project: Project) {
     const threat = threatsById.get(threatId);
     return relevance && threat ? threatRelevance(threat, relevance).relevant : undefined;
   };
+  const isolatedOf = (threatId: string) => {
+    const threat = threatsById.get(threatId);
+    return isolation && threat ? threatIsolation(threat.linkedAssetIds, isolation)?.isolated : undefined;
+  };
   const isoById = new Map((iso ?? []).map((r) => [r.id, r.isoRisk]));
   const risks: Record<string, unknown> = {};
   for (const risk of riskData.risks) {
     const en50742Relevant = relevantOf(risk.threatId);
-    const before = recalculateRiskValues(risk, configuration, assetDataRef, en50742Relevant);
+    const before = recalculateRiskValues(risk, configuration, assetDataRef, en50742Relevant, isolatedOf(risk.threatId));
     const after = risk.mitigatedFactorRatings
       ? calculateRiskValues(risk.mitigatedFactorRatings, configuration)
       : undefined;

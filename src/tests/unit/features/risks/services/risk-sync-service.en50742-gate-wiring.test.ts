@@ -326,3 +326,39 @@ describe("syncRisksFromThreats — the overlay of EN 50742 A on ETSI TVRA (0.20)
     expect(risk.calculatedApScore).toBeUndefined();
   });
 });
+
+describe("syncRisksFromThreats — SRSL0 and the isolation of the safety function (patch 22)", () => {
+  // EL0 interface, very restricted WoO, advanced attacker → AP0 → B.6 SRSL0
+  const configuration = (): RiskConfiguration => ({
+    ...configWithEN50742Enabled(createDefaultRiskData().configuration),
+    windowOfOpportunity: "very_restricted",
+  });
+  const stored = (threat: ThreatReference) => {
+    const empty = createEmptyRisk(threat, configuration());
+    return {
+      ...empty,
+      linkedAssetIds: ["A-1"],
+      factorRatings: empty.factorRatings.map((r) =>
+        r.factorId === "attacker_capability" ? { ...r, value: 1 } : r.factorId === "exposure_level" ? { ...r, value: 1, source: "derived" as const, derivedValue: 1 } : r,
+      ),
+      calculatedSrsl: "SRSL0" as const,
+    };
+  };
+  const dfd = dfdWithElementEL("if-bus", "EL0");
+  const assets = assetDataRef([asset("A-1", "reversible_major")]);
+
+  it("the function became reachable (USB elsewhere): the stored SRSL0 becomes SRSL1 without a rating change", () => {
+    const threat = { ...perElementThreat("T-20", "if-bus", ["A-1"]), en50742: { relevant: true, functionIsolated: false } };
+    const riskData: RiskData = { ...createDefaultRiskData(), configuration: configuration(), risks: [stored(threat)] };
+    expect(checkRiskSyncStatus(riskData, [threat], dfd, assets).changedExposureLevels).toBe(1);
+    const result = syncRisksFromThreats(riskData, [threat], dfd, assets);
+    expect(riskById(result, "T-20").calculatedSrsl).toBe("SRSL1");
+  });
+
+  it("an isolated function keeps SRSL0 — nothing to update", () => {
+    const threat = { ...perElementThreat("T-21", "if-bus", ["A-1"]), en50742: { relevant: true, functionIsolated: true } };
+    const riskData: RiskData = { ...createDefaultRiskData(), configuration: configuration(), risks: [stored(threat)] };
+    expect(checkRiskSyncStatus(riskData, [threat], dfd, assets).changedExposureLevels).toBe(0);
+    expect(riskById(syncRisksFromThreats(riskData, [threat], dfd, assets), "T-21").calculatedSrsl).toBe("SRSL0");
+  });
+});

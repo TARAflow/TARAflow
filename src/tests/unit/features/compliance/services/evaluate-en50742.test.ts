@@ -130,6 +130,14 @@ describe("project checks", () => {
     expect(check("srsl-consistent", view([risk("1", { srsl: 0, exposed: undefined })])).status).toBe("unknown");
     expect(check("srsl-consistent", view([risk("1", { srsl: undefined })])).status).toBe("n/a");
   });
+
+  it("7.4.2/344 (patch 22): SRSL 0 on an EL0 interface of a safety function reachable elsewhere is a gap", () => {
+    expect(check("srsl-consistent", view([risk("1", { srsl: 0, exposed: false, functionIsolated: false })]))).toMatchObject({
+      status: "gap",
+      risks: ["R-1"],
+    });
+    expect(check("srsl-consistent", view([risk("1", { srsl: 0, exposed: false, functionIsolated: true })])).status).toBe("met");
+  });
 });
 
 describe("SRSL precondition and header", () => {

@@ -48,9 +48,11 @@
   projects do not change.
 - **EN 50742 A — SRSL 0 only for an isolated interface:** normative Table 2 reserves
   SRSL 0 for a completely isolated safety function, but informative Table B.6 gives
-  SRSL 0 for every attack potential AP0, which a physical interface (EL1) can reach. An
-  interface above EL0 now gets at least SRSL 1. The risk dialog says when this applies.
-  Existing EN 50742 A projects can change.
+  SRSL 0 for every attack potential AP0, which a physical interface (EL1) can reach.
+  SRSL 0 now needs a completely isolated safety function, that is, every interface on a
+  path to it has EL0. Otherwise its risks get at least SRSL 1, also on its internal EL0
+  interfaces. The risk dialog names what makes the function reachable. Stored SRSLs are
+  corrected on the next update of the risks. Existing EN 50742 A projects can change.
 - **Warning before a tag change deletes risk ratings:** a tag change that switches off
   risk factors (e.g. EN 50742 A removed: exposure level and attacker capability; ETSI TVRA
   added or removed) deletes their ratings. Saving the project information now asks first,

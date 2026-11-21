@@ -73,9 +73,25 @@ external interfaces). AP0 covers scores 0–5; a physical interface (EL1 = 2) wi
 WoO and AC can score ≤ 5. → B.6 can yield SRSL0 for a non-isolated function.
 Proposal: validator "SRSL0 only if every interface of the safety function has EL0;
 otherwise at least SRSL1" ([N], Table 2 wins over informative B.6). Candidate for an
-enquiry comment. **Done (0.20 patch 21):** the calculation applies it per risk, that is
-per interface (`guardSrslZero`): B.6 SRSL0 on an interface above EL0 becomes SRSL1, and
-the risk dialog says why. The check `srsl-consistent` stays for files stored before.
+enquiry comment.
+
+**Done (0.20 patch 21, per interface):** the calculation applies the rule per interface
+(`guardSrslZero`). B.6 SRSL0 on an interface above EL0 becomes SRSL1, and the risk dialog
+says why.
+
+**Patch 22 — per safety function, as F2 reads (user 2026-11-21: the stricter reading, on
+the safe side):**
+- A safety function is isolated only when every interface on its paths has EL0. An
+  interface with no EL set, or a flow above EL0, counts as reachable.
+- The risks of a function that is not isolated get no SRSL0 on any interface. Example: a
+  controller with a USB port (EL1) and an internal bus (EL0) to the safety function — the
+  bus's risk gets SRSL1 too.
+- The risk dialog names what makes the function reachable.
+- Without a linked safety function, the rule per interface still applies.
+- `srsl-consistent` uses the same reading.
+- The risk sync updates a stored SRSL that no longer matches.
+- Check again against the final EN (O1): if it clarifies "per interface" or corrects B.6,
+  this is a data change.
 
 **F3 — PLr as severity source.** Annex B NOTE 1 (l. 585–588): PLr/SIL from the separate
 safety risk assessment can express the safety impact. Severity in B.6 is only "low / e.g.
@@ -417,7 +433,9 @@ of rows per status. Header kind `srsl` next to `security-levels` and `conformanc
 |---|---|---|
 | O1 | Draft line numbers change with the final EN; remap IDs on publication. Check whether the final text changes Annex B / Table 2. | Juergen (standards body) |
 | O2 | F1: re-classify the Annex B method as [K] in `en-50742-approach-a-design.md` §1. | design doc |
-| O3 | F2: validator SRSL0 ⇒ all interfaces EL0; consider an enquiry comment on B.6 vs Table 2. **Calculation guard done (0.20 patch 21, per interface); the enquiry comment is still open.** | Juergen / design doc |
+| O3 | F2: validator SRSL0 ⇒ all interfaces EL0; consider an enquiry comment on B.6 vs Table 2. **Calculation guard done (0.20 patch 21 per interface, patch 22 per safety function — the
+stricter reading, user 2026-11-21); the enquiry comment is still open; check against the
+final EN (O1).** | Juergen / design doc |
 | O4 | F3: PLr as severity input for B.6 (link to hazard import HI-5). | design doc |
 | O5 | 7.2.2 cryptography and 7.3.1 list items: confirm whether they contain normative "shall" beyond the extracted lines. | completion pass |
 | O6 | Rows "met?" / "tracked?" need a test reference before they count (rule). | per step |

@@ -67,3 +67,19 @@ describe("calculateGatedRiskValues carries the mark to the risk dialog", () => {
     expect(r.srslRaised).toBe(true);
   });
 });
+
+describe("patch 22 — SRSL0 only for a completely isolated safety function", () => {
+  it("an EL0 interface of a function reachable elsewhere: raised", () => {
+    expect(guardSrslZero("SRSL0", "EL0", false)).toEqual({ srsl: "SRSL1", raised: true });
+    expect(guardSrslZero("SRSL0", "EL0", true)).toEqual({ srsl: "SRSL0", raised: false });
+    expect(guardSrslZero("SRSL0", "EL0", undefined)).toEqual({ srsl: "SRSL0", raised: false });
+    // the interface rule stays even for an "isolated" function
+    expect(guardSrslZero("SRSL0", "EL1", true)).toEqual({ srsl: "SRSL1", raised: true });
+  });
+
+  it("the internal bus (EL0, AP0) of a controller with a USB port gets SRSL1", () => {
+    const bus = { exposureLevel: "EL0", windowOfOpportunity: "very_restricted", attackerCapability: "advanced" } as const;
+    expect(evaluateEN50742Likelihood(bus, "reversible", false)).toMatchObject({ srsl: "SRSL1", srslRaised: true });
+    expect(evaluateEN50742Likelihood(bus, "reversible", true).srsl).toBe("SRSL0");
+  });
+});

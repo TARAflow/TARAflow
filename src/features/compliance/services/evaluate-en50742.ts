@@ -136,7 +136,9 @@ function projectOutcome(check: ProjectCheckId, view: En50742View): ExternalOutco
     }
     case "srsl-consistent": {
       const zero = risks.filter((r) => r.srsl === 0);
-      const contradicting = zero.filter((r) => r.exposed === true);
+      // Patch 22: SRSL0 only for a completely isolated safety function —
+      // an exposed anchor or a safety function reachable elsewhere.
+      const contradicting = zero.filter((r) => r.exposed === true || r.functionIsolated === false);
       if (contradicting.length > 0) return { status: "gap", risks: labels(contradicting), ...because("srslZeroExposed") };
       const open = [...zero.filter((r) => r.exposed === undefined), ...risks.filter((r) => r.srsl === null)];
       if (open.length > 0) return { status: "unknown", risks: labels(open), ...because("srslOrElUnrated") };

@@ -30,7 +30,7 @@ import { formatRiskLabel } from "shared";
 import { DONE_MITIGATION_STATUSES } from "shared/models/control-instance";
 import type { Project } from "../models/project-types";
 import { pathAnchors, type SafetyPathInput } from "./safety-function-paths";
-import { threatRelevance, type En50742Relevance } from "./en50742-relevance";
+import { threatIsolation, threatRelevance, type En50742Relevance, type FunctionIsolation } from "./en50742-relevance";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
@@ -49,7 +49,13 @@ function anchorOf(threat: Any): { id?: string; type?: SrslAnchorType } {
   return flow ? { id: flow, type: "DataFlow" } : {};
 }
 
-export function buildEn50742View(project: Project, paths: SafetyPathInput, relevance?: En50742Relevance): En50742View {
+export function buildEn50742View(
+  project: Project,
+  paths: SafetyPathInput,
+  relevance?: En50742Relevance,
+  /** Patch 22: per safety function, completely isolated or not. */
+  isolation?: ReadonlyMap<string, FunctionIsolation>,
+): En50742View {
   const threats = new Map<string, Any>(
     [
       ...((project.threats as Any)?.perElementTables ?? []).flatMap((t: Any) => t.threats ?? []),
@@ -80,6 +86,8 @@ export function buildEn50742View(project: Project, paths: SafetyPathInput, relev
     for (const id of relevance.relevant.keys()) onPath.add(id);
   }
   const safetyIds = new Set(safetyFunctions.map((s) => s.id));
+  const isolatedOf = (linked: string[] | undefined) =>
+    isolation ? threatIsolation(linked, isolation)?.isolated : undefined;
 
   const risks: En50742Risk[] = ((project.risks?.risks ?? []) as Any[]).map((risk) => {
     const threat = threats.get(risk.threatId);
@@ -106,6 +114,7 @@ export function buildEn50742View(project: Project, paths: SafetyPathInput, relev
       safetyFunctionIds: ((risk.linkedAssetIds ?? []) as string[]).filter((id) => safetyIds.has(id)),
       srsl,
       ...(el ? { exposed: el !== "EL0" } : {}),
+      ...(isolatedOf(risk.linkedAssetIds) !== undefined ? { functionIsolated: isolatedOf(risk.linkedAssetIds) } : {}),
       mandated,
       anyOfMandated: mandated.length > 1,
       controls,
