@@ -383,6 +383,9 @@ method:
   it gives AP from EL, WoO and AC, and the SRSL from it, *next to*
   R = L × I. AP never stands alone, because it assesses a different relevance
   than L × I. A goes with the standard method or ETSI TVRA.
+- **motive (0.20 patch 27, O16 revoked):** the cyber risk L × I keeps the standard
+  factors, `motive` included, in both approaches. 4.3/242 concerns the safety assessment
+  (AP / SRSL, B's requirement set), which has no motive.
 - **Approach B always goes with an IEC 62443-4-2 edition.** Its tag adds the
   2019 edition (Table 4); the CRA edition may go with it too. B goes with the
   standard method or ETSI TVRA.

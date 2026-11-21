@@ -7,7 +7,8 @@
   Table 4 does not name shown as recommended (not counted), the EN 50742 clauses of
   Clauses 4, 6, 8 and 9, and the system role as a statement. Adding the tag also adds
   *IEC 62443*; the two matrices share their statements. The risks use the standard
-  factors without the attacker's motive. New data store field *Audit records kept*
+  factors (the attacker's motive included: R = L × I is TARAflow's cyber risk, the
+  safety side of B is the fixed requirement set). New data store field *Audit records kept*
   (only for stores holding audit logs) for 8.5 and Approach A 7.3.4.
 - **Exposure levels in the diagram:** trust, chip and physical boundaries and interfaces
   show their exposure level (EL / PEL) as a small text at the top right, as in the

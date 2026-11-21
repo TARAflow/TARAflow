@@ -70,8 +70,8 @@ export interface RegulationPreset {
   /**
    * Factors outside the regime pools this preset switches off as well (same
    * rule: one the analyst enabled by hand stays, reported as a conflict).
-   * EN 50742 B: "motive" — the likelihood of being targeted is not relevant
-   * (4.3/242, O16).
+   * No preset uses it since 0.20 patch 27 (O16 revoked); kept for a regime
+   * that needs it.
    */
   disabledFactorIds?: string[];
 
@@ -175,11 +175,13 @@ export const REGULATION_PRESETS: Record<RegulationPresetId, RegulationPreset> = 
     descriptionKey: "regulationPresets.en-50742-b.description",
     // Approach B is compliance-driven (IEC 62443-4-2 fixed subset, Table 4,
     // delivered by the Compliance feature); the risks keep the standard
-    // weighted mean — without "motive": 4.3/242, common to both approaches,
-    // says the likelihood of being targeted is not relevant (O16, user
-    // 2026-11-14).
-    likelihoodFactorIds: ["skill_level", "opportunity", "ease_of_exploit"],
-    disabledFactorIds: ["motive"],
+    // weighted mean, motive included. O16 (2026-11-14: B without motive) is
+    // revoked (user 2026-11-21): R = L × I is TARAflow's cyber risk, not the
+    // norm's result — the safety side of B is the fixed requirement set, so
+    // 4.3/242 (likelihood of being targeted not relevant) does not touch it.
+    // The same reading as for A (F4). Listing motive as a target switches it
+    // back on where the earlier preset had switched it off.
+    likelihoodFactorIds: ["skill_level", "motive", "opportunity", "ease_of_exploit"],
   },
   "etsi-tvra": {
     id: "etsi-tvra",

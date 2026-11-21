@@ -102,10 +102,10 @@ describe("EN 50742 Approach B (0.20)", () => {
     expect(addTagToProject(EMPTY_PROJECT_TAGS, "EN 50742 A").regulation).toEqual(["EN 50742 A"]);
   });
 
-  it("selects the preset en-50742-b: standard factors without the motive (O16)", () => {
+  it("selects the preset en-50742-b: the standard factors, motive included (O16 revoked)", () => {
     const id = regulationPresetFromTags({ ...EMPTY_PROJECT_TAGS, regulation: ["EN 50742 B", "IEC 62443"] });
     expect(id).toBe("en-50742-b");
-    expect(getRegulationPreset(id).likelihoodFactorIds).toEqual(["skill_level", "opportunity", "ease_of_exploit"]);
+    expect(getRegulationPreset(id).likelihoodFactorIds).toEqual(["skill_level", "motive", "opportunity", "ease_of_exploit"]);
     expect(getRegulationPreset(id).likelihoodMethod).toBe("weighted-mean");
   });
 

@@ -166,14 +166,18 @@ describe("applyRegulationPreset — idempotence & no-op presets", () => {
     expect(twice.disabled).toEqual([]);
   });
 
-  it("en-50742-b switches the motive off and keeps the other standard factors (O16, 0.20)", () => {
-    const fs = defaults();
-    const res = applyRegulationPreset(fs, "en-50742-b");
-    expect(res.changed).toBe(true);
-    expect(res.disabled).toContain("motive");
+  it("en-50742-b keeps the standard factors, motive included (O16 revoked, 0.20 patch 27)", () => {
+    const res = applyRegulationPreset(defaults(), "en-50742-b");
+    expect(res.disabled).toEqual([]);
     const on = res.activeFactors.filter((f) => f.enabled).map((f) => f.factorId);
-    for (const id of ["skill_level", "opportunity", "ease_of_exploit"]) expect(on).toContain(id);
-    expect(on).not.toContain("motive");
+    for (const id of STANDARD4) expect(on).toContain(id);
+  });
+
+  it("en-50742-b switches a motive back on that the earlier preset had switched off", () => {
+    const off = defaults().map((f) => (f.factorId === "motive" ? { ...f, enabled: false, autoEnabled: false } : f));
+    const res = applyRegulationPreset(off, "en-50742-b");
+    expect(res.enabled).toContain("motive");
+    expect(res.activeFactors.find((f) => f.factorId === "motive")?.enabled).toBe(true);
   });
 });
 

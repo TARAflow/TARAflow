@@ -36,9 +36,9 @@ describe("regulation preset catalog", () => {
     ]);
   });
 
-  it("en-50742-b manages the standard factors without the motive (4.3/242, O16 — 0.20)", () => {
-    expect(REGULATION_PRESETS["en-50742-b"].likelihoodFactorIds).toEqual(["skill_level", "opportunity", "ease_of_exploit"]);
-    expect(REGULATION_PRESETS["en-50742-b"].likelihoodFactorIds).not.toContain("motive");
+  it("en-50742-b manages the standard factors, motive included (O16 revoked, 0.20 patch 27)", () => {
+    expect(REGULATION_PRESETS["en-50742-b"].likelihoodFactorIds).toEqual(REGULATION_PRESETS.standard.likelihoodFactorIds);
+    expect(REGULATION_PRESETS["en-50742-b"].disabledFactorIds).toBeUndefined();
   });
 
 

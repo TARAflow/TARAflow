@@ -93,12 +93,11 @@ describe("applyRegulationPresetToProject", () => {
     expect(res.conflicts).toContain("iso_elapsed_time");
   });
 
-  it("en-50742-b (0.20, O16): the standard factors stay, the motive goes", () => {
+  it("en-50742-b (O16 revoked, 0.20 patch 27): the standard factors stay, motive included", () => {
     const res = applyRegulationPresetToProject(project(), "en-50742-b");
     expect(res.project.settings.regulationPreset).toBe("en-50742-b");
-    expect(res.changed).toBe(true);
     const on = res.project.risks!.configuration.activeFactors.filter((f) => f.enabled).map((f) => f.factorId);
-    expect(on).not.toContain("motive");
+    expect(on).toContain("motive");
   });
 });
 

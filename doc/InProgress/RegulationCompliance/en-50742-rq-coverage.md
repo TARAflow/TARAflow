@@ -100,8 +100,17 @@ assessment (hazard import HI-5, `plRequired`) is a legitimate severity input. TA
 `fatal` row is a [D] extension (design doc §3.6).
 
 **F4 — Likelihood of being targeted.** 4.3 (l. 242): not relevant for the threat
-assessment. → Under `en-50742-a` no motivation / benefit factor ([N]); the preset already
-sets `likelihoodFactorIds: ["exposure_level", "attacker_capability"]`.
+assessment.
+
+**Resolved (user 2026-11-21, 0.20 patch 27):** 4.3/242 is met because AP and SRSL contain
+no motivation or benefit factor. TARAflow rates two separate things:
+- **The norm's safety assessment:** AP from EL, WoO and AC, giving the SRSL (Approach A),
+  or the fixed requirement set (Approach B). Neither contains motive.
+- **TARAflow's own cyber risk R = L × I:** it uses the standard factors with `motive` in
+  both approaches. This does not touch the safety assessment.
+
+A decision in the cyber risk must not lift a safety requirement. Patch 28 makes sure of
+this for "won't".
 
 ## 4. Clause 4 — Protection against corruption
 
@@ -252,6 +261,10 @@ weighted-mean set (preset `standard`: `skill_level`, `motive`, `opportunity`,
 group, off by default, stays off);
 the B sub-tab checks it like F4 does for A. Changes risk values of existing B projects —
 there are none in the field yet, the tag is switched off since 0.17. **O16.**
+**Revoked (user 2026-11-21, 0.20 patch 27):** as for A (F4), R = L × I is TARAflow's cyber
+risk and not the norm's result; B's safety side is the fixed requirement set. `en-50742-b`
+manages the `standard` factors, `motive` included; a motive the earlier preset switched off
+is switched on again.
 
 **B-F8 — No SRSL in Approach B.** Annex B and Table 2 belong to Approach A (Clause 7). In
 B the risk tab keeps its normal risk calculation; the SRSL column and the Annex B
@@ -448,6 +461,6 @@ final EN (O1).** | Juergen / design doc |
 | O13 | B-F1: system role (8.2, Table 3). **Decided 2026-11-14:** component role + statement row for 8.2 in 0.20; an IEC 62443-3-3 SR edition once a customer chooses B for a whole machine (roadmap §4 R-9). | done |
 | O14 | B-F3: Table 4 EDR-only rows. **Decided 2026-11-14:** literal for the status; HDR / NDR / SAR variants shown as recommended, not counted. Re-check with the final EN (O1). | done |
 | O15 | B-F4: scope. **Decided 2026-11-14:** elements on a path to a safety function (CM-12b search), mixed elements in full, outside = out of scope, no safety function = unknown. | done |
-| O16 | B-F7. **Decided 2026-11-14:** preset `en-50742-b` = the `standard` factors without `motive` (4.3/242 is common to both approaches). | done |
+| O16 | B-F7. **Decided 2026-11-14:** preset `en-50742-b` = the `standard` factors without `motive` (4.3/242 is common to both approaches). **Revoked 2026-11-21 (patch 27):** motive in both approaches — it rates the cyber risk L × I only; AP / SRSL and B's requirement set contain none (F4). | revoked |
 | O17 | **Scope = interfaces (user 2026-11-20), replaces O15 for B and applies to A too.** EN 50742 is about the interfaces to the safety functions and the data flows crossing them. The model rows of both approaches are evaluated on: the interfaces on a path to a safety function, the data flows crossing them, and the elements those flows reach directly (the process / store behind the interface, its chip and physical boundary). Elements without such a crossing flow are out of scope (listed, never met); a mixed element in scope is evaluated in full (8.3/479); no safety function = `unknown`. For A this changes the results of the model rows (7.3.2, 7.3.3, 7.3.5, 7.4.3.5.1 — today the whole machine): release note, results dump. | 0.20 patches 10 – 12 |
 | O18 | **How the relevant interfaces are found (user 2026-11-20).** A trust boundary marked as the safety zone (`safetyZone = yes`; user 2026-11-21: a mark next to the boundary type, not a type of its own — the zone keeps its type network / device …; patch 15) marks the yellow, safety-related area of the machine (grey / yellow separation); relevant are the flows crossing its border (either direction) and the interfaces they pass. Without a zone the path search to the safety-function assets (CM-12b) decides. One function for A and B (`app/utils/en50742-relevance.ts`, patch 10). Approach A: EL, AC, WoO and SRSL only for risks with a relevant anchor; the others are rated as usual and shown as not relevant (patch 11). Attack-path risks (patch 26, review 2026-11-21): the leaves' DFD refs decide — a relevant leaf → relevant; all leaves anchored, none relevant → not relevant; else relevant ("not determinable"); EL prefill = MIN of the anchored leaves (AND = MIN). Patch 16 (user 2026-11-21): the diagram shows it — the zone is drawn yellow and dashed, and every boundary and interface carries its EL as a read-only text at the top right ("Safety · EL2" on the zone; `dfd/services/dfd-badges.ts`, project setting `settings.dfdBadges`, legend in the report). | **done** (0.20 patches 10, 11, 16) |
