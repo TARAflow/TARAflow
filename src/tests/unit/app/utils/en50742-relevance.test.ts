@@ -1,6 +1,6 @@
 // EN 50742 relevance (O17 / O18, user 2026-11-20): the interfaces to the
 // safety functions and the flows crossing them — from a safety zone (trust
-// boundary type "safety"), else from the path search to the safety-function
+// a trust boundary marked as the safety zone), else from the path search to the safety-function
 // assets; nothing without either.
 import { describe, it, expect } from "vitest";
 import {
@@ -88,7 +88,7 @@ describe("en50742Relevance — from a project (compliance context)", () => {
   it("the same project with a safety zone: zone mode, only flows across its border", () => {
     const project = parseAndRepair(loadProjectFixture("SmokeDetector.tara.json"))!;
     const tb = project.dfd!.elements.find((e) => e.type === "TrustBoundary")!;
-    (tb.properties as Record<string, unknown>).boundaryType = "safety";
+    (tb.properties as Record<string, unknown>).safetyZone = "yes";
     (project.dfd as unknown as Record<string, unknown>).graph = undefined;
     const r = prepareProjectCompliance(project)!.en50742Relevance();
     expect(r.mode).toBe("zone");
@@ -146,7 +146,7 @@ describe("EN 50742 A model rows on the relevance scope (compliance context)", ()
   it("SmokeDetector with a safety zone: the A rows' scope is the zone's, not the machine", () => {
     const project = parseAndRepair(loadProjectFixture("SmokeDetector.tara.json"))!;
     const tb = project.dfd!.elements.find((e) => e.type === "TrustBoundary")!;
-    (tb.properties as Record<string, unknown>).boundaryType = "safety";
+    (tb.properties as Record<string, unknown>).safetyZone = "yes";
     (project.dfd as unknown as Record<string, unknown>).graph = undefined;
     const context = prepareProjectCompliance(project)!;
     const evaluation = context.evaluate(EDITION_EN50742_A);

@@ -424,6 +424,8 @@ export interface DFDProjectData {
     autoSave: boolean;
     autoSaveInterval?: number;
   };
+  /** The project follows EN 50742 (its tags) — asks for the safety zone (O18). */
+  en50742?: boolean;
   lastModified: string;
 }
 

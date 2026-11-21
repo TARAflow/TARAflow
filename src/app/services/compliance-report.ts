@@ -57,7 +57,7 @@ import {
   type ViewFlow,
 } from "features/compliance";
 import type { DocCompliance, DocMitigationSuggestion } from "features/documentation";
-import { complianceComponentOf, familyCompliance } from "shared";
+import { complianceComponentOf, familyCompliance, safetyZoneIds } from "shared";
 import { controlValuePatch, meetsExpected, readControlValue } from "shared/utils/control-value-semantics";
 import { deriveControlInstances } from "../hooks/use-control-instance-derivation";
 import { attackPathControlTargets } from "../utils/attack-path-control-targets";
@@ -271,9 +271,7 @@ export function prepareProjectCompliance(project: Project): ProjectComplianceCon
   let relevance: En50742Relevance | undefined;
   const en50742RelevanceOf = () =>
     (relevance ??= en50742Relevance({
-      zoneIds: (dfd.elements as Any[])
-        .filter((e) => e.type === "TrustBoundary" && e.properties?.boundaryType === "safety")
-        .map((e) => e.id as string),
+      zoneIds: safetyZoneIds(dfd.elements as Any[]),
       boundariesOf: (id) => {
         const flow = graph.dataFlowAnalysis.get(id);
         return flow ? { from: flow.fromTrustBoundaryIds ?? [], to: flow.toTrustBoundaryIds ?? [] } : undefined;

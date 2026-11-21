@@ -5,7 +5,7 @@
 // (EL, AC, WoO, SRSL) and Approach B (Table 4) alike. Which interfaces and
 // flows are "EN 50742 relevant" is decided once, here:
 //
-//   zone   a trust boundary of type "safety" marks the safety-related part of
+//   zone   a trust boundary marked as the safety zone (O18) marks the safety-related part of
 //          the machine (the yellow area of the grey / yellow separation):
 //          every flow that crosses its border (in either direction) is
 //          relevant, and so is every interface such a flow passes;
@@ -31,14 +31,14 @@ export type En50742RelevanceReason =
 
 export interface En50742Relevance {
   mode: En50742RelevanceMode;
-  /** The safety zones (trust boundaries of type "safety"). */
+  /** The safety zones (trust boundaries marked as the safety zone). */
   zoneIds: string[];
   /** Relevant interface and flow ids, with their reason. */
   relevant: Map<string, En50742RelevanceReason>;
 }
 
 export interface En50742RelevanceInput {
-  /** Trust boundaries of type "safety". */
+  /** Trust boundaries marked as the safety zone (shared safety-zone helper). */
   zoneIds: readonly string[];
   /** Flow id → the trust boundaries its source and its target lie in. */
   boundariesOf: (flowId: string) => { from: readonly string[]; to: readonly string[] } | undefined;

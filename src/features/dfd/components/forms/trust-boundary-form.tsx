@@ -38,6 +38,8 @@ import {
 import { RichTextEditor } from "../shared/rich-text-editor";
 import { type AvailableAsset } from "./asset-relation-selector";
 import { useElementForm } from "../../hooks/use-element-form";
+import { useModelFieldEntries } from "./model-field-inputs";
+import type { VisibilityElement } from "shared";
 import { TrustBoundaryAssumptions } from "./trust-boundary-assumptions";
 import {
   TB_TYPE_DEFAULTS,
@@ -112,6 +114,9 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
   ({ element, onChange }) => {
     const { t } = useTranslation();
     const form = useElementForm<TrustBoundaryProperties>(element, onChange);
+    const modelFieldEntries = useModelFieldEntries(element as unknown as VisibilityElement, (property, value) =>
+      form.handlePropertyChange(property as keyof TrustBoundaryProperties, value as never),
+    );
     const { props } = form;
 
     // ── Cascade: boundaryType driver ─────────────────────────────────────────
@@ -246,6 +251,14 @@ export const TrustBoundaryDescriptionForm = React.memo<TrustBoundaryFormProps>(
               ))}
             </Select>
           </FormControl>
+
+          {/* Model coverage fields of the boundary (property-visibility.ts):
+              the EN 50742 safety zone mark (O18) where it is asked */}
+          {modelFieldEntries
+            .filter((entry) => entry.visible)
+            .map((entry) => (
+              <Box key={entry.key}>{entry.node}</Box>
+            ))}
 
           {/* Exposure Level */}
           <FormControl fullWidth size="small">

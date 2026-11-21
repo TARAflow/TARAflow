@@ -927,6 +927,7 @@ export const DFDTab: React.FC<DFDTabProps> = ({
       connections={(project.dfd?.connections ?? EMPTY_LIST) as unknown as VisibilityFlowInput[]}
       componentId={complianceComponentId}
       decomposed={decomposedMultiprocesses}
+      en50742={project.en50742}
     >
     <Box
       sx={{

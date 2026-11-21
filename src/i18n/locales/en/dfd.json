@@ -565,6 +565,14 @@
             "both": "Both"
           }
         },
+        "safetyZone": {
+          "label": "Safety zone (EN 50742)",
+          "help": "This trust boundary is the safety-related part of the machine (the yellow area of a grey / yellow separation). EN 50742 Approaches A and B assess the data flows crossing it and the interfaces they pass; the risks on them get EL, attacker capability and SRSL (A). Asked in EN 50742 projects.",
+          "values": {
+            "yes": "Yes — safety zone",
+            "no": "No"
+          }
+        },
         "auditRecordRetention": {
           "label": "Audit records kept",
           "help": "How long the audit records of this store are kept. EN 50742 asks for at least five years: 8.5 (Approach B, the auditable events of CR 2.8 for the safety functions) and 7.3.4 (Approach A, the last intervention of each type). Shown only for stores that hold audit logs.",
@@ -2213,7 +2221,6 @@
                 "physical": "Physical Boundary",
                 "legal": "Legal / Regulatory Boundary",
                 "device": "Device Boundary",
-                "safety": "Safety Zone (EN 50742)",
                 "platform": "Platform Boundary (App Sandbox ↔ OS)",
                 "peripheral": "Peripheral Boundary (MCU ↔ external chip)",
                 "boot": "Boot Boundary (Bootloader ↔ Application)",
@@ -2227,7 +2234,6 @@
                 "physical": "Physical enclosure or cabinet boundary, e.g. machine housing or control panel",
                 "legal": "Regulatory or contractual boundary, e.g. GDPR data residency or PCI-DSS scope",
                 "device": "Boundary of a single device or embedded system, e.g. PLC, ECU or IoT gateway",
-                "safety": "The safety-related part of the machine (yellow area of a grey / yellow separation). Interfaces on its border and data flows crossing it are assessed per EN 50742.",
                 "platform": "Separates an app's own sandbox from a component controlled by the OS/platform vendor, e.g. a mobile OS browser broker or keychain/keystore. Same device, different responsible party — mitigations here rely on platform guarantees, not on your own code.",
                 "peripheral": "Boundary between MCU and external chips (SPI/I2C sensors, EEPROM, co-processors). Often overlooked attack surface.",
                 "boot": "Boundary between bootloader and application. Critical for firmware integrity and secure boot chain.",
@@ -3171,6 +3177,7 @@
     "assetMissingRole": "Asset \"{{name}}\" has no role set — recorded with the asset; not evaluated (the type of the external entity is)",
     "assetMissingAutomationLevel": "Asset \"{{name}}\" has no automation level set — context for rating the attack feasibility; not evaluated automatically, not in the report yet",
     "physicalBoundaryInvalidConnection": "Physical Boundary is non-connectable — use an Interface element on the boundary edge instead",
+    "safetyZoneCrossingWithoutInterface": "{{name}} crosses the EN 50742 safety zone without an Interface — draw the interface it passes, its exposure level is what EN 50742 assesses",
     "interfaceNoPhysicalBoundary": "Interface has no physical context — it must overlap or lie inside a Physical Boundary",
     "chipBoundaryMissingDebugInterface": "Chip Boundary \"{{name}}\" declares a {{detail}} debug interface but no matching Interface element overlaps it — the debug port is not modelled as an attack surface",
     "interfaceConnectorTypeInvalid": "Interface \"{{name}}\": connector type \"{{connectorType}}\" is not valid for a {{interfaceType}} interface",

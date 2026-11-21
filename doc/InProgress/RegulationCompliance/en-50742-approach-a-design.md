@@ -22,7 +22,8 @@
 > **EN 50742 relevance — the safety zone (O17 / O18, user 2026-11-20).** EN 50742 is
 > about the interfaces to the safety functions and the data flows crossing them — for
 > Approach A and B alike. Machines usually separate a grey area from the yellow, safety-
-> related area; a trust boundary of type **`safety`** marks the yellow area. Relevant
+> related area; a trust boundary marked as the safety zone (`safetyZone`, a mark next to
+> its type — revised 2026-11-21) marks the yellow area. Relevant
 > are the flows crossing its border (either direction) and the interfaces they pass;
 > without a zone, the interfaces and flows on a path to a safety function (CM-12b).
 > One function decides it (`app/utils/en50742-relevance.ts`, with the reason per id).

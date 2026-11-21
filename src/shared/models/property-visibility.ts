@@ -58,6 +58,8 @@ export interface VisibilityModel {
   componentId?: string;
   /** Some data store holds user data: personal data, credentials, keys or configuration (EN 303 645 5.11-1). */
   storesUserData?: boolean;
+  /** The project follows EN 50742 (A or B). */
+  en50742?: boolean;
   /** Multiprocesses with a child page; the others are black boxes (D-30). Absent = none known. */
   decomposed?: ReadonlySet<string>;
 }
@@ -68,6 +70,8 @@ export interface VisibilityOptions {
   componentId?: string;
   /** Multiprocesses with a child page (leveled DFD); the others are black boxes. */
   decomposed?: ReadonlySet<string>;
+  /** The project follows EN 50742 (A or B) — its tags (O18). */
+  en50742?: boolean;
 }
 
 /** A flow as the DFD and the property view store it. */
@@ -213,6 +217,13 @@ export const MODEL_CONDITIONS = {
     const certificate = (v: unknown) => v === "certificate" || v === "mtls" || v === "mutual_tls";
     return channels.length > 0 || certificate(prop(c.element, "boundaryAuthentication")) || certificate(prop(c.element, "authenticationRequired"));
   },
+  /**
+   * A trust boundary can be the EN 50742 safety zone: asked in EN 50742
+   * projects — and wherever it is marked, so a mark stays visible (and can
+   * be taken back) after the tag is removed.
+   */
+  safetyZoneAsked: (c: VisibilityContext): boolean =>
+    c.element.type === "TrustBoundary" && (!!c.model?.en50742 || prop(c.element, "safetyZone") === "yes"),
   /** The data store holds audit logs (storedDataTypes contains audit_logs). */
   storesAuditRecords: (c: VisibilityContext): boolean => {
     const types = prop(c.element, "storedDataTypes");
@@ -328,6 +339,18 @@ export const USER_DATA_DELETION_VALUES = ["not_specified", "none", "by_user", "f
  * the last intervention per type ≥ 5 years). Steps, not a number (user
  * 2026-11-20); only on stores that hold audit logs.
  */
+/**
+ * O18 (user 2026-11-21): a trust boundary marked as the safety zone — the
+ * yellow, safety-related area of a machine (grey / yellow separation). A
+ * mark, not a boundary type: the zone keeps its type (network, device …).
+ */
+export const SAFETY_ZONE_VALUES = ["not_specified", "yes", "no"] as const;
+
+/** The trust boundaries marked as the EN 50742 safety zone. */
+export function safetyZoneIds(elements: readonly VisibilityElement[]): string[] {
+  return elements.filter((e) => e.type === "TrustBoundary" && prop(e, "safetyZone") === "yes").map((e) => e.id);
+}
+
 export const AUDIT_RECORD_RETENTION_VALUES = ["not_specified", "under_1_year", "1_to_5_years", "at_least_5_years", "unlimited"] as const;
 
 /** Stored data types that count as user data (EN 303 645 5.11-1: personal data, user configuration, keys and passwords). */
@@ -502,6 +525,13 @@ export const MODEL_FIELDS: readonly ModelField[] = [
     shownWhen: MODEL_CONDITIONS.roleBasedAuthorization,
   },
   {
+    property: "safetyZone",
+    group: "communication",
+    elementTypes: ["TrustBoundary"],
+    values: SAFETY_ZONE_VALUES,
+    shownWhen: MODEL_CONDITIONS.safetyZoneAsked,
+  },
+  {
     property: "auditRecordRetention",
     group: "data",
     elementTypes: ["DataStore"],
@@ -554,6 +584,7 @@ export function visibilityContexts(
     ),
     ...(options.componentId ? { componentId: options.componentId } : {}),
     ...(options.decomposed ? { decomposed: options.decomposed } : {}),
+    ...(options.en50742 ? { en50742: true } : {}),
   };
   const flowElement = (f: VisibilityFlowInput): VisibilityElement => ({ id: f.id, type: "DataFlow", properties: f.properties });
   const incoming = new Map<string, VisibilityLink[]>();

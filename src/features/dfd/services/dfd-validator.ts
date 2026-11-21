@@ -22,6 +22,7 @@ import {
   validateUnconnectedElements,
   validateChipBoundaryConnections,
   validatePhysicalBoundaryConnections,
+  validateSafetyZoneCrossings,
   validateTransducerConnections,
 } from "./validators/connection-validator";
 import { validateDataflowLabels } from "./validators/dataflow-label-validator";
@@ -144,6 +145,7 @@ export class DFDValidator {
     validateUnconnectedElements(elements, connections, warnings, graph);
     validateChipBoundaryConnections(connections, elements, errors);
     validatePhysicalBoundaryConnections(connections, elements, errors);
+    validateSafetyZoneCrossings(connections, elements, warnings, graph);
     validateTransducerConnections(connections, elements, errors);
     validateDataflowLabels(connections, elements, errors, warnings);
     validateDataflowProperties(connections, errors, warnings);

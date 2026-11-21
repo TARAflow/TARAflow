@@ -565,6 +565,14 @@
             "both": "Beides"
           }
         },
+        "safetyZone": {
+          "label": "Safety-Zone (EN 50742)",
+          "help": "Diese Trust Boundary ist der sicherheitsbezogene Teil der Maschine (Gelb-Bereich einer Grau/Gelb-Trennung). EN 50742 Approach A und B bewerten die Datenflüsse, die sie kreuzen, und die Interfaces, die diese passieren; deren Risiken bekommen EL, Angreiferfähigkeit und SRSL (A). In EN-50742-Projekten gefragt.",
+          "values": {
+            "yes": "Ja — Safety-Zone",
+            "no": "Nein"
+          }
+        },
         "auditRecordRetention": {
           "label": "Audit-Aufzeichnungen aufbewahrt",
           "help": "Wie lange die Audit-Aufzeichnungen dieses Speichers aufbewahrt werden. EN 50742 verlangt mindestens fünf Jahre: 8.5 (Approach B, die auditierbaren Ereignisse von CR 2.8 für die Sicherheitsfunktionen) und 7.3.4 (Approach A, der letzte Eingriff je Art). Nur bei Speichern mit Audit-Logs sichtbar.",
@@ -2215,7 +2223,6 @@
                 "physical": "Physische Grenze",
                 "legal": "Gesetzliche / regulatorische Grenze",
                 "device": "Gerätegrenze",
-                "safety": "Safety-Zone (EN 50742)",
                 "platform": "Plattformgrenze (App-Sandbox ↔ Betriebssystem)",
                 "peripheral": "Peripheriegrenze (MCU ↔ externer Chip)",
                 "boot": "Boot-Grenze (Bootloader ↔ Anwendung)",
@@ -2229,7 +2236,6 @@
                 "physical": "Physisches Gehäuse oder Schrankgrenze, z.B. Maschinengehäuse oder Bedienfeld",
                 "legal": "Regulatorische oder vertragliche Grenze, z.B. DSGVO-Datenspeicherort oder PCI-DSS-Umfang",
                 "device": "Grenze eines einzelnen Geräts oder eingebetteten Systems, z.B. SPS, ECU oder IoT-Gateway",
-                "safety": "Der sicherheitsbezogene Teil der Maschine (Gelb-Bereich einer Grau/Gelb-Trennung). Interfaces auf seiner Grenze und Datenflüsse, die sie kreuzen, werden nach EN 50742 bewertet.",
                 "platform": "Trennt die eigene App-Sandbox von einer vom Betriebssystem-/Plattformhersteller kontrollierten Komponente, z. B. einem Mobile-OS-Browser-Broker oder Keychain/Keystore. Gleiches Gerät, aber andere verantwortliche Partei — Massnahmen hier stützen sich auf Plattform-Garantien, nicht auf eigenen Code.",
                 "peripheral": "Grenze zwischen MCU und externen Chips (SPI/I2C-Sensoren, EEPROM, Co-Prozessoren). Häufig übersehene Angriffsfläche.",
                 "boot": "Grenze zwischen Bootloader und Anwendung. Kritisch für Firmware-Integrität und sichere Boot-Kette.",
@@ -3158,6 +3164,7 @@
     "assetMissingRole": "Asset \"{{name}}\" hat keine Rolle gesetzt — beim Asset erfasst; ausgewertet wird der Typ der externen Entität",
     "assetMissingAutomationLevel": "Asset \"{{name}}\" hat kein Automatisierungsniveau gesetzt — Kontext für die Bewertung der Angriffsmachbarkeit; noch nicht automatisch ausgewertet und nicht im Report",
     "physicalBoundaryInvalidConnection": "Physische Grenze ist nicht verbindbar — stattdessen Schnittstellen-Element am Grenzrand verwenden",
+    "safetyZoneCrossingWithoutInterface": "{{name}} kreuzt die EN-50742-Safety-Zone ohne Interface — das passierte Interface zeichnen, sein Exposure Level ist, was EN 50742 bewertet",
     "interfaceNoPhysicalBoundary": "Schnittstelle hat keinen physischen Kontext — sie muss eine Physische Grenze überlappen oder darin liegen",
     "chipBoundaryMissingDebugInterface": "Chip Boundary \"{{name}}\" deklariert eine {{detail}} Debug-Schnittstelle aber kein passendes Schnittstellenelement überlappt sie — der Debug-Port ist nicht als Angriffsfläche modelliert",
     "interfaceConnectorTypeInvalid": "Schnittstelle \"{{name}}\": Connector-Typ \"{{connectorType}}\" ist für eine {{interfaceType}}-Schnittstelle nicht gültig",

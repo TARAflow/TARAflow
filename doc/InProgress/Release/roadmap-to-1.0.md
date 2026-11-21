@@ -151,8 +151,8 @@ loads, and saved again loads, with the content hash 0.19 recorded at its import
   elements on a path to a safety function, preset `en-50742-b` without `motive`, one
   retention field for 8.5 and 7.3.4 (O8; optional, rule 5). Text: prEN 50742:2025 enquiry
   draft in `Standards/`; on publication of the final EN remap the IDs first (O1).
-- **EN 50742 relevance** (O17 / O18, user 2026-11-20): a trust boundary of type `safety`
-  marks the yellow area; the flows crossing it and their interfaces are what A and B
+- **EN 50742 relevance** (O17 / O18, user 2026-11-20): a trust boundary marked as the
+  safety zone (`safetyZone`, revised 2026-11-21 — before: a boundary type) marks the yellow area; the flows crossing it and their interfaces are what A and B
   assess (fallback: the path to the safety functions). Approach A rates EL / AC / WoO /
   SRSL only for those risks — changes A results (release note; no customer uses EN 50742
   yet).

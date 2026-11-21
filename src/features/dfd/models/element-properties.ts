@@ -50,6 +50,7 @@ import type {
   USER_ACCOUNTS_VALUES,
   USER_DATA_DELETION_VALUES,
   AUDIT_RECORD_RETENTION_VALUES,
+  SAFETY_ZONE_VALUES,
 } from "shared";
 
 // ==================== SHARED: IDENTITY (model coverage F-1 … F-3b, F-29) ====================
@@ -1927,10 +1928,6 @@ export const TRUST_BOUNDARY_CORE_TYPE_OPTIONS = [
   "cloud", // Cloud service boundary (tenant, region, provider)
   "legal", // Legal/contractual boundary (data processing agreement)
   "device", // Logical device boundary (between two connected devices)
-  // Safety zone (EN 50742, O18): the safety-related part of a machine — the
-  // yellow area of the grey / yellow separation. Its border interfaces and
-  // the flows crossing it are what EN 50742 Approaches A and B assess.
-  "safety",
   // App sandbox ↔ OS-/platform-vendor-controlled component (e.g. mobile OS
   // browser broker, keychain/keystore, container runtime ↔ host).
   // Distinction from "privilege": not a privilege escalation within the
@@ -2028,6 +2025,14 @@ export interface TrustBoundaryProperties {
 
   owner?: string;
   notes?: string;
+
+  /**
+   * O18 (user 2026-11-21): this boundary is the EN 50742 safety zone — the
+   * yellow, safety-related area of the machine. The flows crossing it and
+   * the interfaces they pass are what EN 50742 A and B assess. A mark next
+   * to the boundary type. Optional, never written as a default.
+   */
+  safetyZone?: (typeof SAFETY_ZONE_VALUES)[number];
 }
 
 // ==================== CHIP BOUNDARY PROPERTIES ====================

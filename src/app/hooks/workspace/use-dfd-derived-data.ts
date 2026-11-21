@@ -5,7 +5,7 @@
 // and risks. Split out of workspace-layout.tsx (MT-1).
 
 import { useMemo } from "react";
-import type { DFDReference } from "shared";
+import { EMPTY_PROJECT_TAGS, regulationPresetFromTags, type DFDReference } from "shared";
 import {
   DFDGraphAnalysisContext,
   analyseLeveled,
@@ -44,6 +44,8 @@ export function useDfdDerivedData(activeProject: Project | undefined) {
     activeProject?.assets?.assets?.map((a) => [a.id, a.name, a.assetGroup]) ?? [],
   );
 
+  // EN 50742 (O18): the trust boundaries ask for the safety zone
+  const isEn50742Project = regulationPresetFromTags(activeProject?.info?.tags ?? EMPTY_PROJECT_TAGS).startsWith("en-50742");
   const dfdTabProject = useMemo(
     () =>
       activeProject
@@ -61,6 +63,7 @@ export function useDfdDerivedData(activeProject: Project | undefined) {
               })) ?? [],
             phaseStatus: activeProject.phaseStatus,
             settings: activeProject.settings,
+            en50742: isEn50742Project,
             lastModified: activeProject.info?.lastModified ?? "",
           }
         : null,
@@ -76,6 +79,7 @@ export function useDfdDerivedData(activeProject: Project | undefined) {
       phaseStatusKey,
       settingsKey,
       knownAssetsKey,
+      isEn50742Project,
     ],
   );
 

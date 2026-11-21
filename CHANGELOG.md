@@ -12,8 +12,8 @@
 
 ### Changed
 - **EN 50742 relevance:** EN 50742 is about the interfaces to the safety functions and
-  the data flows crossing them. A trust boundary of the new type *Safety Zone (EN 50742)*
-  marks the safety-related (yellow) part of a machine; without one, the interfaces and
+  the data flows crossing them. A trust boundary marked as *Safety zone (EN 50742)* (new mark,
+  next to its type) marks the safety-related (yellow) part of a machine; without one, the interfaces and
   flows on a path to a safety function count. In an EN 50742 A project only the risks
   on such an interface or flow get the exposure level, attacker capability, window of
   opportunity and an SRSL — the other risks are rated as usual (likelihood × impact)

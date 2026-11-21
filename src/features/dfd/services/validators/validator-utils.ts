@@ -89,6 +89,9 @@ export const ValidationMessages = {
     "dfdValidation.physicalBoundaryInvalidConnection",
   INTERFACE_NO_PHYSICAL_BOUNDARY: "dfdValidation.interfaceNoPhysicalBoundary",
 
+  // EN 50742 safety zone (O18)
+  SAFETY_ZONE_CROSSING_WITHOUT_INTERFACE: "dfdValidation.safetyZoneCrossingWithoutInterface",
+
   // Transducer (Sensor / Actuator)
   SENSOR_INVALID_CONNECTION: "dfdValidation.sensorInvalidConnection",
   ACTUATOR_INVALID_CONNECTION: "dfdValidation.actuatorInvalidConnection",

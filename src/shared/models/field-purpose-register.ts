@@ -303,6 +303,7 @@ export const FIELD_PURPOSE_REGISTER: Readonly<Record<RegisteredInterface, Readon
     monitoringEnabled: calc("features/compliance/data/evidence-rules.ts"),
     complianceRelevance: DOC,
     defaultDenyPolicy: calc("features/compliance/data/evidence-rules.ts", "shared/utils/control-value-semantics.ts"),
+    safetyZone: calc("shared/models/property-visibility.ts"),
     owner: DOC,
     notes: DOC,
   },

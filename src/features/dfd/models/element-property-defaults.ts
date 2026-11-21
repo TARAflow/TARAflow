@@ -1401,11 +1401,6 @@ export const TB_TYPE_DEFAULTS: Record<
     defaultExposureLevel: "EL1",
     monitoringEnabled: false,
   },
-  // Safety zone (EN 50742, O18) — no default exposure: the EL of the
-  // interfaces on its border is what the analyst assesses
-  safety: {
-    monitoringEnabled: false,
-  },
   // Platform boundary (app sandbox ↔ OS-vendor-controlled component) —
   // no default boundaryControlTypes: whether the OS secure store is gated
   // behind device authentication ("os_authentication") is a real, per-app
@@ -1453,8 +1448,6 @@ export const TB_SECURITY_ASSUMPTIONS_PLACEHOLDERS: Record<TrustBoundaryType, str
     privilege:
       "Lower privilege zone cannot initiate connections to higher privilege zone.",
     device: "Device boundary. External interfaces require authentication.",
-    safety:
-      "Safety-related part of the machine (yellow area). Every interface on this border and every flow across it is assessed per EN 50742.",
     platform:
       "OS-vendor-controlled component (e.g. mobile OS browser broker, keychain/keystore). Security relies on platform guarantees, not on own code.",
     organization: "Organizational boundary. Contractual controls apply.",
