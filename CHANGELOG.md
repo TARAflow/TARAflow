@@ -55,6 +55,12 @@
   path to it has EL0. Otherwise its risks get at least SRSL 1, also on its internal EL0
   interfaces. The risk dialog names what makes the function reachable. Stored SRSLs are
   corrected on the next update of the risks. Existing EN 50742 A projects can change.
+- **EN 50742 relevance of attack-path risks:** an attack path is relevant when a step of
+  it names a relevant interface or data flow (DSL `[IF-1]`), not relevant when every step
+  names a DFD element and none is relevant, and relevant ("not determinable") otherwise.
+  Its risk gets the exposure level prefilled with the lowest EL of the named elements (an
+  AND of steps: the attacker needs the easiest one too), and the safety-function isolation
+  of its asset. Before, attack-path risks were not checked at all.
 - **Warning before a tag change deletes risk ratings:** a tag change that switches off
   risk factors (e.g. EN 50742 A removed: exposure level and attacker capability; ETSI TVRA
   added or removed) deletes their ratings. Saving the project information now asks first,

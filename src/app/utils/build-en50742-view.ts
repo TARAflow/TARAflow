@@ -30,7 +30,7 @@ import { formatRiskLabel } from "shared";
 import { DONE_MITIGATION_STATUSES } from "shared/models/control-instance";
 import type { Project } from "../models/project-types";
 import { pathAnchors, type SafetyPathInput } from "./safety-function-paths";
-import { threatIsolation, threatRelevance, type En50742Relevance, type FunctionIsolation } from "./en50742-relevance";
+import { dfdRefResolver, threatIsolation, threatRelevance, type En50742Relevance, type FunctionIsolation } from "./en50742-relevance";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
@@ -55,13 +55,20 @@ export function buildEn50742View(
   relevance?: En50742Relevance,
   /** Patch 22: per safety function, completely isolated or not. */
   isolation?: ReadonlyMap<string, FunctionIsolation>,
+  /**
+   * The attack-path threats (review 2026-11-21): their risks are not in the
+   * threat tables; their relevance comes from the leaves' DFD refs.
+   */
+  attackPathThreats: readonly { id: string; attackPathLeaves?: { name: string; dfdRef?: string }[] }[] = [],
 ): En50742View {
   const threats = new Map<string, Any>(
     [
       ...((project.threats as Any)?.perElementTables ?? []).flatMap((t: Any) => t.threats ?? []),
       ...((project.threats as Any)?.perInteractionTables ?? []).flatMap((t: Any) => t.threats ?? []),
+      ...attackPathThreats,
     ].map((t: Any) => [t.id, t]),
   );
+  const resolveRef = dfdRefResolver(project.dfd as Any);
   const elements = (project.dfd?.elements ?? []) as Any[];
   const connections = (project.dfd?.connections ?? []) as Any[];
   const typeOf = new Map<string, string>(elements.map((e) => [e.id, e.type]));
@@ -94,7 +101,7 @@ export function buildEn50742View(
     const anchor = anchorOf(threat);
     // O18: a risk on an anchor that is not EN 50742 relevant has no SRSL at
     // all (rated L × I) — undefined, not "not rated yet" (null).
-    const relevant = !relevance || !threat || threatRelevance(threat, relevance).relevant;
+    const relevant = !relevance || !threat || threatRelevance(threat, relevance, resolveRef).relevant;
     const srsl: SrslLevel | null | undefined =
       !relevant || risk.calculatedSrsl === undefined ? undefined : risk.calculatedSrsl === null ? null : SRSL_LEVEL[risk.calculatedSrsl as Srsl];
     const elRating = (risk.factorRatings ?? []).find((f: Any) => f.factorId === "exposure_level")?.value ?? 0;

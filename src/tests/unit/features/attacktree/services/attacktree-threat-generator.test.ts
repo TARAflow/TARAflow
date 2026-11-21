@@ -479,3 +479,28 @@ describe("attack-path display id", () => {
     }
   });
 });
+
+// ──────────────────────────────────────────────────────────────────────────
+// EN 50742 relevance (0.20, review 2026-11-21): the leaves and their DFD refs
+// ──────────────────────────────────────────────────────────────────────────
+
+describe("generateThreatsFromAttackTree — attackPathLeaves", () => {
+  const TREE = [
+    "Steal Config [A-001];ROOT @disclosure",
+    "\tOn site;AND",
+    "\t\tOpen case [IF-1];p=0.5,i=3 [M-001]",
+    "\t\tAttach probe [DF-3];p=0.6,i=3 [M-002]",
+    "\tRemote;p=0.3,i=2 [M-003]",
+  ].join("\n");
+
+  it("a combined path (AND) names every step's leaf with its ref; a plain path its one leaf", () => {
+    const { threats } = attackTreeThreatGenerator.generateThreatsFromAttackTree(makeTree(TREE), opts());
+    const leavesOf = (pred: (names: string[]) => boolean) =>
+      threats.find((t) => pred((t.attackPathLeaves ?? []).map((l) => l.name)))?.attackPathLeaves;
+    expect(leavesOf((n) => n.includes("Open case"))).toEqual([
+      { name: "Open case", dfdRef: "IF-1" },
+      { name: "Attach probe", dfdRef: "DF-3" },
+    ]);
+    expect(leavesOf((n) => n.includes("Remote"))).toEqual([{ name: "Remote" }]);
+  });
+});

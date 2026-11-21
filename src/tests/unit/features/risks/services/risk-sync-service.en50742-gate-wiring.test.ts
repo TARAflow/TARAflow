@@ -362,3 +362,27 @@ describe("syncRisksFromThreats — SRSL0 and the isolation of the safety functio
     expect(riskById(syncRisksFromThreats(riskData, [threat], dfd, assets), "T-21").calculatedSrsl).toBe("SRSL0");
   });
 });
+
+describe("syncRisksFromThreats — attack-path risks (review 2026-11-21)", () => {
+  const pathThreat = (en50742: ThreatReference["en50742"]): ThreatReference => ({
+    ...baseThreat("AT-1"),
+    sourceStrideMethod: "attack-path",
+    linkedAssetIds: ["A-1"],
+    attackPathLeaves: [{ name: "Open case", dfdRef: "IF-1" }],
+    en50742,
+  });
+
+  it("no anchor of its own: the EL comes from the app layer (MIN of the anchored leaves)", () => {
+    const riskData = riskDataWithConfig(configWithEN50742Enabled);
+    const result = syncRisksFromThreats(riskData, [pathThreat({ relevant: true, exposureLevel: "EL2" })], { elements: [], connections: [] }, assetDataRef([asset("A-1", "fatal")]));
+    const el = riskById(result, "AT-1").factorRatings.find((r) => r.factorId === "exposure_level");
+    expect(el?.value).toBe(3); // EL2 = third level
+    expect(el?.source).toBe("derived");
+  });
+
+  it("not relevant: no EL prefill, whatever the leaves say", () => {
+    const riskData = riskDataWithConfig(configWithEN50742Enabled);
+    const result = syncRisksFromThreats(riskData, [pathThreat({ relevant: false, exposureLevel: "EL2" })], { elements: [], connections: [] }, assetDataRef([asset("A-1", "fatal")]));
+    expect(riskById(result, "AT-1").factorRatings.find((r) => r.factorId === "exposure_level")?.value ?? 0).toBe(0);
+  });
+});

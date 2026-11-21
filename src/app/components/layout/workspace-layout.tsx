@@ -585,14 +585,18 @@ export const WorkspaceLayout: React.FC = () => {
               perInteractionThreats: withEn50742Relevance(
                 extractThreatReferences(activeProject.threats, "per-interaction"),
               ),
-              perAttackPathThreats: buildAttackPathThreatReferences(
-                activeProject.attackTrees,
-                // ISO 21434: a relevant path reaches the Risk tab without a
-                // mitigation (risk is assessed before treatment is decided).
-                !isoMode,
-                // Controls are proposed only when their context fits the
-                // project (mitigation catalog design D4).
-                activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
+              // EN 50742 (review 2026-11-21): the relevance of an attack path
+              // comes from its leaves' DFD refs, like the STRIDE threats'.
+              perAttackPathThreats: withEn50742Relevance(
+                buildAttackPathThreatReferences(
+                  activeProject.attackTrees,
+                  // ISO 21434: a relevant path reaches the Risk tab without a
+                  // mitigation (risk is assessed before treatment is decided).
+                  !isoMode,
+                  // Controls are proposed only when their context fits the
+                  // project (mitigation catalog design D4).
+                  activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
+                ),
               ).map((ref): ThreatReference => ({
                 ...ref,
                 // Where the path's controls go, for the coverage badge

@@ -167,7 +167,10 @@
         "not-an-interface": "die Bedrohung liegt nicht auf einem Interface oder Datenfluss",
         "outside-zone": "Interface / Datenfluss kreuzt die Safety-Zone nicht",
         "off-path": "Interface / Datenfluss liegt auf keinem Pfad zu einer Safety Function",
-        "no-safety-scope": "keine Safety-Zone und keine Safety Function modelliert"
+        "no-safety-scope": "keine Safety-Zone und keine Safety Function modelliert",
+        "path-leaf": "der Schritt {{leaf}} des Angriffspfads liegt auf {{anchor}}",
+        "path-undetermined": "nicht bestimmbar — nicht jeder Schritt des Angriffspfads nennt ein DFD-Element; als relevant behandelt",
+        "path-leaves-not-relevant": "kein Schritt des Angriffspfads liegt auf einem relevanten Interface oder Datenfluss"
       },
       "en50742Isolation": {
         "function": "{{fn}} ist erreichbar über {{via}}",

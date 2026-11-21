@@ -27,7 +27,11 @@ export type En50742RelevanceMode = "zone" | "path" | "none";
 export type En50742RelevanceReason =
   | { kind: "crosses-zone"; zoneIds: string[] }
   | { kind: "zone-interface"; zoneIds: string[]; flowIds: string[] }
-  | { kind: "on-path"; safetyFunctionIds: string[] };
+  | { kind: "on-path"; safetyFunctionIds: string[] }
+  /** Attack path: a leaf names a relevant interface / flow (its own reason). */
+  | { kind: "path-leaf"; anchorId: string; leaf: string }
+  /** Attack path: not every leaf names a DFD element — relevant, to be safe. */
+  | { kind: "path-undetermined" };
 
 export interface En50742Relevance {
   mode: En50742RelevanceMode;
@@ -111,16 +115,69 @@ export function threatAnchor(threat: AnchoredThreat): { id?: string; kind: "inte
 
 export type ThreatRelevance =
   | { relevant: true; reason: En50742RelevanceReason }
-  | { relevant: false; reason: "not-an-interface" | "outside-zone" | "off-path" | "no-safety-scope" };
+  | {
+      relevant: false;
+      reason: "not-an-interface" | "outside-zone" | "off-path" | "no-safety-scope" | "path-leaves-not-relevant";
+    };
 
 /** Whether a threat's risk gets EL / AC / WoO / SRSL (O18), and why (not). */
-export function threatRelevance(threat: AnchoredThreat, relevance: En50742Relevance): ThreatRelevance {
+export function threatRelevance(
+  threat: AnchoredThreat & { attackPathLeaves?: readonly { name: string; dfdRef?: string }[] },
+  relevance: En50742Relevance,
+  /** Attack paths: a leaf's DSL ref (display id) → the DFD element / flow id. */
+  resolveRef?: (dfdRef: string) => string | undefined,
+): ThreatRelevance {
+  if (threat.attackPathLeaves) return attackPathRelevance(threat.attackPathLeaves, relevance, resolveRef ?? (() => undefined));
   const anchor = threatAnchor(threat);
   if (anchor.kind === "other" || !anchor.id) return { relevant: false, reason: "not-an-interface" };
   const reason = relevance.relevant.get(anchor.id);
   if (reason) return { relevant: true, reason };
   if (relevance.mode === "none") return { relevant: false, reason: "no-safety-scope" };
   return { relevant: false, reason: relevance.mode === "zone" ? "outside-zone" : "off-path" };
+}
+
+/**
+ * An attack-path threat has no anchor of its own; its leaves name DFD
+ * elements (review 2026-11-21, the safe default):
+ *   - a leaf names a relevant interface / flow → relevant (that reason);
+ *   - every leaf names a DFD element, none relevant → not relevant;
+ *   - otherwise (a leaf without a ref, or one that names nothing known) →
+ *     relevant: the relevance cannot be told, so the risk is not let off.
+ */
+export function attackPathRelevance(
+  leaves: readonly { name: string; dfdRef?: string }[],
+  relevance: En50742Relevance,
+  resolveRef: (dfdRef: string) => string | undefined,
+): ThreatRelevance {
+  if (relevance.mode === "none") return { relevant: false, reason: "no-safety-scope" };
+  let allAnchored = leaves.length > 0;
+  for (const leaf of leaves) {
+    const id = leaf.dfdRef ? resolveRef(leaf.dfdRef) : undefined;
+    if (!id) {
+      allAnchored = false;
+      continue;
+    }
+    if (relevance.relevant.has(id)) return { relevant: true, reason: { kind: "path-leaf", anchorId: id, leaf: leaf.name } };
+  }
+  return allAnchored ? { relevant: false, reason: "path-leaves-not-relevant" } : { relevant: true, reason: { kind: "path-undetermined" } };
+}
+
+/**
+ * The EL an attack-path risk is prefilled with: the MIN over the ELs of the
+ * path's anchored leaves (AND = MIN, the EN 50742 aggregation; review
+ * 2026-11-21). Undefined when no leaf names an element with an EL.
+ */
+export function attackPathExposureLevel(
+  leaves: readonly { dfdRef?: string }[],
+  resolveRef: (dfdRef: string) => string | undefined,
+  exposureLevelOf: (id: string) => string | undefined,
+): string | undefined {
+  const levels = leaves
+    .map((l) => (l.dfdRef ? resolveRef(l.dfdRef) : undefined))
+    .map((id) => (id ? exposureLevelOf(id) : undefined))
+    .filter((el): el is string => typeof el === "string" && /^EL[0-4]$/.test(el))
+    .sort();
+  return levels[0];
 }
 
 /** English text of a threat's relevance (the default of its i18n key). */
@@ -132,6 +189,9 @@ export const THREAT_RELEVANCE_TEXTS = {
   "outside-zone": "the interface / flow does not cross the safety zone",
   "off-path": "the interface / flow is on no path to a safety function",
   "no-safety-scope": "no safety zone and no safety function modelled",
+  "path-leaf": "the attack path's step {{leaf}} is on {{anchor}}",
+  "path-undetermined": "not determinable — not every step of the attack path names a DFD element; treated as relevant",
+  "path-leaves-not-relevant": "no step of the attack path is on a relevant interface or data flow",
 } as const;
 
 type Translate = (key: string, options: Record<string, unknown>) => string;
@@ -140,12 +200,17 @@ type Translate = (key: string, options: Record<string, unknown>) => string;
 export function threatRelevanceText(r: ThreatRelevance, labelOf: (id: string) => string, t: Translate): string {
   const list = (ids: readonly string[]) => ids.map(labelOf).join(", ");
   const code = typeof r.reason === "string" ? r.reason : r.reason.kind;
+  const reason = r.reason;
   const values =
-    typeof r.reason === "string"
+    typeof reason === "string"
       ? {}
-      : r.reason.kind === "on-path"
-        ? { functions: list(r.reason.safetyFunctionIds) }
-        : { zones: list(r.reason.zoneIds), flows: r.reason.kind === "zone-interface" ? list(r.reason.flowIds) : "" };
+      : reason.kind === "on-path"
+        ? { functions: list(reason.safetyFunctionIds) }
+        : reason.kind === "path-leaf"
+          ? { leaf: reason.leaf, anchor: labelOf(reason.anchorId) }
+          : reason.kind === "path-undetermined"
+            ? {}
+            : { zones: list(reason.zoneIds), flows: reason.kind === "zone-interface" ? list(reason.flowIds) : "" };
   return t(`tabs.risks.en50742Relevance.${code}`, { ...values, defaultValue: THREAT_RELEVANCE_TEXTS[code] });
 }
 
@@ -246,4 +311,19 @@ export function threatIsolationText(
     }),
   );
   return parts.join("; ");
+}
+
+/**
+ * Resolves an attack-tree leaf's DFD ref (DSL [IF-1]: a display id, any case;
+ * the element id works too) to the element or flow id.
+ */
+export function dfdRefResolver(
+  dfd: { elements?: readonly { id: string; displayId?: string }[]; connections?: readonly { id: string; displayId?: string }[] } | null | undefined,
+): (dfdRef: string) => string | undefined {
+  const byRef = new Map<string, string>();
+  for (const item of [...(dfd?.elements ?? []), ...(dfd?.connections ?? [])]) {
+    byRef.set(item.id.toUpperCase(), item.id);
+    if (item.displayId) byRef.set(item.displayId.toUpperCase(), item.id);
+  }
+  return (dfdRef) => byRef.get(dfdRef.trim().toUpperCase());
 }

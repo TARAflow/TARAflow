@@ -99,7 +99,25 @@ export interface ThreatReference {
    * what makes it reachable. Absent = no linked safety function: the SRSL0
    * guard falls back to the risk's own interface.
    */
-  en50742?: { relevant: boolean; reason?: string; functionIsolated?: boolean; isolationReason?: string };
+  en50742?: {
+    relevant: boolean;
+    reason?: string;
+    functionIsolated?: boolean;
+    isolationReason?: string;
+    /**
+     * An attack-path threat has no DFD anchor of its own: the EL its risk is
+     * prefilled with — the MIN over the ELs of the path's anchored leaves
+     * (AND = MIN, as the EN 50742 aggregation; 0.20, review 2026-11-21).
+     * Absent = no leaf with an EL: no prefill.
+     */
+    exposureLevel?: string;
+  };
+  /**
+   * Attack-path threat: the leaves of its path and the DFD element each names
+   * (DSL [IF-1], a display id) — the anchors its EN 50742 relevance is read
+   * from (app layer). Absent on STRIDE threats.
+   */
+  attackPathLeaves?: { name: string; dfdRef?: string }[];
   /**
    * Derived CIANAAA impact level from UnifiedStrategy.getInitialImpact().
    * Phase 3b: used to pre-fill matching Risk impact factor.

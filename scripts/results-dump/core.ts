@@ -21,7 +21,8 @@ import { buildAssetDataReference } from "app/utils/build-asset-data-reference";
 import { buildAssetHazardLinks } from "app/utils/build-asset-hazard-links";
 import { computeIsoRisks, isIsoProject } from "app/utils/commit-iso-risk-values";
 import { componentExcludedIds } from "app/services/component-import/component-scope";
-import { threatIsolation, threatRelevance } from "app/utils/en50742-relevance";
+import { dfdRefResolver, threatIsolation, threatRelevance } from "app/utils/en50742-relevance";
+import { buildAttackPathThreatReferences } from "app/utils/build-attack-path-threat-references";
 import { DFDGraphAnalysisContext } from "features/dfd";
 import {
   DEFAULT_THREAT_CONFIGURATION,
@@ -243,14 +244,21 @@ function dumpRisks(project: Project) {
   const relevance = prepared?.en50742Relevance();
   // Patch 22: SRSL0 only for a completely isolated safety function.
   const isolation = prepared?.en50742Isolation();
-  const threatsById = new Map(
-    [...(project.threats?.perElementTables ?? []), ...(project.threats?.perInteractionTables ?? [])]
+  const threatsById = new Map<string, Parameters<typeof threatRelevance>[0] & { linkedAssetIds?: string[] }>([
+    ...[...(project.threats?.perElementTables ?? []), ...(project.threats?.perInteractionTables ?? [])]
       .flatMap((t) => t.threats)
-      .map((t) => [t.id, t]),
-  );
+      .map((t) => [t.id, t] as const),
+    // attack paths (review 2026-11-21): relevance from the leaves' DFD refs
+    ...(relevance
+      ? buildAttackPathThreatReferences(project.attackTrees, false, project.info?.tags ?? EMPTY_PROJECT_TAGS).map(
+          (t) => [t.id, t] as const,
+        )
+      : []),
+  ]);
+  const resolveRef = dfdRefResolver(project.dfd);
   const relevantOf = (threatId: string) => {
     const threat = threatsById.get(threatId);
-    return relevance && threat ? threatRelevance(threat, relevance).relevant : undefined;
+    return relevance && threat ? threatRelevance(threat, relevance, resolveRef).relevant : undefined;
   };
   const isolatedOf = (threatId: string) => {
     const threat = threatsById.get(threatId);

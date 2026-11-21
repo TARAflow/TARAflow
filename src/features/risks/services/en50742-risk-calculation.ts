@@ -193,8 +193,12 @@ export function calculateEN50742RiskValues(
 export interface ExposureLevelAnchorThreat {
   linkedElement?: { elementId: string; elementType?: string } | null;
   dataFlow?: { connectionId?: string } | null;
-  /** EN 50742 relevance of the anchor (O18); false = no EL is derived for it. */
-  en50742?: { relevant: boolean } | null;
+  /**
+   * EN 50742 relevance of the anchor (O18); false = no EL is derived for it.
+   * exposureLevel: the EL an attack-path threat (no anchor of its own) is
+   * prefilled with — the MIN of its anchored leaves (app layer, 0.20).
+   */
+  en50742?: { relevant: boolean; exposureLevel?: string } | null;
 }
 
 function resolveAnchorProperties(
@@ -258,7 +262,10 @@ export function applyExposureLevelToFactorRatings(
   // function is not EN 50742 relevant — no EL is derived for it (a derived
   // value from before is reset; a manual value stays, but the gate below
   // gives the risk no SRSL).
-  const rawEL = threat.en50742?.relevant === false ? undefined : resolveAnchorProperties(threat, dfd)?.exposureLevel;
+  const rawEL =
+    threat.en50742?.relevant === false
+      ? undefined
+      : (resolveAnchorProperties(threat, dfd)?.exposureLevel ?? threat.en50742?.exposureLevel);
   const el =
     typeof rawEL === "string" &&
     (EN50742_EXPOSURE_LEVELS as readonly string[]).includes(rawEL)

@@ -4,7 +4,7 @@
     "inputCommit": "70201b564caab195a6caa053d12e59fcf4f89beb",
     "inputFile": "Simple_Test_Project-IEC62443.tara.json",
     "inputSha256": "915e36a2b92c4fac390d3fdd8ae350613bcf19a2ba2d6091190843993e1e7916",
-    "taraflowCommit": "1124dfed76a184db4088f993a3459fd86dca19c0+modified",
+    "taraflowCommit": "66860d7ad6f26e2b7e1982d1e83e95fbcb9924f3+modified",
     "taraflowVersion": "0.19.0-beta",
     "threatCatalogVersion": 1
   },
@@ -5974,6 +5974,7 @@
       "R-AT-at-1784807920186-rbg7dh3g2-0f50241382b2-T": {
         "apBand": null,
         "apScore": null,
+        "en50742Relevant": true,
         "impact": 2.2,
         "likelihood": 2,
         "method": "attack-path",

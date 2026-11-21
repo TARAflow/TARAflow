@@ -63,7 +63,8 @@ import {
   type ViewFlow,
 } from "features/compliance";
 import type { DocCompliance, DocMitigationSuggestion } from "features/documentation";
-import { complianceComponentOf, familyCompliance, safetyZoneIds } from "shared";
+import { EMPTY_PROJECT_TAGS, complianceComponentOf, familyCompliance, safetyZoneIds } from "shared";
+import { buildAttackPathThreatReferences } from "../utils/build-attack-path-threat-references";
 import { controlValuePatch, meetsExpected, readControlValue } from "shared/utils/control-value-semantics";
 import { deriveControlInstances } from "../hooks/use-control-instance-derivation";
 import { attackPathControlTargets } from "../utils/attack-path-control-targets";
@@ -175,6 +176,15 @@ export interface ProjectComplianceContext {
  * planned overlay) once; the editions are evaluated on demand. Undefined
  * when there is no DFD.
  */
+/**
+ * The project's attack-path threats — every path, also one without a
+ * mitigation yet: a stored path risk must find its threat (and the leaves its
+ * relevance comes from) whatever the Risk tab's emission rule.
+ */
+function attackPathThreatsOf(project: Project) {
+  return buildAttackPathThreatReferences(project.attackTrees, false, project.info?.tags ?? EMPTY_PROJECT_TAGS);
+}
+
 export function prepareProjectCompliance(project: Project): ProjectComplianceContext | undefined {
   const dfd = project.dfd as Any;
   if (!dfd?.elements?.length) return undefined;
@@ -314,7 +324,8 @@ export function prepareProjectCompliance(project: Project): ProjectComplianceCon
     return isolation;
   };
   let en50742: ReturnType<typeof buildEn50742View> | undefined;
-  const en50742View = () => (en50742 ??= buildEn50742View(project, paths, en50742RelevanceOf(), en50742IsolationOf()));
+  const en50742View = () =>
+    (en50742 ??= buildEn50742View(project, paths, en50742RelevanceOf(), en50742IsolationOf(), attackPathThreatsOf(project)));
   // O17: the model rows of EN 50742 (A and B) on the relevant interfaces,
   // flows and what the flows reach directly.
   let en50742ScopeSet: Set<string> | undefined;

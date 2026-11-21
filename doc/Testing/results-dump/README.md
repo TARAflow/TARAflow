@@ -138,3 +138,11 @@ a path to the risk's safety function is (22). No example changes: the examples h
 risk rated to AP0 on such an interface (the one rated SRSL is SRSL1). The A example with a
 safety zone, made by the manual test (`doc/Testing/manual/en-50742.md` §9), is the first
 to show the guard once it is in the examples repository.
+
+**Patch 26 — EN 50742 relevance of attack-path risks (review 2026-11-21).** An attack path
+has no DFD anchor of its own; its relevance now comes from its leaves' DFD refs (DSL
+`[IF-1]`). A leaf on a relevant interface or flow makes it relevant. If every leaf is
+anchored and none is relevant, it is not relevant. Otherwise it is relevant, as "not
+determinable". In both Simple_Test_Projects the one path risk (its tree's leaves name no
+DFD element) now carries `en50742Relevant: true`; before, its threat was not found and the
+field was missing. No value changes.

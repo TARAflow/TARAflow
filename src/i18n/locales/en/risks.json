@@ -167,7 +167,10 @@
         "not-an-interface": "the threat is not on an interface or a data flow",
         "outside-zone": "the interface / flow does not cross the safety zone",
         "off-path": "the interface / flow is on no path to a safety function",
-        "no-safety-scope": "no safety zone and no safety function modelled"
+        "no-safety-scope": "no safety zone and no safety function modelled",
+        "path-leaf": "the attack path's step {{leaf}} is on {{anchor}}",
+        "path-undetermined": "not determinable — not every step of the attack path names a DFD element; treated as relevant",
+        "path-leaves-not-relevant": "no step of the attack path is on a relevant interface or data flow"
       },
       "en50742Isolation": {
         "function": "{{fn}} is reachable via {{via}}",

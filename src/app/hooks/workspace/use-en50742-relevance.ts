@@ -10,7 +10,14 @@ import type { TFunction } from "i18next";
 import { EMPTY_PROJECT_TAGS, en50742ApproachFromTags, type ThreatReference } from "shared";
 import type { Project } from "../../models/project-types";
 import { prepareProjectCompliance } from "../../services/compliance-report";
-import { threatIsolation, threatIsolationText, threatRelevance, threatRelevanceText } from "../../utils/en50742-relevance";
+import {
+  attackPathExposureLevel,
+  dfdRefResolver,
+  threatIsolation,
+  threatIsolationText,
+  threatRelevance,
+  threatRelevanceText,
+} from "../../utils/en50742-relevance";
 
 export function useEn50742Relevance(project: Project | undefined, t: TFunction) {
   // A or B tag, whatever the base method (0.20: also with ETSI TVRA)
@@ -37,17 +44,30 @@ export function useEn50742Relevance(project: Project | undefined, t: TFunction) 
     return (id: string) => labels.get(id) ?? id;
   }, [dfd, assets]);
 
+  // Attack paths: leaf refs (display ids) → element / flow, and their ELs.
+  const resolveRef = useMemo(() => dfdRefResolver(dfd), [dfd]);
+  const exposureLevelOf = useMemo(() => {
+    const levels = new Map<string, string>();
+    for (const e of [...(dfd?.elements ?? []), ...(dfd?.connections ?? [])] as { id: string; properties?: { exposureLevel?: string } }[]) {
+      if (e.properties?.exposureLevel) levels.set(e.id, e.properties.exposureLevel);
+    }
+    return (id: string) => levels.get(id);
+  }, [dfd]);
+
   return useCallback(
     (refs: ThreatReference[]): ThreatReference[] =>
       relevance
         ? refs.map((ref) => {
-            const r = threatRelevance(ref, relevance);
+            const r = threatRelevance(ref, relevance, resolveRef);
+            const pathEl =
+              r.relevant && ref.attackPathLeaves ? attackPathExposureLevel(ref.attackPathLeaves, resolveRef, exposureLevelOf) : undefined;
             const iso = isolation ? threatIsolation(ref.linkedAssetIds, isolation) : undefined;
             return {
               ...ref,
               en50742: {
                 relevant: r.relevant,
                 reason: threatRelevanceText(r, labelOf, t),
+                ...(pathEl ? { exposureLevel: pathEl } : {}),
                 ...(iso
                   ? {
                       functionIsolated: iso.isolated,
@@ -58,6 +78,6 @@ export function useEn50742Relevance(project: Project | undefined, t: TFunction) 
             };
           })
         : refs,
-    [relevance, isolation, labelOf, t],
+    [relevance, isolation, labelOf, resolveRef, exposureLevelOf, t],
   );
 }
