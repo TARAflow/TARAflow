@@ -4,6 +4,7 @@
 // Imported by ProjectRepository; never by UI components directly.
 
 import { repairHazardAssetRefs } from "./repair-hazard-asset-refs";
+import { repairStoredThreatTexts } from "./repair-threat-texts";
 import { repairElementRelationGroups } from "./repair-element-relation-groups";
 import {
   migrateProjectTags,
@@ -371,6 +372,11 @@ export function applyLegacyMigrations(raw: any): any {
       };
     }
   }
+
+  // Threat / risk text stored as an unresolved i18n key (0.20 patch 30,
+  // persisted-threat-text-fix.md): resolved again from the catalog.
+  // Idempotent; no-op on clean files.
+  data = repairStoredThreatTexts(data);
 
   // Repair hazard edges orphaned by the 5 → 6 asset identity split (they
   // still point at the old readable label, now the displayId). Idempotent;

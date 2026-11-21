@@ -172,6 +172,7 @@ loads, and saved again loads, with the content hash 0.19 recorded at its import
   rated AP0 there; results dump SAME).
 - **Raw i18n keys** can end up as saved threat / risk text — repair on load
   (`persisted-threat-text-fix.md`; its schema numbers are stale: 6 → 7 there, 14 now).
+  **Done (0.20 patch 30):** resolver guard, repair on load without a schema bump.
 - **Acknowledged audit findings** (user 2026-11-17, manual test of 0.19): old findings
   — unsigned commits before signing was set up, files a script wrote — show on every
   verification. An acknowledgement takes exactly one (code, commit, path) with a

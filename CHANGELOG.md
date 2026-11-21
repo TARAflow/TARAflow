@@ -21,6 +21,8 @@
   before 0.20 gets them with the next save). A new project setting (*Diagram*) turns the
   texts on or off; without a choice they follow the EN 50742 tag — on in EN 50742
   projects, off in the others (EL is EN 50742 vocabulary).
+
+### Changed
 - **EN 50742 relevance:** EN 50742 is about the interfaces to the safety functions and
   the data flows crossing them. A trust boundary marked as *Safety zone (EN 50742)* (new mark,
   next to its type) marks the safety-related (yellow) part of a machine; without one, the interfaces and
@@ -86,6 +88,13 @@
   commit and push; the SSH key field of the Audit settings is used for the push; a
   personal access token is no longer written into the remote URL (a token stored there
   by an earlier push is removed on the next push — **revoke it**).
+
+### Fixed
+- **Threat and risk text showing an i18n key** (e.g. `general.D-009.threat`): a threat
+  generated before its text existed stored the key, and it stayed even after the text was
+  added. Opening a project now replaces such text with the template's text (also on its
+  risk); a text the analyst wrote is not touched. Missing texts no longer produce a key:
+  they show "[D-009] (threat text pending translation)" until the text exists.
 
 ## [0.19.0-beta] - 2026-11-19
 
