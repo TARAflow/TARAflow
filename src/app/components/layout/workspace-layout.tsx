@@ -26,6 +26,7 @@
 // All project writes go through context.updateProject() — a single,
 // stable, ref-based write channel. No stale-closure risk.
 
+import { ratingLossOfTagChange } from "../../services/rating-loss";
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -396,6 +397,7 @@ export const WorkspaceLayout: React.FC = () => {
             phaseIndicators={phase.indicators ?? undefined}
             onOpenPhase={handlePhaseChange}
             onUpdate={handlers.handleGeneralTabUpdate}
+            ratingLossOf={(tags) => ratingLossOfTagChange(activeProject, tags)}
             projectId={activeProject.id}
             modelItems={overview.itemModelItems}
             assumptionUsage={overview.assumptionUsage}

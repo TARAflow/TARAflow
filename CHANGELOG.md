@@ -46,6 +46,11 @@
   the order of the tags (ISO 21434, then ETSI TVRA, then EN 50742 B, then A). Removing
   the A tag removes the SRSL of the risks on the next update. Results of existing
   projects do not change.
+- **Warning before a tag change deletes risk ratings:** a tag change that switches off
+  risk factors (e.g. EN 50742 A removed: exposure level and attacker capability; ETSI TVRA
+  added or removed) deletes their ratings. Saving the project information now asks first,
+  naming the factors and the number of ratings and risks. The ratings are not kept; a
+  committed project can be restored from the repository.
 - **Git:** the app's read-only git channels accept read-only commands only; the user's
   SSH command, askpass, CA certificates and git configuration from the environment reach
   commit and push; the SSH key field of the Audit settings is used for the push; a

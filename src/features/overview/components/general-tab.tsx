@@ -6,6 +6,7 @@ import {
   SourceBinding,
   EMPTY_PROJECT_TAGS,
   regulationPresetFromTags,
+  type ProjectTags,
 } from "shared";
 import { itemDefinitionFindings } from "../services/item-definition-findings";
 import { MethodologyView } from "./methodology-view";
@@ -25,6 +26,7 @@ import {
   MethodologySummary,
   VerificationStatusView,
   ComponentOverviewItem,
+  RatingLoss,
 } from "../models/overview-types";
 import { VerificationStatusLine } from "./verification-status-line";
 import { ComponentsView } from "./components-view";
@@ -89,6 +91,9 @@ interface GeneralTabProps {
   /** Callback when data changes */
   onUpdate: (data: GeneralTabData) => void;
 
+  /** The risk ratings a tag change would delete — the project info asks before saving (app layer). */
+  ratingLossOf?: (tags: ProjectTags) => RatingLoss | undefined;
+
   /** Remembers the last sub-tab for this project; without it: Project. */
   projectId?: string;
 
@@ -149,6 +154,7 @@ const GeneralTabView: React.FC<GeneralTabProps> = ({
   phaseIndicators,
   onOpenPhase,
   onUpdate,
+  ratingLossOf,
   projectId,
   modelItems = [],
   assumptionUsage,
@@ -317,7 +323,11 @@ const GeneralTabView: React.FC<GeneralTabProps> = ({
       {view === "project" && (
         <>
           {verification && <VerificationStatusLine status={verification} onOpenAudit={onOpenAuditTab} />}
-          <ProjectInfo info={projectInfoData} onUpdate={handleInfoUpdate} />
+          <ProjectInfo
+            info={projectInfoData}
+            onUpdate={handleInfoUpdate}
+            {...(ratingLossOf ? { ratingLossOf } : {})}
+          />
 
           <ProjectProgress
             data={progressData}

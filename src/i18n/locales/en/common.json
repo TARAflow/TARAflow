@@ -329,6 +329,12 @@
     "tagNotices": {
       "replaced": "{{added}} replaces {{removed}} — the two cannot be combined in one project.",
       "bareEn50742": "Choose the approach: EN 50742 A (risk-based, additional SRSL) or EN 50742 B (IEC 62443-4-2 subset)."
+    },
+    "ratingLoss": {
+      "title": "Risk ratings will be deleted",
+      "intro": "The new tags switch off risk factors. {{ratings}} ratings on {{risks}} risks are deleted, and with them the SRSL where EL or attacker capability goes:",
+      "restore": "They are not kept: adding the tag again does not bring them back. Commit the project first if you may need them — the previous state can then be restored from the repository.",
+      "confirm": "Change tags and delete ratings"
     }
   },
   "stride": {

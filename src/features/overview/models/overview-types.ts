@@ -52,6 +52,20 @@ export interface PhaseValidationInfo {
 
 // ==================== PROJECT SETTINGS ====================
 
+/**
+ * What a tag change would delete (app layer, rating-loss.ts): the ratings of
+ * the risk factors the change switches off. The Overview asks before it
+ * saves such a change (user 2026-11-21).
+ */
+export interface RatingLoss {
+  /** The factors switched off that hold ratings (id, English name for the default). */
+  factors: { id: string; name: string }[];
+  /** Ratings deleted (before and after mitigation counted on their own). */
+  ratings: number;
+  /** Risks that lose a rating. */
+  risks: number;
+}
+
 export interface ProjectSettingsData {
   strictMode: boolean;
   autoSave: boolean;

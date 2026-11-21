@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Edit3, Save, X } from "lucide-react";
-import type { ProjectInfoData } from "../models/overview-types";
+import type { ProjectInfoData, RatingLoss } from "../models/overview-types";
+import type { ProjectTags } from "shared";
 import { ProjectInfoFields } from "./project-info-fields";
+import { RatingLossDialog } from "./rating-loss-dialog";
 
 // ==================== PROJECT INFO ====================
 // Displays and allows editing of project metadata. The fields themselves are
@@ -12,21 +14,39 @@ import { ProjectInfoFields } from "./project-info-fields";
 interface ProjectInfoProps {
   info: ProjectInfoData;
   onUpdate: (info: ProjectInfoData) => void;
+  /**
+   * The ratings a tag change would delete (app layer). Absent or undefined
+   * result → saved without asking.
+   */
+  ratingLossOf?: (tags: ProjectTags) => RatingLoss | undefined;
 }
 
-export const ProjectInfo: React.FC<ProjectInfoProps> = ({ info, onUpdate }) => {
+export const ProjectInfo: React.FC<ProjectInfoProps> = ({ info, onUpdate, ratingLossOf }) => {
   const { t } = useTranslation();
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<ProjectInfoData>(info);
+  // A tag change that deletes ratings waits for the analyst's answer.
+  const [pendingLoss, setPendingLoss] = useState<RatingLoss | null>(null);
 
   const handleEdit = () => {
     setEditData(info);
     setIsEditing(true);
   };
 
-  const handleSave = () => {
+  const save = () => {
+    setPendingLoss(null);
     onUpdate(editData);
     setIsEditing(false);
+  };
+
+  const handleSave = () => {
+    const tagsChanged = JSON.stringify(editData.tags) !== JSON.stringify(info.tags);
+    const loss = tagsChanged ? ratingLossOf?.(editData.tags) : undefined;
+    if (loss) {
+      setPendingLoss(loss);
+      return;
+    }
+    save();
   };
 
   const handleCancel = () => {
@@ -108,6 +128,9 @@ export const ProjectInfo: React.FC<ProjectInfoProps> = ({ info, onUpdate }) => {
           </div>
         }
       />
+      {pendingLoss && (
+        <RatingLossDialog loss={pendingLoss} onConfirm={save} onCancel={() => setPendingLoss(null)} />
+      )}
     </div>
   );
 };

@@ -327,6 +327,12 @@
     "tagNotices": {
       "replaced": "{{added}} ersetzt {{removed}} — die beiden lassen sich in einem Projekt nicht kombinieren.",
       "bareEn50742": "Wähle den Ansatz: EN 50742 A (risikobasiert, zusätzlich SRSL) oder EN 50742 B (Teilmenge der IEC 62443-4-2)."
+    },
+    "ratingLoss": {
+      "title": "Risikobewertungen werden gelöscht",
+      "intro": "Die neuen Tags schalten Risikofaktoren ab. {{ratings}} Bewertungen an {{risks}} Risiken werden gelöscht, und mit EL oder Angreiferfähigkeit auch der SRSL:",
+      "restore": "Sie werden nicht aufbewahrt: Wird der Tag wieder hinzugefügt, kommen sie nicht zurück. Checke das Projekt vorher ein, falls du sie noch brauchst — dann lässt sich der vorherige Stand aus dem Repository wiederherstellen.",
+      "confirm": "Tags ändern und Bewertungen löschen"
     }
   },
   "stride": {

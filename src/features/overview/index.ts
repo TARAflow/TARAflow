@@ -27,6 +27,7 @@ export type {
   ProjectInfoData,
   ProjectProgressData,
   ProjectSettingsData,
+  RatingLoss,
   PhaseValidationInfo,
   ItemModelItem,
   MethodologySummary,
