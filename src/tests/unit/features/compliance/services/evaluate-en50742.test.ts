@@ -3,7 +3,7 @@
 // unrated risk is unknown, a clear "no" is a gap and wins over unknown
 // (D-12, step 9); the planned run counts chosen controls.
 import { describe, it, expect } from "vitest";
-import { externalOutcome, srslReached, srslSummary, type En50742Risk, type En50742View } from "features/compliance";
+import { externalOutcome, srslOpenRiskIds, srslReached, srslSummary, type En50742Risk, type En50742View } from "features/compliance";
 
 const risk = (id: string, extra: Partial<En50742Risk> = {}): En50742Risk => ({
   id,
@@ -180,5 +180,16 @@ describe("SRSL precondition and header", () => {
         { id: "sf2", name: "Guard door", srsl: 3, interfaces: [] },
       ],
     });
+  });
+});
+
+describe("srslOpenRiskIds (patch 29) — the Risks tab's progress uses the matrix test", () => {
+  it("a risk with an SRSL whose mandated controls are not all done; accepted or won't changes nothing", () => {
+    const done = risk("1", { mandated: ["7.4.3.2.1"], controls: [{ clause: "7.4.3.2.1", done: true, planned: true }] });
+    const open = risk("2", { mandated: ["7.4.3.2.1"], controls: [], accepted: true });
+    const wont = risk("3", { mandated: ["7.4.3.2.1"], controls: [{ clause: "7.4.3.2.1", done: false, planned: true }], excluded: true });
+    const unrated = risk("4", { srsl: null, mandated: [] });
+    const nothingMandated = risk("5", { mandated: [] });
+    expect([...srslOpenRiskIds(view([done, open, wont, unrated, nothingMandated]))].sort()).toEqual(["2", "3"]);
   });
 });

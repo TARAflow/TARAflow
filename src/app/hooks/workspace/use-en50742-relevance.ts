@@ -10,6 +10,7 @@ import type { TFunction } from "i18next";
 import { EMPTY_PROJECT_TAGS, en50742ApproachFromTags, type ThreatReference } from "shared";
 import type { Project } from "../../models/project-types";
 import { prepareProjectCompliance } from "../../services/compliance-report";
+import { srslOpenRiskIds } from "features/compliance";
 import {
   attackPathExposureLevel,
   dfdRefResolver,
@@ -83,5 +84,21 @@ export function useEn50742Relevance(project: Project | undefined, t: TFunction) 
   // The relevant interfaces and flows — the Threats tab asks for a reason
   // before a threat on one of them is dismissed (patch 28).
   const relevantAnchorIds = useMemo(() => (relevance ? new Set(relevance.relevant.keys()) : undefined), [relevance]);
-  return { withRelevance, relevantAnchorIds };
+  // Patch 29: the risks whose SRSL controls are open — the Risks tab keeps
+  // them open in its progress (EN 50742 A only: B has no SRSL).
+  // `prepared` holds the DFD only; the view reads the current risks and
+  // threats, so it is built from the current project here.
+  const risks = project?.risks;
+  const threats = project?.threats;
+  const approachA = en50742ApproachFromTags(project?.info?.tags ?? EMPTY_PROJECT_TAGS) === "A";
+  const srslOpenRiskIdsOf = useMemo(
+    () => {
+      if (!project || !approachA) return undefined;
+      const context = prepareProjectCompliance(project);
+      return context ? srslOpenRiskIds(context.en50742View()) : undefined;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [approachA, risks, threats, dfd, assets],
+  );
+  return { withRelevance, relevantAnchorIds, srslOpenRiskIds: srslOpenRiskIdsOf };
 }

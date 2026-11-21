@@ -71,6 +71,11 @@
   is dismissed with a reason, and open (naming the threats) otherwise — before, one risk
   with an SRSL hid unrated threats on the same interface. Existing EN 50742 A projects can
   show new open rows.
+- **EN 50742 in the risk register:** a new column *Safety* and the filter *Only
+  safety-relevant* mark the risks on an EN 50742 relevant interface or flow (Approaches A
+  and B; a mark, no calculation). In Approach A, a risk whose SRSL controls are missing
+  stays open in the progress whatever its treatment — the same test as the requirement
+  matrix — and the progress tooltip says how many.
 - **Warning before a tag change deletes risk ratings:** a tag change that switches off
   risk factors (e.g. EN 50742 A removed: exposure level and attacker capability; ETSI TVRA
   added or removed) deletes their ratings. Saving the project information now asks first,

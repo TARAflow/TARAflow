@@ -74,7 +74,7 @@ export type {
   ViewElement,
   ViewFlow,
 } from "./models/evaluation-types";
-export { externalOutcome, srslReached, srslSummary, type ExternalOutcome } from "./services/evaluate-en50742";
+export { externalOutcome, srslOpenRiskIds, srslReached, srslSummary, type ExternalOutcome } from "./services/evaluate-en50742";
 export {
   countsForComponent,
   countsWithSupport,

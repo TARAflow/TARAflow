@@ -23,6 +23,7 @@ import { computeIsoRisks, isIsoProject } from "app/utils/commit-iso-risk-values"
 import { componentExcludedIds } from "app/services/component-import/component-scope";
 import { dfdRefResolver, threatIsolation, threatRelevance } from "app/utils/en50742-relevance";
 import { buildAttackPathThreatReferences } from "app/utils/build-attack-path-threat-references";
+import { srslOpenRiskIds } from "features/compliance";
 import { DFDGraphAnalysisContext } from "features/dfd";
 import {
   DEFAULT_THREAT_CONFIGURATION,
@@ -308,7 +309,16 @@ function dumpRisks(project: Project) {
   }
   return {
     count: riskData.risks.length,
-    progress: calculateProgress(riskData.risks),
+    // EN 50742 A (patch 29): a risk with open SRSL controls is not done;
+    // srslOpen only when some are (the dumps before it have no such field)
+    progress: (({ srslOpen, ...rest }) => (srslOpen > 0 ? { ...rest, srslOpen } : rest))(
+      calculateProgress(
+        riskData.risks,
+        prepared && en50742ApproachFromTags(project.info?.tags ?? EMPTY_PROJECT_TAGS) === "A"
+          ? srslOpenRiskIds(prepared.en50742View())
+          : undefined,
+      ),
+    ),
     findings: riskFindings(riskData).map((f) => ({
       code: f.code,
       severity: f.severity,

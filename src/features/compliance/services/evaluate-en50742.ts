@@ -162,6 +162,17 @@ export function externalOutcome(evidence: ExternalEvidence, view: En50742View, r
     : riskOutcome(evidence.check, evidence.check === "mandated" ? evidence.clause : undefined, view, run);
 }
 
+/**
+ * Risks whose SRSL requirements are open (0.20 patch 29): a risk with an
+ * SRSL whose mandated controls are not all done — the same test as the
+ * matrix rows (allMandatedInPlace, achieved run). The Risks tab keeps them
+ * open in its progress, whatever their treatment: acceptance or "won't" in
+ * the cyber risk lifts no safety requirement (F4).
+ */
+export function srslOpenRiskIds(view: En50742View): Set<string> {
+  return new Set(inPlay(view).filter((r) => typeof r.srsl === "number" && !allMandatedInPlace(r, "achieved")).map((r) => r.id));
+}
+
 /** "Applies from SRSL n": some risk reaches it; unknown while risks are unrated. */
 export function srslReached(min: number, view: En50742View): "yes" | "no" | "unknown" {
   const risks = inPlay(view);

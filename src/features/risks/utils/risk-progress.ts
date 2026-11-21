@@ -9,6 +9,8 @@ export interface RiskProgress {
   done: number;
   total: number;
   percent: number;
+  /** Not done because their SRSL controls are open (EN 50742 A, patch 29). */
+  srslOpen: number;
 }
 
 /**
@@ -18,9 +20,19 @@ export interface RiskProgress {
  * Or if treatment is accept / transfer / share (no mitigation needed —
  * "share" is the ISO/SAE 21434 name of transfer; user 2026-10-30).
  */
-export function calculateProgress(risks: Risk[]): RiskProgress {
+export function calculateProgress(
+  risks: Risk[],
+  /**
+   * EN 50742 A (patch 29): risks whose SRSL controls are not all done. They
+   * stay open whatever their treatment — acceptance or "won't" in the cyber
+   * risk lifts no safety requirement. The app layer's set (the matrix test).
+   */
+  srslOpen?: ReadonlySet<string>,
+): RiskProgress {
   const total = risks.length;
+  const open = risks.filter((r) => srslOpen?.has(r.id)).length;
   const done = risks.filter((r) => {
+    if (srslOpen?.has(r.id)) return false;
     // accept / transfer / wont = decision made, no implementation needed
     if (
       r.treatment === "accept" ||
@@ -38,6 +50,7 @@ export function calculateProgress(risks: Risk[]): RiskProgress {
     done,
     total,
     percent: total > 0 ? (done / total) * 100 : 0,
+    srslOpen: open,
   };
 }
 

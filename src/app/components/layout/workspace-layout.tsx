@@ -179,7 +179,11 @@ export const WorkspaceLayout: React.FC = () => {
 
   const dfdData = useDfdDerivedData(activeProject);
   // EN 50742 (O18): which risks get EL / AC / WoO / SRSL, with the reason.
-  const { withRelevance: withEn50742Relevance, relevantAnchorIds: en50742RelevantAnchorIds } = useEn50742Relevance(activeProject, t);
+  const {
+    withRelevance: withEn50742Relevance,
+    relevantAnchorIds: en50742RelevantAnchorIds,
+    srslOpenRiskIds: en50742SrslOpenRiskIds,
+  } = useEn50742Relevance(activeProject, t);
   // Identical units per instance asset (I5) — the asset dialog's hint.
   const instanceComponents = activeProject?.components;
   const assetUnits = useMemo(() => instanceAssetUnits(instanceComponents), [instanceComponents]);
@@ -586,6 +590,8 @@ export const WorkspaceLayout: React.FC = () => {
               perInteractionThreats: withEn50742Relevance(
                 extractThreatReferences(activeProject.threats, "per-interaction"),
               ),
+              // EN 50742 A (patch 29): risks whose SRSL controls are open stay open in the progress
+              ...(en50742SrslOpenRiskIds ? { en50742SrslOpenRiskIds } : {}),
               // EN 50742 (review 2026-11-21): the relevance of an attack path
               // comes from its leaves' DFD refs, like the STRIDE threats'.
               perAttackPathThreats: withEn50742Relevance(

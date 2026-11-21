@@ -3,6 +3,7 @@ import React from "react";
 // Column definitions for Risk MUI Table.
 // Uses RiskColumn[] instead of GridColDef[] — no DataGrid dependency.
 
+import { useSafetyMarks } from "../safety-marks-context";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -298,6 +299,8 @@ export const useRiskColumns = ({
   const conceptFindings = useConceptFindingsByRisk();
   // The residual risk that counts (multi-project TARA I7 (4)).
   const creditedOf = useCreditedOf();
+  // EN 50742 (patch 29): safety-relevant risks, A and B alike.
+  const { relevantThreatIds } = useSafetyMarks();
 
   return useMemo(() => {
     // ── Factor breakdown tooltip helper ────────────────────────────────────
@@ -522,6 +525,34 @@ export const useRiskColumns = ({
       },
     );
     //}
+
+    // ── Safety-relevant (EN 50742, A and B; patch 29) — a mark, no calculation ─
+    if (relevantThreatIds) {
+      cols.push({
+        id: "safetyRelevant",
+        header: t("tabs.risks.columns.safetyRelevant", { defaultValue: "Safety" }),
+        width: 70,
+        align: "center",
+        renderCell: (risk) =>
+          relevantThreatIds.has(risk.threatId) ? (
+            <Tooltip
+              title={t("tabs.risks.columns.safetyRelevantTooltip", {
+                defaultValue: "EN 50742 relevant: on an interface or data flow of the safety zone / on a path to a safety function",
+              })}
+            >
+              <Chip
+                size="small"
+                color="warning"
+                variant="outlined"
+                label={t("tabs.risks.columns.safetyRelevantYes", { defaultValue: "safety" })}
+                data-testid="risk-safety-relevant"
+              />
+            </Tooltip>
+          ) : (
+            <span aria-label="not safety-relevant">–</span>
+          ),
+      });
+    }
 
     // ── SRSL (EN 50742 Approach A) — categorical safety-security level ───────
     if (hasEn50742Overlay(configuration)) {
@@ -1040,5 +1071,6 @@ export const useRiskColumns = ({
     reviewThreatIds,
     conceptFindings,
     creditedOf,
+    relevantThreatIds,
   ]);
 };

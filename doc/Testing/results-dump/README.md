@@ -155,3 +155,8 @@ at the threats of each exposed anchor. Both Simple_Test_Projects change:
   other threats there were not rated. It is open too.
 
 The row goes from *gap* to *unknown*. No risk value changes.
+
+**Patch 29 — progress with open SRSL controls.** In an EN 50742 A project, a risk whose SRSL
+controls are missing is not done. The dump writes `risks.progress.srslOpen` when there are
+such risks. Both Simple_Test_Projects show `srslOpen: 1`: their one SRSL risk was not done
+before either, so `done` is unchanged.

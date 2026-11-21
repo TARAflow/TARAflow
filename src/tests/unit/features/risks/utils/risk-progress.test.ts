@@ -23,6 +23,17 @@ describe("calculateProgress", () => {
       risk("reduce", ["open"]),
       risk("reduce"),
     ];
-    expect(calculateProgress(risks)).toEqual({ done: 5, total: 8, percent: 62.5 });
+    expect(calculateProgress(risks)).toEqual({ done: 5, total: 8, percent: 62.5, srslOpen: 0 });
+  });
+});
+
+describe("calculateProgress — EN 50742 A, SRSL controls open (0.20 patch 29)", () => {
+  it("a risk with open SRSL controls is not done, whatever its treatment; counted as srslOpen", () => {
+    const accepted = { ...risk("accept"), id: "R-1" };
+    const wont = { ...risk("reduce", [], "wont"), id: "R-2" };
+    const implemented = { ...risk("reduce", ["implemented"]), id: "R-3" };
+    expect(calculateProgress([accepted, wont, implemented]).done).toBe(3);
+    const p = calculateProgress([accepted, wont, implemented], new Set(["R-1", "R-2"]));
+    expect(p).toMatchObject({ done: 1, total: 3, srslOpen: 2 });
   });
 });

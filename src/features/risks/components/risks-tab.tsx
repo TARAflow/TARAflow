@@ -9,6 +9,7 @@
 import { GoalsClaimsDialog } from "./goals-claims-dialog";
 import { ConceptFindingsProvider } from "./concept-findings-context";
 import { UncreditedResidualsProvider } from "./credited-residual-context";
+import { SafetyMarksProvider } from "./safety-marks-context";
 import type { UncreditedResiduals } from "shared";
 import { conceptFindings, conceptWarningsByRisk } from "../services/concept-findings";
 import type { CybersecurityConcept } from "shared";
@@ -372,7 +373,21 @@ const RisksTabView: React.FC<RiskTabProps> = ({
       toolbarRisks.filter((r) => (r.isoRisk?.value ?? 0) > 0 || r.calculatedRiskBeforeMitigation > 0).length,
     [toolbarRisks],
   );
-  const completedRiskCount = useMemo(() => calculateProgress(toolbarRisks).done, [toolbarRisks]);
+  const completedRiskCount = useMemo(
+    () => calculateProgress(toolbarRisks, project.en50742SrslOpenRiskIds).done,
+    [toolbarRisks, project.en50742SrslOpenRiskIds],
+  );
+
+  // EN 50742 (patch 29): what the register marks — the threats whose risk is
+  // safety-relevant (A and B; undefined outside an EN 50742 project) and the
+  // risks whose SRSL controls are open.
+  const safetyMarks = useMemo(() => {
+    const refs = allThreatsUnfiltered.filter((th) => th.en50742 !== undefined);
+    return {
+      ...(project.en50742SrslOpenRiskIds ? { srslOpen: project.en50742SrslOpenRiskIds } : {}),
+      ...(refs.length > 0 ? { relevantThreatIds: new Set(refs.filter((th) => th.en50742?.relevant).map((th) => th.id)) } : {}),
+    };
+  }, [allThreatsUnfiltered, project.en50742SrslOpenRiskIds]);
 
   const currentThreats = useMemo(
     () =>
@@ -461,10 +476,11 @@ const RisksTabView: React.FC<RiskTabProps> = ({
     setRiskLevelFilter,
     setScopeFilter,
     setIsoReviewOnly,
+    setSafetyOnly,
     clearFilters,
     filterRisks,
     hasActiveFilters,
-  } = useRiskFilters(project.dfdTableGroups?.scope);
+  } = useRiskFilters(project.dfdTableGroups?.scope, safetyMarks.relevantThreatIds);
   // Leveled DFD (6f): the matrix shows all risks or those of one group
   // (top level / a top-level decomposed multiprocess, like the tables).
   const [matrixGroupChoice, setMatrixGroup] = useState("");
@@ -906,6 +922,7 @@ const RisksTabView: React.FC<RiskTabProps> = ({
 
   return (
     <ConceptFindingsProvider value={conceptMarkers}>
+    <SafetyMarksProvider value={safetyMarks}>
     <UncreditedResidualsProvider value={uncreditedResiduals}>
     <Box
       sx={{
@@ -1074,6 +1091,9 @@ const RisksTabView: React.FC<RiskTabProps> = ({
                 scopeIndex={project.dfdTableGroups?.scope}
                 scope={filters.scope}
                 onScopeChange={setScopeFilter}
+                {...(safetyMarks.relevantThreatIds
+                  ? { safetyOnly: !!filters.safetyOnly, onSafetyOnlyChange: setSafetyOnly }
+                  : {})}
                 filteredCount={filteredActiveRisks.length + filteredAttackPathRisks.length}
                 totalCount={toolbarRisks.length}
               />
@@ -1403,6 +1423,7 @@ const RisksTabView: React.FC<RiskTabProps> = ({
       )}
     </Box>
     </UncreditedResidualsProvider>
+    </SafetyMarksProvider>
     </ConceptFindingsProvider>
   );
 };
