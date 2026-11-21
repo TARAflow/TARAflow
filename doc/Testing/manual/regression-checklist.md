@@ -5,7 +5,8 @@
 This checklist covers behaviour that unit and E2E tests do not fully cover:
 layout, tooltips, dialogs, cross-tab consistency, the report, git and tracker
 round trips. Run it by hand before every release and before the 1.0.0-rc.
-Component import has its own checklist: `component-import.md` in this folder.
+Component import has its own checklist: `component-import.md` in this folder. EN 50742
+(Approaches A and B, safety zone, EL badges, tag combinations) has `en-50742.md`.
 
 ## Prerequisites
 

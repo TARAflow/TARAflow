@@ -1,6 +1,6 @@
 # TARAflow — roadmap to 1.0.0
 
-**Status:** v0.9 · 2026-11-20 · v0.9: results dump of 0.19 done (0.20 patch 01); four small
+**Status:** v0.10 · 2026-11-21 · v0.10: EN 50742 B done (0.20 patches 09 – 19), tag rules (one base method, A as an overlay — user 2026-11-21) · v0.9: results dump of 0.19 done (0.20 patch 01); four small
 items from the 0.19 manual test and review in 0.20; EN 40000-1-4 with EN 18031 in 0.22 (user
 2026-11-20) · v0.8: the Audit SSH key field without effect (review 2026-11-20) · v0.7: 0.20 also hardens git:rawInDir and shows a component's boundary interfaces (review / user 2026-11-19/20) · v0.6: acknowledged audit findings in 0.20 (user 2026-11-17) · v0.5: snapshot hash test from 0.20 (reference 0.19, re-based in 0.21); where R-6 / R-7 go if decided for 1.0; the deliberate exception of 0.23 to rule 2 (review of cb0eabe5, second instance) · v0.4: review of the order against the design documents and
 the code (second instance, user 2026-11-14) — guard rails first in 0.20 (results dump,
@@ -156,11 +156,16 @@ loads, and saved again loads, with the content hash 0.19 recorded at its import
   assess (fallback: the path to the safety functions). Approach A rates EL / AC / WoO /
   SRSL only for those risks — changes A results (release note; no customer uses EN 50742
   yet).
-- **Done (0.20 patches 09 – 14):** data, evaluation, retention field, preset, tag (brings
-  "IEC 62443" along), sub-tab and report.
-- Module in the Compliance tab like `en-50742-a`; switch the tag on
-  (`shared/utils/tag-categories.ts`, disabled with the outdated reason "no IEC 62443-4-2
-  support yet"); update `regulation-presets-design.md` (stale).
+- **Done (0.20 patches 09 – 19):**
+  - Patches 09 – 14: data, evaluation, retention field, preset, tag (brings "IEC 62443"
+    along), sub-tab and report.
+  - Patch 15: the safety zone as a mark with crossing warning.
+  - Patch 16: EL badges and the zone in the diagram.
+  - Patch 17: tag combinations (user 2026-11-21). One base method (standard, ETSI TVRA,
+    ISO 21434). A and B exclude each other; ISO 21434 excludes EN 50742 and TVRA.
+  - Patch 18: Approach A as an overlay on the base method (TVRA + A); results unchanged.
+  - Patch 19: docs and the manual test `doc/Testing/manual/en-50742.md`. Its last section
+    makes the two example projects with a safety zone for the examples repository.
 - **EN 50742 A:** SRSL 0 only when every interface is EL0 (no guard today — changes risk
   results; after the stamp).
 - **Raw i18n keys** can end up as saved threat / risk text — repair on load

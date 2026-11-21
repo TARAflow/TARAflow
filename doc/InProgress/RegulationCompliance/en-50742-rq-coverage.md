@@ -1,6 +1,10 @@
 # TARAflow — prEN 50742 requirement coverage
 
-**Status:** v0.5 · 2026-11-20 · v0.5: Approach B data in the code (0.20 patch 09: edition `en-50742-b` derived from the 2019 edition and Table 4, rules and texts of the new EN rows; not switched on yet — evaluation patch 10, retention field 11, preset / tag / UI / report 12) · v0.4: Approach B rows from the text (§6: Clauses 6 and 8 complete, findings B-F1 … B-F8 decided (O13 – O16, user 2026-11-14), row list of the sub-tab `en-50742-b`; 0.20, roadmap) — source checked again: BSI DPC 25/30551049 DC (2025-12-05) carries the same CENELEC enquiry draft, line numbers identical · v0.3: CT-A rows evaluate (CM-12, CM-12b) and are in the report (CM-13) — §4, §5, §7 rows with a CT-A row set to met / tracked with test references · v0.2: the §9.2 rows are the module `en-50742-a` (CM-11; completeness test) · source: prEN 50742:2025 (E), Draft for Enquiry
+**Status:** v0.6 · 2026-11-21 · v0.6: Approach B done in 0.20 (patches 09 – 18: data,
+relevance O17 / O18, evaluation, retention field, preset / tag / sub-tab / report, the safety
+zone as a mark with crossing warning, EL badges and zone style in the diagram, tag
+combinations, Approach A as an overlay on the base method so it goes with ETSI TVRA);
+manual test `doc/Testing/manual/en-50742.md` · v0.5: Approach B data in the code (0.20 patch 09: edition `en-50742-b` derived from the 2019 edition and Table 4, rules and texts of the new EN rows; not switched on yet — evaluation patch 10, retention field 11, preset / tag / UI / report 12) · v0.4: Approach B rows from the text (§6: Clauses 6 and 8 complete, findings B-F1 … B-F8 decided (O13 – O16, user 2026-11-14), row list of the sub-tab `en-50742-b`; 0.20, roadmap) — source checked again: BSI DPC 25/30551049 DC (2025-12-05) carries the same CENELEC enquiry draft, line numbers identical · v0.3: CT-A rows evaluate (CM-12, CM-12b) and are in the report (CM-13) — §4, §5, §7 rows with a CT-A row set to met / tracked with test references · v0.2: the §9.2 rows are the module `en-50742-a` (CM-11; completeness test) · source: prEN 50742:2025 (E), Draft for Enquiry
 (CLC/TC 44X), licensed copy · code base: `main` 3570655c (CM-2) · v0.1: rows of Approach A
 mapped to the Compliance sub-tab `en-50742-a` (§9, user 2026-11-02); Approach B deferred
 **Belongs to:** `en-50742-approach-a-design.md` (Approach A) and the Compliance sub-tab
@@ -288,6 +292,19 @@ switched on in patch 14: tag "EN 50742 B" (brings "IEC 62443" along), preset wit
 `motive` (O16), sub-tab with the fixed SL-T read-only, recommended rows marked and left out
 of the counts and the to-do list, statements written to the row's family, report with the
 fixed SL-T and recommended rows named.
+
+**Around it (0.20 patches 15 – 18):**
+
+- Patch 15: the safety zone became a mark on the trust boundary (`safetyZone`), with a
+  warning for a flow that crosses it without an interface.
+- Patch 16: the diagram shows the EL badges and the yellow zone, with a report legend.
+- Patch 17: the tag rules. B goes with the standard method or ETSI TVRA and always with
+  an IEC 62443-4-2 edition. It excludes A and ISO 21434.
+- Patch 18: Approach A became an overlay on the base method
+  (`regulation-presets-design.md` §10.9). The EN 50742 questions follow the A / B tag:
+  safety zone, relevance and scope.
+- Manual test: `doc/Testing/manual/en-50742.md`. The example projects with a safety zone
+  come from its section 9.
 
 ## 7. Clause 9 — Information for use
 
