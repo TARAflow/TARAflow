@@ -128,12 +128,6 @@ function projectOutcome(check: ProjectCheckId, view: En50742View): ExternalOutco
       if (noSrsl.length > 0) return { status: "unknown", ...because("noElRatedInterface", { values: { list: noSrsl.map((s) => s.name).join(", ") } }) };
       return met();
     }
-    case "safety-scope": {
-      const r = view.relevance;
-      if (!r || r.mode === "none") return { status: "unknown", ...because("noSafetyScope") };
-      if (r.count === 0) return { status: "unknown", ...because("noRelevantInterface") };
-      return { status: "met", ...because("evaluatedInFull") };
-    }
     case "srsl-consistent": {
       const zero = risks.filter((r) => r.srsl === 0);
       // Patch 22: SRSL0 only for a completely isolated safety function —

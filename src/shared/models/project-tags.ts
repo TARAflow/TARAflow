@@ -8,7 +8,6 @@ import {
   type TagCategoryKey,
 } from "../utils/tag-categories";
 import {
-  canonicalMethodTag,
   isBareEn50742Tag,
   isEn50742ApproachBTag,
   methodTagOf,
@@ -73,6 +72,8 @@ export function addTagToProject(
 /** What adding a tag did — the editor says it when a tag was replaced or refused. */
 export interface TagAddOutcome {
   tags: ProjectTags;
+  /** The tag as stored (an EN 50742 spelling as its catalogue tag); absent when nothing was added. */
+  added?: string;
   /** Method tags the new one replaced (combinations that are excluded). */
   replaced: string[];
   /** "en50742-approach": the bare "EN 50742" — choose A or B. */
@@ -80,9 +81,8 @@ export interface TagAddOutcome {
 }
 
 /**
- * Adds a tag. A method tag (ISO 21434, EN 50742 A / B, ETSI TVRA) is written
- * in its catalogue spelling, always as a regulation, and replaces the method
- * tags it cannot go with (user 2026-11-21: EN 50742 A <-> B, ISO 21434 <->
+ * Adds a tag. A method tag (ISO 21434, EN 50742 A / B, ETSI TVRA) goes to the
+ * regulations and replaces the method tags it cannot go with (user 2026-11-21: EN 50742 A <-> B, ISO 21434 <->
  * EN 50742 A / B and ETSI TVRA — tag-validator.ts). The bare "EN 50742" is
  * refused.
  */
@@ -96,7 +96,11 @@ export function addTagWithOutcome(
   if (isBareEn50742Tag(typed)) return { tags, replaced: [], refused: "en50742-approach" };
 
   const method = methodTagOf(typed);
-  const trimmed = method ?? typed;
+  // Only the EN 50742 spellings become the catalogue tag ("EN50742_B" →
+  // "EN 50742 B": A and B decide the matrices). Other method tags stay as
+  // typed — "ETSI TS 102 165-1" says more than "ETSI TVRA" (review
+  // 2026-11-21); methodTagOf reads them all.
+  const trimmed = method === "EN 50742 A" || method === "EN 50742 B" ? method : typed;
   if (flattenProjectTags(tags).includes(trimmed)) return { tags, replaced: [] };
 
   // The same method in another spelling goes silently; an excluded one is named.
@@ -116,24 +120,7 @@ export function addTagWithOutcome(
   // EN 50742 Approach B builds on IEC 62443-4-2:2019 (Table 4): its tag brings
   // the IEC 62443 tag along (user 2026-11-20) — the 62443 sub-tab shows the
   // full matrix next to B's subset, and both share their statements (K-6).
-  return { tags: isEn50742ApproachBTag(trimmed) ? addTagToProject(next, IEC_62443_TAG) : next, replaced };
-}
-
-/**
- * Loading (0.20): the method tags of the regulations in their catalogue
- * spelling — "EN50742_A" and the bare "EN 50742" become "EN 50742 A", as the
- * preset has always read them, so no result changes. Excluded combinations
- * are kept (the editor shows the conflict; nothing is chosen for the user).
- * Same object when nothing changes.
- */
-export function canonicalizeMethodTags(tags: ProjectTags): ProjectTags {
-  if (!tags.regulation.some((t) => methodTagOf(t) !== null && canonicalMethodTag(t) !== t)) return tags;
-  const regulation: string[] = [];
-  for (const t of tags.regulation) {
-    const c = canonicalMethodTag(t);
-    if (!regulation.includes(c)) regulation.push(c);
-  }
-  return { ...tags, regulation };
+  return { tags: isEn50742ApproachBTag(trimmed) ? addTagToProject(next, IEC_62443_TAG) : next, replaced, added: trimmed };
 }
 
 /** The tag of the IEC 62443-4-2:2019 matrix (standard registry TAG_IEC_62443). */

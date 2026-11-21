@@ -145,9 +145,7 @@ export type ProjectCheckId =
   | "system-definition"
   | "interfaces-assessed"
   | "srsl-complete"
-  | "srsl-consistent"
-  // EN 50742 B, 8.3/479: the relevant elements are evaluated in full (O17)
-  | "safety-scope";
+  | "srsl-consistent";
 
 export interface EvidenceRule<R extends string = RequirementId> {
   id: R;

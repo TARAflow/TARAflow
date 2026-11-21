@@ -31,6 +31,10 @@ export const EN50742_B_TEXTS: Readonly<Record<(typeof EN50742_B_REQUIREMENT_IDS)
     title: "Mixed components evaluated in full",
     en: "A component serving safety and other functions meets Table 4 as a whole, not only for its safety part.",
     de: "Eine Komponente mit Sicherheits- und anderen Funktionen erfüllt Tabelle 4 als Ganzes, nicht nur für ihren Sicherheitsteil.",
+    checklistDe: [
+      "die Anforderungen aus Tabelle 4 erfüllt die Komponente als Ganzes, nicht nur ihr Sicherheitsteil",
+      "TARAflow bewertet jedes Element im EN-50742-Scope als Ganzes (Scope O17) — nenne die Nicht-Sicherheitsfunktionen der Komponente, die ausserhalb davon liegen",
+    ],
   },
   "en-8.5-487": {
     title: "Audit records kept for 5 years",

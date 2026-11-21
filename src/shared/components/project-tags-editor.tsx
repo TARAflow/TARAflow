@@ -12,7 +12,7 @@ import {
   removeTagFromProject,
   flattenProjectTags,
 } from "../models/project-tags";
-import { canonicalMethodTag, getTagWarnings, tagEffectOf } from "../services/tag-validator";
+import { getTagWarnings, tagEffectOf } from "../services/tag-validator";
 
 import {
   TAG_CATEGORIES,
@@ -69,7 +69,7 @@ export const ProjectTagsEditor: React.FC<ProjectTagsEditorProps> = ({
     setNotice(
       outcome.replaced.length > 0
         ? t("projectInfo.tagNotices.replaced", {
-            added: canonicalMethodTag(trimmed),
+            added: outcome.added ?? trimmed,
             removed: outcome.replaced.join(", "),
             defaultValue: "{{added}} replaces {{removed}} — the two cannot be combined in one project.",
           })

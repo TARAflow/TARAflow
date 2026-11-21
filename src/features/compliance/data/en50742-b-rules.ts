@@ -3,8 +3,10 @@
 // The IEC 62443-4-2 rows of Table 4 use the 2019 rules (evidence-rules.ts);
 // the common clauses and 8.4 (= 7.5) use the Approach A rules.
 //
-// 8.3/479 (mixed components in full) is met when the relevance scope (O17)
-// has elements — the scope takes each of them whole. 8.3/473 (CCSC 2) stays a
+// 8.3/479 (mixed components in full) is a statement row (review 2026-11-21):
+// the model cannot show that a component with safety and other functions
+// was evaluated as a whole — a scope with elements proves nothing about it.
+// 8.3/473 (CCSC 2) stays a
 // statement row the evaluation fills: met by the model when no Table 4 row
 // needs a countermeasure of the system, else the rows to name
 // (evaluate-matrix withSystemCountermeasures). 8.5 is a model row on the
@@ -17,8 +19,16 @@ const RULES = [
   { id: "en-8.2-458", type: "C", targets: [] },
   { id: "en-8.3-471", type: "C", targets: [] },
   { id: "en-8.3-473", type: "C", targets: [] },
-  // the scope of O17 takes every relevant element whole (8.3/479–480)
-  { id: "en-8.3-479", type: "A", targets: [], external: { kind: "project", check: "safety-scope" } },
+  // a statement: the model cannot show the evaluation as a whole (review 2026-11-21)
+  {
+    id: "en-8.3-479",
+    type: "C",
+    targets: [],
+    checklist: [
+      "the Table 4 requirements are met by the component as a whole, not only by its safety part",
+      "TARAflow evaluates each element of the EN 50742 scope whole (scope O17) — name the component's non-safety functions that lie outside it",
+    ],
+  },
   {
     // B-F6: the store holding the audit records (CR 2.8) keeps them ≥ 5 years
     id: "en-8.5-487",

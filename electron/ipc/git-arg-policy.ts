@@ -56,8 +56,29 @@ const FORBIDDEN_OPTIONS = [
   "--filters",
 ];
 
+/**
+ * Real git options that are a prefix of a forbidden one — they mean
+ * themselves, not the forbidden option (git takes an exact name first).
+ */
+const EXACT_OPTIONS_THAT_ARE_PREFIXES = new Set(["--text"]);
+
+/**
+ * git's option parser accepts an unambiguous abbreviation of a long option:
+ * `git cat-file --filt` acts as `--filters` (review 2026-11-21, git 2.43).
+ * A `--` argument whose name (before "=") is a prefix of a forbidden long
+ * option is refused — from 3 characters on; shorter ones are ambiguous and
+ * git refuses them itself.
+ */
+function abbreviatesForbidden(arg: string): boolean {
+  if (!arg.startsWith("--")) return false;
+  const name = arg.split("=", 1)[0];
+  if (name.length < 5 || EXACT_OPTIONS_THAT_ARE_PREFIXES.has(name)) return false;
+  return FORBIDDEN_OPTIONS.some((o) => o.startsWith("--") && o !== name && o.startsWith(name));
+}
+
 const isForbidden = (arg: string) =>
   FORBIDDEN_OPTIONS.some((o) => arg === o || arg.startsWith(`${o}=`)) ||
+  abbreviatesForbidden(arg) ||
   // -c<key>=<value> written without a space
   /^-c[a-z]/i.test(arg) && arg.includes("=");
 

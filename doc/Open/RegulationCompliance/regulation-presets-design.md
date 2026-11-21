@@ -401,7 +401,10 @@ method:
 - The bare "EN 50742" is refused, with the request to choose A or B.
 
 **Loading:**
-- Old spellings, including the bare tag read as A, become the catalogue tag.
+- Stored tags are never rewritten (review 2026-11-21, patch 25 — a rewrite changed the
+  file and a component's snapshot hash). `methodTagOf` reads every alias; the bare
+  "EN 50742" is read as A. Only an EN 50742 tag added in the editor is written in its
+  catalogue spelling; other method tags stay as typed ("ETSI TS 102 165-1").
 - Excluded combinations stay as they are and are shown as conflicts
   (`getRegulationConflicts`).
 - B without any 62443-4-2 edition is hinted.

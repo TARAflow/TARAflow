@@ -204,8 +204,10 @@ export function isEn50742ApproachBTag(tag: string): boolean {
 //
 // The tag editor enforces it: an excluded tag is replaced by the one added
 // (project-tags.ts addTagWithOutcome). The warnings of getRegulationConflicts
-// stay for projects saved before. Tags are written in their catalogue
-// spelling; the bare "EN 50742" is refused (choose A or B).
+// stay for projects saved before. An added EN 50742 tag is written in its
+// catalogue spelling, other method tags as typed; the bare "EN 50742" is
+// refused (choose A or B). Stored tags are never rewritten (review
+// 2026-11-21) — methodTagOf reads every alias.
 
 /** A method tag in its catalogue spelling. */
 export type MethodTag = "ISO 21434" | "ETSI TVRA" | "EN 50742 A" | "EN 50742 B";
@@ -239,10 +241,6 @@ export function isBareEn50742Tag(tag: string): boolean {
   return methodGroupOf(tag) === "EN 50742" && en50742ApproachOf(tag) === null;
 }
 
-/** The catalogue spelling of a method tag; other tags as they are (trimmed). */
-export function canonicalMethodTag(tag: string): string {
-  return methodTagOf(tag) ?? tag.trim();
-}
 
 // ==================== SAFETY / HAZARD IMPLICATION ====================
 
@@ -332,7 +330,10 @@ function getMissingContextWarnings(tags: ProjectTags): TagWarning[] {
   const warnings: TagWarning[] = [];
 
   for (const rule of TAG_RULES) {
-    if (!tags.regulation.includes(rule.regulation)) continue;
+    // any spelling of the regulation ("ISO/SAE 21434" too — tags are not
+    // rewritten on load, review 2026-11-21)
+    const named = (t: string) => t === rule.regulation || (methodTagOf(t) !== null && methodTagOf(t) === methodTagOf(rule.regulation));
+    if (!tags.regulation.some(named)) continue;
 
     const domainMatch = rule.expectedDomains?.some((d) => tags.domain.includes(d)) ?? null;
     const platformMatch = rule.expectedPlatforms?.some((p) => tags.platform.includes(p)) ?? null;

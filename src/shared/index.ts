@@ -548,7 +548,6 @@ export {
   migrateProjectTags,
   addTagToProject,
   addTagWithOutcome,
-  canonicalizeMethodTags,
   removeTagFromProject,
   flattenProjectTags,
   isProjectTags,

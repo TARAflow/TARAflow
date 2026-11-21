@@ -7,7 +7,6 @@ import { repairHazardAssetRefs } from "./repair-hazard-asset-refs";
 import { repairElementRelationGroups } from "./repair-element-relation-groups";
 import {
   migrateProjectTags,
-  canonicalizeMethodTags,
   EMPTY_PROJECT_TAGS,
 } from "../../shared/models/project-tags";
 import type { PhaseStatus, PhaseStatusMap } from "shared";
@@ -344,12 +343,9 @@ export function applyLegacyMigrations(raw: any): any {
     };
   }
 
-  // Method tags in their catalogue spelling (0.20: "EN50742_A", the bare
-  // "EN 50742" → "EN 50742 A" — read as A before, no result changes)
-  if (data.info?.tags && !Array.isArray(data.info.tags) && Array.isArray(data.info.tags.regulation)) {
-    const tags = canonicalizeMethodTags(data.info.tags);
-    if (tags !== data.info.tags) data = { ...data, info: { ...data.info, tags } };
-  }
+  // Tags are never rewritten on load (review 2026-11-21): a stored alias
+  // ("EN50742_A", the bare "EN 50742") is read by methodTagOf; rewriting it
+  // would change the file and a component's snapshot hash (about.tags).
 
   // Migrate risk data schema
   if (data.risks) {

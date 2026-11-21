@@ -9,7 +9,6 @@ import {
   getRegulationPreset,
   getAllPredefinedTagNames,
   addTagWithOutcome,
-  canonicalizeMethodTags,
   getTagWarnings,
 } from "shared";
 import type { ProjectTags } from "shared";
@@ -153,7 +152,10 @@ describe("method tag combinations (user 2026-11-21)", () => {
     expect(add([], "EN 50742")).toMatchObject({ tags: { regulation: [] }, refused: "en50742-approach" });
     expect(add([], "EN50742")).toMatchObject({ refused: "en50742-approach" });
     expect(add([], "EN 50742 Approach A").tags.regulation).toEqual(["EN 50742 A"]);
-    expect(add([], "ISO/SAE 21434").tags.regulation).toEqual(["ISO 21434"]);
+    // other method tags stay as typed (review 2026-11-21) — and still count as the method
+    expect(add([], "ISO/SAE 21434").tags.regulation).toEqual(["ISO/SAE 21434"]);
+    expect(add(["ISO/SAE 21434"], "EN 50742 A")).toMatchObject({ tags: { regulation: ["EN 50742 A"] }, replaced: ["ISO/SAE 21434"] });
+    expect(add([], "ETSI TS 102 165-1")).toMatchObject({ tags: { regulation: ["ETSI TS 102 165-1"] }, added: "ETSI TS 102 165-1" });
     // the same method in an old spelling goes silently
     expect(add(["EN50742_A"], "EN 50742 A")).toMatchObject({ tags: { regulation: ["EN 50742 A"] }, replaced: [] });
     // a free tag is untouched
@@ -172,12 +174,12 @@ describe("method tag combinations (user 2026-11-21)", () => {
     expect(hint(["EN 50742 B", "IEC 62443"])).toHaveLength(0);
   });
 
-  it("loading writes the catalogue spelling — the preset reads the same", () => {
-    const old = tags(["EN 50742", "CRA", "EN50742_A"]);
-    const fixed = canonicalizeMethodTags(old);
-    expect(fixed.regulation).toEqual(["EN 50742 A", "CRA"]);
-    expect(regulationPresetFromTags(fixed)).toBe(regulationPresetFromTags(old));
-    const clean = tags(["EN 50742 A", "CRA"]);
-    expect(canonicalizeMethodTags(clean)).toBe(clean);
+  it("aliases are read everywhere without rewriting: preset, approach, conflicts, context hints", () => {
+    expect(regulationPresetFromTags(tags(["EN50742_A"]))).toBe("en-50742-a");
+    expect(regulationPresetFromTags(tags(["ETSI TS 102 165-1", "EN50742_A"]))).toBe("etsi-tvra");
+    expect(regulationPresetFromTags(tags(["ISO/SAE 21434"]))).toBe("iso-21434");
+    expect(getRegulationConflicts(tags(["ISO/SAE 21434", "EN50742_B"]))).toHaveLength(1);
+    // the context hint of ISO 21434 (no Automotive) also for its alias
+    expect(getTagWarnings(tags(["ISO/SAE 21434"])).some((w) => w.kind === "missing-context")).toBe(true);
   });
 });

@@ -1,8 +1,8 @@
 // EN 50742 Approach B evaluation (en-50742-rq-coverage.md §6.2, 0.20 patch
 // 12): the IEC 62443-4-2 rows of Table 4 read the statements of their own
 // family (K-6), recommended rows are shown but never counted (O14), the
-// scope is the EN 50742 relevance scope (O17), 8.3/479 is met when that
-// scope has elements, 8.3/473 (CCSC 2) names the rows met only with
+// scope is the EN 50742 relevance scope (O17), 8.3/479 is a statement row
+// (review 2026-11-21), 8.3/473 (CCSC 2) names the rows met only with
 // countermeasures of the machinery system.
 import { describe, it, expect } from "vitest";
 import type { Project } from "app/models/project-types";
@@ -55,10 +55,15 @@ describe("EN 50742 B — evaluation", () => {
     expect(rowOf(prepareProjectCompliance(wrong)!.evaluate(EDITION_EN50742_B).achieved.rows, "CR 1.2").source).not.toBe("statement");
   });
 
-  it("8.3/479: met when the relevance scope has elements (path mode)", () => {
+  it("8.3/479: a statement row — a scope with elements proves no evaluation as a whole (review 2026-11-21)", () => {
     const context = prepareProjectCompliance(project())!;
     expect(context.en50742Relevance().relevant.size).toBeGreaterThan(0);
-    expect(rowOf(context.evaluate(EDITION_EN50742_B).achieved.rows, "EN-8.3/479–480")).toMatchObject({ status: "met", reason: { code: "evaluatedInFull" } });
+    expect(rowOf(context.evaluate(EDITION_EN50742_B).achieved.rows, "EN-8.3/479–480").status).toBe("needs-statement");
+    const stated = withStatements(project(), "en-50742", { "EN-8.3/479–480": statement("met") });
+    expect(rowOf(prepareProjectCompliance(stated)!.evaluate(EDITION_EN50742_B).achieved.rows, "EN-8.3/479–480")).toMatchObject({
+      status: "met",
+      source: "statement",
+    });
   });
 
   it("8.3/473 (CCSC 2): met by the model when no row needs a countermeasure of the system; otherwise it names them", () => {

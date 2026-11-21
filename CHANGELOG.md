@@ -37,9 +37,10 @@
   IEC 62443-4-2 edition. Combinations that cannot go together (EN 50742 A and B;
   ISO 21434 with EN 50742 or ETSI TVRA) are no longer only warned about: adding one
   tag replaces the other, and the tag editor says so. The bare tag *EN 50742* is
-  refused (choose A or B); other spellings are written as the catalogue tag, also
-  when a project is opened (*EN 50742* and *EN50742_A* become *EN 50742 A*, as they
-  were read before). ETSI TVRA with EN 50742 is no longer flagged as a conflict.
+  refused when added (choose A or B); an added EN 50742 spelling such as *EN50742_B*
+  is written as the catalogue tag. Stored tags are never rewritten: an older spelling
+  such as *EN50742_A*, or the bare *EN 50742* (read as A), keeps working as it is. ETSI
+  TVRA with EN 50742 is no longer flagged as a conflict.
 - **EN 50742 A with ETSI TVRA:** Approach A is an addition to the base method. With
   ETSI TVRA the risks are rated by TVRA (R = L × I), and the safety-relevant ones get
   the exposure level, attacker capability, window of opportunity and the SRSL next to it,

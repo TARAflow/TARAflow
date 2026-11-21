@@ -183,7 +183,7 @@ and 8 (text checked 2026-11-14).
 | EN-8.3/465–466 | Machinery **components**: EN IEC 62443-4-2:2019 with the CRs of Table 4 for their safety function(s) — FR1 SL-C2 CR 1.1, 1.2; FR2 SL-C2 CR 2.1, 2.6, 2.8, 2.9, 2.12, EDR 2.13; FR3 SL-C2 CR 3.1, 3.4, 3.5, 3.6, EDR 3.2, EDR 3.11, EDR 3.14; FR4 none; FR5 SL-C1 CR 5.1; FR6 SL-C1 CR 6.1; FR7 SL-C2 CR 7.1, 7.2 (NOTE 1, 2 as Table 3) | 1.1.9, 1.2.1f | track | [N] | **gap** — rows exist in the 2019 edition; subset + fixed SL-T missing (§6.2) | CT-B | – |
 | EN-8.3/471–472 | Components comply with 62443-4-2 4.2 support of essential functions (CCSC 1) and 4.4 least privilege (CCSC 3) | 1.1.9, 1.2.1f | track | [N] | **gap** — no CCSC row in the 2019 edition | CT-B statement | – |
 | EN-8.3/473–478 | Compensating countermeasures of the machinery system may count for a component (CCSC 2): a component may have a lower SL-C than Table 4 when the system provides countermeasures so that the system reaches the SL-C of Table 3; then the component's information for use names the needed countermeasures and the CRs it does not meet | 1.1.9, 1.2.1f | track + doc | [N] | **partial** — supporting measures and claims exist (D-14, "with measures of the system"); the link to Table 3 and to the information for use is missing | CT-B | supporting-measure evaluation of the 62443 sub-tabs |
-| EN-8.3/479–480 | Components serving safety **and** non-safety functions comply with Table 4 as well | 1.1.9, 1.2.1f | track | [N] | **gap** — scope rule (B-F4) | CT-B | – |
+| EN-8.3/479–480 | Components serving safety **and** non-safety functions comply with Table 4 as well | 1.1.9, 1.2.1f | track | [N] | **statement** — the model cannot show an evaluation as a whole; a scope with elements proves nothing about it (review 2026-11-21, 0.20 patch 25; patch 12 had a model check) | CT-B statement + checklist | `evaluate-matrix.en50742-b.test.ts` |
 | EN-8.4/482–484 | Software versions and configuration relevant for safety functions available on demand, human-readable (built-in or external tool) | 1.2.1f | track | [N] | **gap** — same content as EN-7.5/444–445 of Approach A (statement row, O9) | CT-B | – |
 | EN-8.5/487–488 | Audit records of CR 2.8 (auditable events) persist for at least 5 years; for safety functions only (NOTE) | – (B-F2) | track | [N] | **tracked** — CT-B row B: `auditRecordRetention` of the audit-log store in the safety scope ≥ 5 years (0.20 patch 13) + checklist | CT-B | `evaluate-matrix.en50742-b.test.ts` |
 
@@ -280,7 +280,7 @@ requirement ids, same model rules, statements shared inside the family `iec-6244
 | FR7 RA, SL 2 | CR 7.1, CR 7.1 RE(1), CR 7.2 | as above | as above |
 | CCSC (8.3) | EN-8.3/471–472 | C / S | statement per CCSC 1 and CCSC 3 |
 | | EN-8.3/473–478 | B / M + S | every Table 4 row below its SL that is met only with supporting measures / claims is named in the information-for-use statement with the countermeasure the system must provide |
-| | EN-8.3/479–480 | A / P | scope check: every element that serves a safety function is evaluated in full (no partial scope inside an element) |
+| | EN-8.3/479–480 | C | statement (patch 25): the component meets Table 4 as a whole; the checklist names the scope rule of O17 |
 | Identification (8.4) | EN-8.4/482–484 | C / S | statement, shared with EN-7.5/444–445 (O9) |
 | Persistency (8.5) | EN-8.5/487–488 | B / M + S | the audit-record store on the safety path has a retention ≥ 5 years (field of B-F6); checklist: records survive restart / replacement |
 | System role (8.2) | EN-8.2/458–459 | C / S | statement: the machinery system meets Table 3 per IEC 62443-3-3 (O13) |
@@ -300,8 +300,8 @@ lowest SL-C ≤ the SL of the FR; the HDR / NDR / SAR variants of the EDR-only r
 **Evaluated (0.20 patch 12):** the Table 4 rows read the statements of the family
 `iec-62443-4-2` (`editionStatements` per row family, K-6); recommended rows are evaluated,
 carry `recommended` and are left out of the SL-C (`vectorOf`); the scope is the EN 50742
-relevance scope (O17, as Approach A); 8.3/479 is a project check `safety-scope` (met when
-the scope has elements); 8.3/473 (CCSC 2) is met by the model when no Table 4 row is met
+relevance scope (O17, as Approach A); 8.3/479 was a project check `safety-scope` (met when
+the scope has elements — a statement row again since patch 25, review 2026-11-21); 8.3/473 (CCSC 2) is met by the model when no Table 4 row is met
 only with countermeasures of the system, otherwise it lists those rows for a statement
 (`withSystemCountermeasures`). Test: `evaluate-matrix.en50742-b.test.ts`. 8.5 and 7.3.4 read the
 retention field `auditRecordRetention` of the data stores in scope (patch 13: some store
