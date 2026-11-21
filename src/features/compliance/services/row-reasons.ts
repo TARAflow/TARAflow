@@ -32,6 +32,7 @@ export const REASON_TEXTS = {
   notSetYet: "not set yet: {{items}}",
   exposedWithoutSrsl: "on a path to a safety function, exposed, no risk with SRSL",
   srslOrElUnrated: "SRSL or EL not rated yet",
+  threatsOpen: "threats not assessed yet — rate them, or dismiss them with a reason",
   safetyFunctionsUnlinked: "safety functions without DFD elements: {{list}}",
   noExposedInterface: "no interface above EL0 on a path to a safety function",
   noElRatedInterface: "no EL-rated interface yet: {{list}}",

@@ -31,6 +31,7 @@
         "review": "{{id}}: to review after a change of the DFD or a component — {{description}}",
         "noDescription": "{{id}}: no threat description",
         "orphaned": "{{id}}: its element or flow is no longer in the DFD — keep it as a manual threat or delete it — {{description}}",
+        "en50742Unjustified": "{{id}}: dismissed without a justification, but it sits on an EN 50742 relevant interface or flow — note why it does not apply — {{description}}",
         "catalog": "Threat catalogue changed (v{{stored}} → v{{current}}): regenerate to re-evaluate the threats — relevance and notes are kept",
         "drift": "Generation rules changed: {{obsolete}} stored threat(s) would no longer be generated, {{added}} would be added"
       },
@@ -297,6 +298,7 @@
         "importedReadOnly": "Imported from {{source}} — read-only. The component TARA decides text, STRIDE and relevance; a boundary-flow threat's relevance can be overridden in the list.",
         "noteLabel": "Note",
         "overrideNeedsNote": "A justification is required to deviate from the asset-derived relevance.",
+        "en50742DismissNeedsNote": "This threat sits on an EN 50742 relevant interface or data flow — note why it does not apply before dismissing it.",
         "relevanceAutoDerived": "Relevance is derived from the asset relationship; overriding it needs a justification.",
         "advancedSection": "Threat Actor",
         "mitigations": "Mitigations",

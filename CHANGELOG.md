@@ -62,6 +62,15 @@
   Its risk gets the exposure level prefilled with the lowest EL of the named elements (an
   AND of steps: the attacker needs the easiest one too), and the safety-function isolation
   of its asset. Before, attack-path risks were not checked at all.
+- **EN 50742 A — "won't" no longer lifts safety requirements:** a risk prioritised as *won't*
+  stays in the SRSL rows of the requirement matrix; *won't* is a decision about the cyber
+  risk. A threat that does not apply is dismissed at the threat as *not relevant* — on an
+  EN 50742 relevant interface or flow only with a note (the threat dialog asks for it; the
+  Threats tab lists earlier dismissals without one as warnings). Row 7.1 now looks at
+  every threat of an exposed interface: it is assessed when each has a risk with an SRSL or
+  is dismissed with a reason, and open (naming the threats) otherwise — before, one risk
+  with an SRSL hid unrated threats on the same interface. Existing EN 50742 A projects can
+  show new open rows.
 - **Warning before a tag change deletes risk ratings:** a tag change that switches off
   risk factors (e.g. EN 50742 A removed: exposure level and attacker capability; ETSI TVRA
   added or removed) deletes their ratings. Saving the project information now asks first,

@@ -179,7 +179,7 @@ export const WorkspaceLayout: React.FC = () => {
 
   const dfdData = useDfdDerivedData(activeProject);
   // EN 50742 (O18): which risks get EL / AC / WoO / SRSL, with the reason.
-  const withEn50742Relevance = useEn50742Relevance(activeProject, t);
+  const { withRelevance: withEn50742Relevance, relevantAnchorIds: en50742RelevantAnchorIds } = useEn50742Relevance(activeProject, t);
   // Identical units per instance asset (I5) — the asset dialog's hint.
   const instanceComponents = activeProject?.components;
   const assetUnits = useMemo(() => instanceAssetUnits(instanceComponents), [instanceComponents]);
@@ -550,6 +550,7 @@ export const WorkspaceLayout: React.FC = () => {
               assetDataRef: assetData.assetDataRef,
               dfd: dfdData.dfdReference,
               riskAttachments: assetData.riskAttachments,
+              ...(en50742RelevantAnchorIds ? { en50742RelevantAnchorIds } : {}),
               excludedElementIds: dfdData.componentExcluded,
               importedThreatGroups: dfdData.componentThreatGroups,
               info: {

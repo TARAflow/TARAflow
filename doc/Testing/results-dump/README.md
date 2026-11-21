@@ -146,3 +146,12 @@ anchored and none is relevant, it is not relevant. Otherwise it is relevant, as 
 determinable". In both Simple_Test_Projects the one path risk (its tree's leaves name no
 DFD element) now carries `en50742Relevant: true`; before, its threat was not found and the
 field was missing. No value changes.
+
+**Patch 28 — 7.1 per threat; "won't" lifts no SRSL row (review 2026-11-21).** 7.1 now looks
+at the threats of each exposed anchor. Both Simple_Test_Projects change:
+- **The USB interface `9`:** it has threats but no risk with SRSL. It is now *open* ("threats
+  not assessed yet", naming them) instead of a gap.
+- **The flow `7`:** it counted as assessed because one of its risks had an SRSL, although
+  other threats there were not rated. It is open too.
+
+The row goes from *gap* to *unknown*. No risk value changes.

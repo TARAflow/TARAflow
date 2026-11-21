@@ -575,8 +575,8 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
   // exactly that threat in the dialog — and the drift as an info (its dialog).
   const orphanedThreatIds = activeHook.syncStatus?.orphanedThreats.threatIds;
   const tableFindings = useMemo(
-    () => threatFindings(activeHook.tables, orphanedThreatIds ?? []),
-    [activeHook.tables, orphanedThreatIds],
+    () => threatFindings(activeHook.tables, orphanedThreatIds ?? [], project.en50742RelevantAnchorIds),
+    [activeHook.tables, orphanedThreatIds, project.en50742RelevantAnchorIds],
   );
   const FINDING_TEXT: Record<ThreatFindingKind, string> = {
     unrated: "{{id}}: not rated yet — {{description}}",
@@ -584,6 +584,8 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
     review: "{{id}}: to review after a change of the DFD or a component — {{description}}",
     noDescription: "{{id}}: no threat description",
     orphaned: "{{id}}: its element or flow is no longer in the DFD — keep it as a manual threat or delete it — {{description}}",
+    en50742Unjustified:
+      "{{id}}: dismissed without a justification, but it sits on an EN 50742 relevant interface or flow — note why it does not apply — {{description}}",
   };
 
   // ── Generation drift ────────────────────────────────────────────────────
@@ -1022,6 +1024,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
               dfdData={project.dfd ?? null}
               onSave={handleSaveThreat}
               onClose={handleCloseThreatDialog}
+              {...(project.en50742RelevantAnchorIds ? { en50742RelevantAnchorIds: project.en50742RelevantAnchorIds } : {})}
               isoMode={
                 regulationPresetFromTags(
                   project.info?.tags ?? EMPTY_PROJECT_TAGS,

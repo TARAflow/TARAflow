@@ -54,7 +54,7 @@ export function useEn50742Relevance(project: Project | undefined, t: TFunction) 
     return (id: string) => levels.get(id);
   }, [dfd]);
 
-  return useCallback(
+  const withRelevance = useCallback(
     (refs: ThreatReference[]): ThreatReference[] =>
       relevance
         ? refs.map((ref) => {
@@ -80,4 +80,8 @@ export function useEn50742Relevance(project: Project | undefined, t: TFunction) 
         : refs,
     [relevance, isolation, labelOf, resolveRef, exposureLevelOf, t],
   );
+  // The relevant interfaces and flows — the Threats tab asks for a reason
+  // before a threat on one of them is dismissed (patch 28).
+  const relevantAnchorIds = useMemo(() => (relevance ? new Set(relevance.relevant.keys()) : undefined), [relevance]);
+  return { withRelevance, relevantAnchorIds };
 }

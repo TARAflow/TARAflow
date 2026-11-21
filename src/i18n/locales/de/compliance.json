@@ -183,6 +183,7 @@
       "notSetYet": "noch nicht gesetzt: {{items}}",
       "exposedWithoutSrsl": "auf einem Pfad zu einer Sicherheitsfunktion, exponiert, kein Risiko mit SRSL",
       "srslOrElUnrated": "SRSL oder EL noch nicht bewertet",
+      "threatsOpen": "Bedrohungen noch nicht bewertet — bewerten oder mit Begründung verwerfen",
       "safetyFunctionsUnlinked": "Sicherheitsfunktionen ohne DFD-Elemente: {{list}}",
       "noExposedInterface": "keine Schnittstelle über EL0 auf einem Pfad zu einer Sicherheitsfunktion",
       "noElRatedInterface": "noch keine Schnittstelle mit EL-Bewertung: {{list}}",

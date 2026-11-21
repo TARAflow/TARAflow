@@ -31,6 +31,7 @@
         "review": "{{id}}: nach einer Änderung des DFD oder einer Komponente zu prüfen — {{description}}",
         "noDescription": "{{id}}: keine Bedrohungsbeschreibung",
         "orphaned": "{{id}}: sein Element oder Datenfluss ist nicht mehr im DFD — als manuelle Bedrohung behalten oder löschen — {{description}}",
+        "en50742Unjustified": "{{id}}: ohne Begründung verworfen, liegt aber auf einem EN-50742-relevanten Interface oder Datenfluss — begründe, warum sie nicht zutrifft — {{description}}",
         "catalog": "Bedrohungskatalog geändert (v{{stored}} → v{{current}}): neu generieren, um die Bedrohungen neu zu bewerten — Relevanz und Notizen bleiben erhalten",
         "drift": "Generierungsregeln geändert: {{obsolete}} gespeicherte Bedrohung(en) würden nicht mehr erzeugt, {{added}} kämen hinzu"
       },
@@ -291,6 +292,7 @@
         "importedReadOnly": "Importiert aus {{source}} — schreibgeschützt. Text, STRIDE und Relevanz entscheidet die Komponenten-TARA; die Relevanz eines Threats auf einem Grenz-Flow kann in der Liste überstimmt werden.",
         "noteLabel": "Notiz",
         "overrideNeedsNote": "Für eine Abweichung von der asset-abgeleiteten Relevanz ist eine Begründung erforderlich.",
+        "en50742DismissNeedsNote": "Diese Bedrohung liegt auf einem EN-50742-relevanten Interface oder Datenfluss — begründe vor dem Verwerfen, warum sie nicht zutrifft.",
         "relevanceAutoDerived": "Die Relevanz wird aus dem Asset-Bezug abgeleitet; ein Override braucht eine Begründung.",
         "advancedSection": "Bedrohungsakteur",
         "mitigations": "Gegenmaßnahmen",

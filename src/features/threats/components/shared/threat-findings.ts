@@ -12,6 +12,10 @@
 //   noDescription  no threat description — mostly an analyst's manual threat
 //   orphaned   its element or flow is no longer in the DFD (the sync's
 //              orphaned threats) — keep it as manual or delete it
+//   en50742Unjustified  dismissed ("not relevant") without a justification
+//              although it sits on an EN 50742 relevant interface or flow —
+//              the safety side needs the reason (0.20 patch 28; a warning,
+//              the analyst's decision stays)
 // In the dialog's order (by flow / element, STRIDE, id). A threat can have
 // several reasons — a manual threat without a description and not rated —
 // and then has a row for each, next to each other.
@@ -19,7 +23,21 @@
 import type { Threat, ThreatTable } from "../../models/threat-types";
 import { compareThreatsByLabel } from "./threat-table-utils";
 
-export type ThreatFindingKind = "unrated" | "uncertain" | "review" | "noDescription" | "orphaned";
+export type ThreatFindingKind = "unrated" | "uncertain" | "review" | "noDescription" | "orphaned" | "en50742Unjustified";
+
+/** The interface / flow a threat sits on (its EN 50742 anchor), if any. */
+export function threatAnchorId(threat: Pick<Threat, "linkedElement" | "dataFlow">): string | undefined {
+  return threat.linkedElement?.elementId ?? threat.dataFlow?.connectionId ?? undefined;
+}
+
+/** EN 50742 (patch 28): dismissing this threat needs a justification. */
+export function dismissalNeedsJustification(
+  threat: Pick<Threat, "linkedElement" | "dataFlow">,
+  relevantAnchorIds: ReadonlySet<string> | undefined,
+): boolean {
+  const anchor = threatAnchorId(threat);
+  return !!anchor && !!relevantAnchorIds?.has(anchor);
+}
 
 export interface ThreatFinding {
   id: string;
@@ -34,12 +52,20 @@ export interface ThreatFinding {
   threatId: string;
 }
 
-const KINDS: { kind: ThreatFindingKind; matches: (t: Threat, orphaned: ReadonlySet<string>) => boolean }[] = [
+const KINDS: {
+  kind: ThreatFindingKind;
+  matches: (t: Threat, orphaned: ReadonlySet<string>, relevantAnchors: ReadonlySet<string> | undefined) => boolean;
+}[] = [
   { kind: "orphaned", matches: (t, orphaned) => orphaned.has(t.id) },
   { kind: "noDescription", matches: (t) => !(t.threatDescription ?? "").trim() },
   { kind: "unrated", matches: (t) => !t.relevance || t.relevance === "unrated" },
   { kind: "uncertain", matches: (t) => t.relevance === "uncertain" },
   { kind: "review", matches: (t) => !!t.review },
+  {
+    kind: "en50742Unjustified",
+    matches: (t, _o, relevantAnchors) =>
+      t.relevance === "not_relevant" && !(t.evalNote ?? "").trim() && dismissalNeedsJustification(t, relevantAnchors),
+  },
 ];
 
 const MAX_DESCRIPTION = 80;
@@ -49,6 +75,8 @@ export function threatFindings(
   tables: readonly ThreatTable[],
   /** Threat ids whose element or flow is gone (ThreatSyncStatus.orphanedThreats.threatIds). */
   orphanedIds: readonly string[] = [],
+  /** EN 50742 relevant interfaces and flows (app layer); absent = no EN 50742 project. */
+  en50742RelevantAnchorIds?: ReadonlySet<string>,
 ): ThreatFinding[] {
   const orphaned = new Set(orphanedIds);
   const all = tables
@@ -58,7 +86,7 @@ export function threatFindings(
   // threat by threat: the rows of one threat stand together
   for (const { threat, tableIndex } of all) {
     for (const { kind, matches } of KINDS) {
-      if (!matches(threat, orphaned)) continue;
+      if (!matches(threat, orphaned, en50742RelevantAnchorIds)) continue;
       out.push({
         id: `threat-${kind}-${threat.id}`,
         kind,

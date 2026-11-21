@@ -117,6 +117,7 @@ describe("Compliance frame", () => {
         { id: "sf2", name: "Guard door", linked: true, interfaces: [] },
       ],
       interfaces: { exposed: [], unrated: [] },
+      anchorThreats: new Map(),
       risks: [
         {
           id: "r1",

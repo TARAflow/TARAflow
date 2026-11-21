@@ -4,7 +4,7 @@
     "inputCommit": "70201b564caab195a6caa053d12e59fcf4f89beb",
     "inputFile": "Simple_Test_Project.tara.json",
     "inputSha256": "9c0f0e290cf07c10b1251a9b4e7733fb09b09d8542b4cba9d9588dddc8c16db0",
-    "taraflowCommit": "66860d7ad6f26e2b7e1982d1e83e95fbcb9924f3+modified",
+    "taraflowCommit": "c669b9ee7b1ef7a2711bb8c85a2f2beac7151bea+modified",
     "taraflowVersion": "0.19.0-beta",
     "threatCatalogVersion": 1
   },
@@ -116,22 +116,51 @@
           "EN-7.1/260": {
             "checklist": [],
             "claimIds": [],
-            "failing": [
-              "9"
-            ],
+            "failing": [],
             "group": "threat-assessment",
             "label": "EN-7.1/260",
             "minSl": null,
             "mitigationIds": [],
-            "modelStatus": "gap",
+            "modelStatus": "unknown",
             "reason": {
-              "code": "exposedWithoutSrsl"
+              "code": "threatsOpen"
             },
-            "reasoning": "on a path to a safety function, exposed, no risk with SRSL",
-            "status": "gap",
+            "reasoning": "threats not assessed yet — rate them, or dismiss them with a reason",
+            "risks": [
+              "DB-IF1-S-1",
+              "DB-IF1-T-1",
+              "DB-IF1-R-1",
+              "DB-IF1-I-1",
+              "DB-IF1-D-1",
+              "DB-IF1-E-1",
+              "DB-IF1-S-IN-1",
+              "DB-IF1-T-IN-1",
+              "DB-IF1-R-IN-1",
+              "DB-IF1-I-IN-1",
+              "DB-IF1-D-IN-1",
+              "DB-IF1-E-IN-1",
+              "DF3-I-1",
+              "DF3-D-1",
+              "MTB-DF3-S-OUT-1",
+              "MTB-DF3-T-OUT-1",
+              "MTB-DF3-R-OUT-1",
+              "MTB-DF3-I-OUT-1",
+              "MTB-DF3-D-OUT-1",
+              "MTB-DF3-E-OUT-1",
+              "MTB-DF3-S-IN-1",
+              "MTB-DF3-T-IN-1",
+              "MTB-DF3-R-IN-1",
+              "MTB-DF3-I-IN-1",
+              "MTB-DF3-D-IN-1",
+              "MTB-DF3-E-IN-1"
+            ],
+            "status": "unknown",
             "supportingElements": [],
             "supportingMeasuresAllowed": false,
-            "unknown": []
+            "unknown": [
+              "9",
+              "7"
+            ]
           },
           "EN-7.3.1/281": {
             "checklist": [],
@@ -624,22 +653,51 @@
           "EN-7.1/260": {
             "checklist": [],
             "claimIds": [],
-            "failing": [
-              "9"
-            ],
+            "failing": [],
             "group": "threat-assessment",
             "label": "EN-7.1/260",
             "minSl": null,
             "mitigationIds": [],
-            "modelStatus": "gap",
+            "modelStatus": "unknown",
             "reason": {
-              "code": "exposedWithoutSrsl"
+              "code": "threatsOpen"
             },
-            "reasoning": "on a path to a safety function, exposed, no risk with SRSL",
-            "status": "gap",
+            "reasoning": "threats not assessed yet — rate them, or dismiss them with a reason",
+            "risks": [
+              "DB-IF1-S-1",
+              "DB-IF1-T-1",
+              "DB-IF1-R-1",
+              "DB-IF1-I-1",
+              "DB-IF1-D-1",
+              "DB-IF1-E-1",
+              "DB-IF1-S-IN-1",
+              "DB-IF1-T-IN-1",
+              "DB-IF1-R-IN-1",
+              "DB-IF1-I-IN-1",
+              "DB-IF1-D-IN-1",
+              "DB-IF1-E-IN-1",
+              "DF3-I-1",
+              "DF3-D-1",
+              "MTB-DF3-S-OUT-1",
+              "MTB-DF3-T-OUT-1",
+              "MTB-DF3-R-OUT-1",
+              "MTB-DF3-I-OUT-1",
+              "MTB-DF3-D-OUT-1",
+              "MTB-DF3-E-OUT-1",
+              "MTB-DF3-S-IN-1",
+              "MTB-DF3-T-IN-1",
+              "MTB-DF3-R-IN-1",
+              "MTB-DF3-I-IN-1",
+              "MTB-DF3-D-IN-1",
+              "MTB-DF3-E-IN-1"
+            ],
+            "status": "unknown",
             "supportingElements": [],
             "supportingMeasuresAllowed": false,
-            "unknown": []
+            "unknown": [
+              "9",
+              "7"
+            ]
           },
           "EN-7.3.1/281": {
             "checklist": [],

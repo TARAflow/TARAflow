@@ -109,8 +109,13 @@ no motivation or benefit factor. TARAflow rates two separate things:
 - **TARAflow's own cyber risk R = L × I:** it uses the standard factors with `motive` in
   both approaches. This does not touch the safety assessment.
 
-A decision in the cyber risk must not lift a safety requirement. Patch 28 makes sure of
-this for "won't".
+A decision in the cyber risk must not lift a safety requirement (patch 28):
+- **Accepting a risk** never met a mandated control. It still does not.
+- **"Won't"** is a prioritisation of the cyber risk. It no longer takes the risk out of the
+  SRSL rows.
+- **A threat that does not apply** is dismissed at the threat ("not relevant"). On an
+  EN 50742 relevant interface or flow this needs a reason: the threat dialog asks for it,
+  and the Threats tab lists old cases as warnings.
 
 ## 4. Clause 4 — Protection against corruption
 
@@ -132,7 +137,7 @@ this for "won't".
 
 | ID | Requirement | ZZ | Role | Marker | Status | Plan | Code / Test |
 |---|---|---|---|---|---|---|---|
-| EN-7.1/260 | Identify all accessible interfaces that can affect safety and protect them (countermeasures or compensating) | 1.1.9, 1.2.1a | method | [N] | **met** — CT-A check `interfaces-assessed` on the derived paths to the safety functions (CM-12b) | P2 + CT-A | `evaluate-en50742.test.ts`, `en50742-a.golden.test.ts`, report `compliance-matrix-chapter.test.ts`, `safety-function-paths.test.ts` |
+| EN-7.1/260 | Identify all accessible interfaces that can affect safety and protect them (countermeasures or compensating) | 1.1.9, 1.2.1a | method | [N] | **met** — CT-A check `interfaces-assessed` on the derived paths to the safety functions (CM-12b); per threat since patch 28: every threat of an exposed anchor has a risk with an SRSL or is dismissed with a reason, an unrated or unjustified one leaves the anchor open (named) | P2 + CT-A | `evaluate-en50742.test.ts`, `en50742-a.golden.test.ts`, report `compliance-matrix-chapter.test.ts`, `safety-function-paths.test.ts` |
 
 ### 7.2 Security measures
 
@@ -392,7 +397,7 @@ Row ids are the ids of this list (unqualified inside the family `en-50742`, name
 | Threat assessment | EN-4.3/217 | A | P | hazard data imported, every in-scope hazard has a `contributes_to` input, every safety-function asset has risks | — |
 | | EN-4.3/220 | B | P + S | WoO set; system definition sections `boundary` and `environment` filled. Checklist: intended use, reasonably foreseeable misuse, user groups, connections of the machine | — |
 | | EN-4.3/238 + EN-7.2.1/272 | C | S | statement per safety function: the selected measures do not degrade the safety function (one row, both clauses) | — |
-| | EN-7.1/260 | A | P | every interface on a path to a safety function has a risk with SRSL (or an elimination rationale) | — |
+| | EN-7.1/260 | A | P | every threat of an interface on a path to a safety function has a risk with SRSL or is dismissed with a reason (patch 28; "won't" no longer counts) | — |
 | | EN-7.4.2/334 | A | P | every safety-function asset has an SRSL on every risk of its interfaces | — |
 | | EN-7.4.2/344 | A | P | no SRSL0 while an interface of the safety function has EL > EL0 (F2) | — |
 | Information collection (7.3) | EN-7.3.1/281 | C | S | statement: which intervention types a–e the machine has and which are logged | CR 2.8 |

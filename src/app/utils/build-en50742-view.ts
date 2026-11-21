@@ -130,6 +130,29 @@ export function buildEn50742View(
     };
   });
 
+  // 7.1 per threat (patch 28): the threats of each relevant anchor and how far they are.
+  const riskByThreat = new Map(((project.risks?.risks ?? []) as Any[]).map((r) => [r.threatId as string, r]));
+  const anchorThreats = new Map<string, { label: string; state: "rated" | "pending" | "dismissed" | "unjustified" | "unrated" }[]>();
+  for (const threat of threats.values()) {
+    const anchorId = anchorOf(threat).id;
+    if (!anchorId || !onPath.has(anchorId)) continue;
+    const relevance = threat.relevance as string | undefined;
+    const risk = riskByThreat.get(threat.id);
+    const state =
+      relevance === "not_relevant"
+        ? hasText(threat.evalNote)
+          ? ("dismissed" as const)
+          : ("unjustified" as const)
+        : !relevance || relevance === "unrated"
+          ? ("unrated" as const)
+          : risk && typeof risk.calculatedSrsl === "string"
+            ? ("rated" as const)
+            : ("pending" as const);
+    const list = anchorThreats.get(anchorId) ?? [];
+    list.push({ label: (threat.displayId as string | undefined) ?? (threat.id as string), state });
+    anchorThreats.set(anchorId, list);
+  }
+
   const hazards = (project.hazards?.hazards ?? []) as Any[];
   const relations = (project.hazards?.relations ?? []) as Any[];
   const contributed = new Set(relations.filter((r) => r.type === "contributes_to").map((r) => r.to));
@@ -157,6 +180,7 @@ export function buildEn50742View(
     },
     safetyFunctions,
     interfaces: { exposed, unrated },
+    anchorThreats,
     risks,
     ...(relevance ? { relevance: { mode: relevance.mode, count: relevance.relevant.size } } : {}),
   };

@@ -976,6 +976,13 @@ export interface ThreatProjectData {
    */
   riskAttachments?: Record<string, ThreatRiskAttachment>;
   /**
+   * EN 50742 (O18, 0.20 patch 28): the relevant interfaces and flows. A
+   * threat on one of them may be dismissed ("not relevant") only with a
+   * justification — the dialog asks for it, the findings list old cases.
+   * Built at the app layer; absent = no EN 50742 project.
+   */
+  en50742RelevantAnchorIds?: ReadonlySet<string>;
+  /**
    * Elements and flows whose threats come from elsewhere — the parts of an
    * imported component (multi-project TARA design v3 §7.1). No generator
    * runs on them; on a flow between such an element and another one only

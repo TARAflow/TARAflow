@@ -3,6 +3,7 @@
 // Opens on a specific threat, allows navigation through the full group.
 // Three-level structure: Decision (required) → Annotation → Custom entries.
 
+import { dismissalNeedsJustification } from "./threat-findings";
 import React, {
   useState,
   useEffect,
@@ -174,6 +175,12 @@ export interface ThreatEvalDialogProps {
   /** ISO 21434 mode: relevance is asset-derived; overrides need a note. */
   isoMode?: boolean;
   /**
+   * EN 50742 (patch 28): the relevant interfaces and flows. Dismissing a
+   * threat on one of them ("not relevant") needs a justification — the
+   * safety side may only be let off with a reason. Absent = no EN 50742 project.
+   */
+  en50742RelevantAnchorIds?: ReadonlySet<string>;
+  /**
    * Read-only (threats of an imported component, design §7.1): everything
    * is shown, nothing can be changed — no edit / add / delete controls, the
    * fields are disabled, the footer only navigates and closes; onSave is
@@ -285,6 +292,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
   onSave,
   onClose,
   isoMode = false,
+  en50742RelevantAnchorIds,
   readOnly = false,
   readOnlyNote,
 }) => {
@@ -564,6 +572,22 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
         t("tabs.threats.dialog.overrideNeedsNote", {
           defaultValue:
             "A justification is required to deviate from the asset-derived relevance.",
+        }),
+      );
+      return;
+    }
+    // EN 50742: a threat on a relevant interface / flow is dismissed only
+    // with a reason — "won't" in the risk no longer lifts its SRSL rows.
+    if (
+      rel === "not_relevant" &&
+      currentThreat &&
+      dismissalNeedsJustification(currentThreat, en50742RelevantAnchorIds) &&
+      !local?.evalNote.trim()
+    ) {
+      setRelevanceError(
+        t("tabs.threats.dialog.en50742DismissNeedsNote", {
+          defaultValue:
+            "This threat sits on an EN 50742 relevant interface or data flow — note why it does not apply before dismissing it.",
         }),
       );
       return;

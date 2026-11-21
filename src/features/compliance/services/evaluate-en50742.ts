@@ -31,8 +31,13 @@ export interface ExternalOutcome {
 const met = (): ExternalOutcome => ({ status: "met" });
 const labels = (risks: readonly En50742Risk[]) => risks.map((r) => r.label);
 
-/** Risks the SRSL rows look at: the threat is not excluded. */
-const inPlay = (view: En50742View) => view.risks.filter((r) => !r.excluded);
+/**
+ * Risks the SRSL rows look at: all of them (0.20 patch 28). "won't" is a
+ * prioritisation of the cyber risk and lifts no safety requirement (F4); a
+ * threat that does not apply is dismissed at the threat, with a reason, and
+ * then has no risk.
+ */
+const inPlay = (view: En50742View) => view.risks;
 
 /** The risk has the control for `clause` (any mandated one where one suffices). */
 function hasControl(risk: En50742Risk, clause: string, run: EvaluationRun): boolean {
@@ -101,15 +106,23 @@ function projectOutcome(check: ProjectCheckId, view: En50742View): ExternalOutco
       return missing.length > 0 ? { status: "unknown", ...because("notSetYet", { items: missing }) } : met();
     }
     case "interfaces-assessed": {
-      const assessed = (id: string) => view.risks.some((r) => r.anchorId === id && (r.excluded || typeof r.srsl === "number"));
-      const pending = (id: string) => view.risks.some((r) => r.anchorId === id && !r.excluded && r.srsl === null);
-      const failing = view.interfaces.exposed.filter((id) => !assessed(id) && !pending(id));
-      const open = view.interfaces.exposed.filter((id) => !assessed(id) && pending(id));
+      // Per threat (patch 28): an exposed anchor is assessed when every one
+      // of its threats has a risk with an SRSL or is dismissed with a reason;
+      // an unrated, pending or unjustified threat leaves it open; an anchor
+      // without any threat is a gap.
+      const threatsOf = (id: string) => view.anchorThreats.get(id) ?? [];
+      const openThreats = (id: string) => threatsOf(id).filter((x) => x.state !== "rated" && x.state !== "dismissed");
+      const failing = view.interfaces.exposed.filter((id) => threatsOf(id).length === 0);
+      const open = view.interfaces.exposed.filter((id) => threatsOf(id).length > 0 && openThreats(id).length > 0);
+      const openLabels = open.flatMap((id) => openThreats(id).map((x) => x.label));
       if (failing.length > 0) {
-        return { status: "gap", failing, unknown: [...open, ...view.interfaces.unrated], ...because("exposedWithoutSrsl") };
+        return { status: "gap", failing, unknown: [...open, ...view.interfaces.unrated], risks: openLabels, ...because("exposedWithoutSrsl") };
       }
-      if (open.length > 0 || view.interfaces.unrated.length > 0) {
-        return { status: "unknown", unknown: [...open, ...view.interfaces.unrated], ...because("srslOrElUnrated") };
+      if (open.length > 0) {
+        return { status: "unknown", unknown: [...open, ...view.interfaces.unrated], risks: openLabels, ...because("threatsOpen") };
+      }
+      if (view.interfaces.unrated.length > 0) {
+        return { status: "unknown", unknown: [...view.interfaces.unrated], ...because("srslOrElUnrated") };
       }
       const unlinked = view.safetyFunctions.filter((sf) => !sf.linked);
       if (unlinked.length > 0) return { status: "unknown", ...because("safetyFunctionsUnlinked", { values: { list: unlinked.map((s) => s.name).join(", ") } }) };
