@@ -55,13 +55,14 @@ export function useEn50742Relevance(project: Project | undefined, t: TFunction) 
     return (id: string) => levels.get(id);
   }, [dfd]);
 
+  const relevantKeys = useMemo(() => (relevance ? new Set(relevance.relevant.keys()) : undefined), [relevance]);
   const withRelevance = useCallback(
     (refs: ThreatReference[]): ThreatReference[] =>
       relevance
         ? refs.map((ref) => {
             const r = threatRelevance(ref, relevance, resolveRef);
             const pathEl =
-              r.relevant && ref.attackPathLeaves ? attackPathExposureLevel(ref.attackPathLeaves, resolveRef, exposureLevelOf) : undefined;
+              r.relevant && ref.attackPathLeaves ? attackPathExposureLevel(ref.attackPathLeaves, resolveRef, exposureLevelOf, relevantKeys) : undefined;
             const iso = isolation ? threatIsolation(ref.linkedAssetIds, isolation) : undefined;
             return {
               ...ref,
@@ -79,11 +80,11 @@ export function useEn50742Relevance(project: Project | undefined, t: TFunction) 
             };
           })
         : refs,
-    [relevance, isolation, labelOf, resolveRef, exposureLevelOf, t],
+    [relevance, isolation, labelOf, resolveRef, exposureLevelOf, relevantKeys, t],
   );
   // The relevant interfaces and flows — the Threats tab asks for a reason
   // before a threat on one of them is dismissed (patch 28).
-  const relevantAnchorIds = useMemo(() => (relevance ? new Set(relevance.relevant.keys()) : undefined), [relevance]);
+  const relevantAnchorIds = relevantKeys;
   // Patch 29: the risks whose SRSL controls are open — the Risks tab keeps
   // them open in its progress (EN 50742 A only: B has no SRSL).
   // `prepared` holds the DFD only; the view reads the current risks and

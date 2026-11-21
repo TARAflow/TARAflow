@@ -164,20 +164,28 @@ export function attackPathRelevance(
 
 /**
  * The EL an attack-path risk is prefilled with: the MIN over the ELs of the
- * path's anchored leaves (AND = MIN, the EN 50742 aggregation; review
- * 2026-11-21). Undefined when no leaf names an element with an EL.
+ * path's steps across the border — the leaves on a relevant anchor (AND =
+ * MIN, the EN 50742 aggregation). Only when no leaf is on a relevant anchor,
+ * the MIN over all anchored leaves. A step behind the border (the internal
+ * bus, EL0) says where it is, not how hard it is: taking it into the MIN
+ * prefilled USB → internal bus with EL0 instead of EL1 (review 2026-11-21).
+ * Undefined when no leaf names an element with an EL.
  */
 export function attackPathExposureLevel(
   leaves: readonly { dfdRef?: string }[],
   resolveRef: (dfdRef: string) => string | undefined,
   exposureLevelOf: (id: string) => string | undefined,
+  /** The EN 50742 relevant interfaces and flows (O18). */
+  relevantIds?: ReadonlySet<string>,
 ): string | undefined {
-  const levels = leaves
-    .map((l) => (l.dfdRef ? resolveRef(l.dfdRef) : undefined))
-    .map((id) => (id ? exposureLevelOf(id) : undefined))
-    .filter((el): el is string => typeof el === "string" && /^EL[0-4]$/.test(el))
-    .sort();
-  return levels[0];
+  const anchored = leaves.map((l) => (l.dfdRef ? resolveRef(l.dfdRef) : undefined)).filter((id): id is string => !!id);
+  const minOf = (ids: readonly string[]) =>
+    ids
+      .map(exposureLevelOf)
+      .filter((el): el is string => typeof el === "string" && /^EL[0-4]$/.test(el))
+      .sort()[0];
+  const acrossBorder = relevantIds ? anchored.filter((id) => relevantIds.has(id)) : [];
+  return minOf(acrossBorder) ?? minOf(anchored);
 }
 
 /** English text of a threat's relevance (the default of its i18n key). */

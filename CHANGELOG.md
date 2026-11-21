@@ -101,6 +101,21 @@
   risk); a text the analyst wrote is not touched. Missing texts no longer produce a key:
   they show "[D-009] (threat text pending translation)" until the text exists.
 
+### Upgrade notes
+- **Component TARAs with threat text stored as an i18n key** (e.g. `general.D-009.threat`)
+  are repaired when opened. The repair changes the component's content once, so a
+  machine that imported it reports a newer state of the component one time. This is a
+  deliberate exception to the rule that opening never changes a component's hash.
+  Components without such text are not touched.
+- **EN 50742 A projects:**
+  - **SRSL 0** now needs an isolated safety function. Stored SRSL values that no longer
+    fit are corrected on the next update of the risks (sync banner in the Risks tab).
+    Until then the requirement matrix shows the old value as a gap (7.4.2).
+  - **Risks prioritised as *won't*** stay in the SRSL rows.
+  - **Row 7.1** looks at every threat of an exposed interface.
+
+  Expect new open rows in the Compliance tab.
+
 ## [0.19.0-beta] - 2026-11-19
 
 **Component TARAs in a machine TARA:** the analysis of a reused component

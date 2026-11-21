@@ -67,6 +67,18 @@ describe("attackPathRelevance", () => {
   });
 });
 
+describe("attackPathExposureLevel — MIN of the steps across the border (review 2026-11-21)", () => {
+  // USB (IF-1, EL1, relevant: on the zone border) → internal bus (IF-2, EL0, behind the border)
+  const el = (id: string) => ({ "9": "EL1", "17": "EL0" })[id];
+  it("USB → internal bus: EL1 (the step across the border), not EL0 (where the next step is)", () => {
+    expect(attackPathExposureLevel([{ dfdRef: "IF-1" }, { dfdRef: "IF-2" }], resolve, el, new Set(["9"]))).toBe("EL1");
+  });
+  it("no leaf on a relevant anchor: the MIN over all anchored leaves", () => {
+    expect(attackPathExposureLevel([{ dfdRef: "IF-1" }, { dfdRef: "IF-2" }], resolve, el, new Set(["7"]))).toBe("EL0");
+    expect(attackPathExposureLevel([{ dfdRef: "IF-1" }, { dfdRef: "IF-2" }], resolve, el)).toBe("EL0");
+  });
+});
+
 describe("attackPathExposureLevel — MIN of the anchored leaves", () => {
   const el = (id: string) => ({ "9": "EL3", "17": "EL1", "7": "EL2" })[id];
   it("AND = MIN; leaves without an EL or a ref do not count", () => {

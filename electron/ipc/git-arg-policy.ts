@@ -64,15 +64,16 @@ const EXACT_OPTIONS_THAT_ARE_PREFIXES = new Set(["--text"]);
 
 /**
  * git's option parser accepts an unambiguous abbreviation of a long option:
- * `git cat-file --filt` acts as `--filters` (review 2026-11-21, git 2.43).
- * A `--` argument whose name (before "=") is a prefix of a forbidden long
- * option is refused — from 3 characters on; shorter ones are ambiguous and
- * git refuses them itself.
+ * `git cat-file --filt` acts as `--filters`, and so do `--fi`; `--te` acts as
+ * `--textconv` (review 2026-11-21, git 2.39 / 2.43). Whether an abbreviation
+ * is ambiguous depends on the command's other options, so there is no safe
+ * minimum length: a `--` argument whose name (before "=") is a prefix of a
+ * forbidden long option is refused, unless it is a real option itself.
  */
 function abbreviatesForbidden(arg: string): boolean {
   if (!arg.startsWith("--")) return false;
   const name = arg.split("=", 1)[0];
-  if (name.length < 5 || EXACT_OPTIONS_THAT_ARE_PREFIXES.has(name)) return false;
+  if (name.length < 3 || EXACT_OPTIONS_THAT_ARE_PREFIXES.has(name)) return false;
   return FORBIDDEN_OPTIONS.some((o) => o.startsWith("--") && o !== name && o.startsWith(name));
 }
 

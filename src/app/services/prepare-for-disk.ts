@@ -93,6 +93,7 @@
 // signing fields from the credential-service (credentials.getSSHKeyPath), or
 // signing settings won't survive a reload. Ship both halves together.
 
+import { stripDfdBadges } from "features/dfd/services/dfd-badges";
 import type { Project } from "../models/project-types";
 import type { SourceBinding } from "shared";
 import { sortA2ARelations } from "shared";
@@ -269,6 +270,11 @@ export function prepareForDisk(project: Project): ProjectOnDisk {
           const { assets: _dfdAssets, ...dfdRest } = project.dfd;
           return {
             ...dfdRest,
+            // The EL badges and the safety-zone frame are display only (0.20
+            // patch 23); every save strips them already. This is the one way
+            // to disk, so no future write path can store them (review
+            // 2026-11-21). Same string when there is nothing to strip.
+            ...(typeof dfdRest.xml === "string" ? { xml: stripDfdBadges(dfdRest.xml) } : {}),
             assets: [],
             graph: undefined,
             thumbnail: normalizeThumbnail(project.dfd.thumbnail),

@@ -107,7 +107,8 @@ describe("git argument policy — refused", () => {
 
 describe("abbreviated long options (review 2026-11-21)", () => {
   it("an unambiguous abbreviation of a forbidden option is refused — git would expand it", () => {
-    for (const arg of ["--filt", "--filte", "--textc", "--outp=x", "--upload-p=sh", "--ext-d", "--work-t=/tmp"]) {
+    // git 2.39 / 2.43 accept "--fi" (--filters) and "--te" (--textconv) too
+    for (const arg of ["--fi", "--te", "--filt", "--filte", "--textc", "--outp=x", "--upload-p=sh", "--ext-d", "--work-t=/tmp", "--o"]) {
       expect(refuseGitArgs(["cat-file", arg, "HEAD:file"]), arg).not.toBeNull();
     }
   });
@@ -116,7 +117,9 @@ describe("abbreviated long options (review 2026-11-21)", () => {
     expect(refuseGitArgs(["log", "--text", "-1"])).toBeNull();
     expect(refuseGitArgs(["log", "--format=%H", "-1"])).toBeNull();
     expect(refuseGitArgs(["log", "--oneline", "-1"])).toBeNull();
-    // "--te" / "--ou" are ambiguous for git itself (refused there), not checked here
-    expect(refuseGitArgs(["log", "--te", "-1"])).toBeNull();
+    // a name that is no prefix of a forbidden option
+    expect(refuseGitArgs(["log", "--reverse", "-1"])).toBeNull();
+    // "--" alone ends the options
+    expect(refuseGitArgs(["log", "-1", "--", "file"])).toBeNull();
   });
 });
