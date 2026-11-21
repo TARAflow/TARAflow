@@ -721,7 +721,7 @@ export abstract class BaseDocumentGenerator {
     const values = {
       dfdFigures: sections ? "" : this.formatDfdFigure(dfd.thumbnail || "dfd.png", alt),
       dfdPages: dfdPages + dfdParentLevel,
-      dfdStatsTable: this.formatStatsTable(dfdStatsTable(dfd, this.ctx.lang, this.ctx.t)) + this.dfdLegend(dfd.xml),
+      dfdStatsTable: this.formatStatsTable(dfdStatsTable(dfd, this.ctx.lang, this.ctx.t)) + this.dfdLegend(dfd.elements),
     };
 
     const content = replacePlaceholders(this.getDfdTemplate(), values);
@@ -735,8 +735,8 @@ export abstract class BaseDocumentGenerator {
   }
 
   /** Legend of the EL badges and the safety zone in the figure (0.20); empty without marks. */
-  protected dfdLegend(xml: string | undefined): string {
-    const legend = dfdBadgeLegend(xml, this.ctx.lang);
+  protected dfdLegend(elements: readonly DFDElement[] | undefined): string {
+    const legend = dfdBadgeLegend(elements, this.ctx.project.dfdMarks, this.ctx.lang);
     return legend ? this.formatStatsTable(legend) : "";
   }
 

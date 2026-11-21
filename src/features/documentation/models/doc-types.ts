@@ -620,6 +620,12 @@ export interface DocProjectData {
   cybersecurityConcept?: CybersecurityConcept;
   /** Component under evaluation of the Compliance tab — model fields of the whole component are listed on it (CM-6). */
   complianceComponentId?: string;
+  /**
+   * What the page images show besides the model (0.20, patch 23): the EL
+   * badges (project setting) and the safety-zone frame (EN 50742 project).
+   * The legend below the DFD statistics follows it. Absent = neither.
+   */
+  dfdMarks?: { badges: boolean; en50742: boolean };
 
   // Computed values (performance optimization)
   computed: DocComputedValues;

@@ -3,14 +3,16 @@
 // diagram in step with the element properties (dfd-badges.ts).
 //
 // Runs once the editor has loaded and again whenever what the badges show
-// changes: an exposure level, the safety-zone mark, the project setting or
-// the identity links of a leveled DFD (a new context copy). The diagram is
-// reloaded and saved only if the badges differ — the same pattern as the
-// auto-numbering (loadXML + scheduleDrawioSave).
+// changes: an exposure level, the safety-zone mark or its size, the project
+// setting or the identity links of a leveled DFD (a new context copy). The
+// editor's diagram is reloaded only if the marks differ.
+//
+// Display only (patch 23): nothing is saved here. The marks live in the
+// editor; every save strips them (dfdService), so opening a project never
+// changes its file.
 
 import { useEffect, useRef } from "react";
 import type { UseDrawioBridgeReturn } from "./use-drawio-bridge";
-import type { UseDFDPersistenceReturn } from "./use-dfd-persistence";
 import type { DFDElement, DFDPage } from "../models/dfd-types";
 import { applyDfdBadges, badgeText, type BadgeElement } from "../services/dfd-badges";
 
@@ -38,7 +40,11 @@ export function badgeSignature(options: UseDfdBadgesOptions): string {
     const xmlType = BADGE_XML_TYPE[element.type];
     if (!xmlType) continue;
     const text = badgeText(xmlType, element, options.en50742) ?? "";
-    const zone = element.type === "TrustBoundary" && text.startsWith("Safety") ? "zone" : "";
+    // the zone frame has the boundary's size — a resize redraws it
+    const zone =
+      element.type === "TrustBoundary" && text.startsWith("Safety")
+        ? `zone@${element.size?.width ?? ""}x${element.size?.height ?? ""}`
+        : "";
     parts.push(`${element.id}:${text}:${zone}`);
   }
   for (const page of options.pages ?? []) {
@@ -47,11 +53,7 @@ export function badgeSignature(options: UseDfdBadgesOptions): string {
   return parts.join("|");
 }
 
-export function useDfdBadges(
-  bridge: UseDrawioBridgeReturn,
-  persistence: UseDFDPersistenceReturn,
-  options: UseDfdBadgesOptions,
-): void {
+export function useDfdBadges(bridge: UseDrawioBridgeReturn, options: UseDfdBadgesOptions): void {
   const signature = badgeSignature(options);
   const optionsRef = useRef(options);
   optionsRef.current = options;
@@ -67,13 +69,13 @@ export function useDfdBadges(
       try {
         const next = applyDfdBadges(xml, byId, pages, { enabled, en50742 });
         if (next === xml) return;
-        void bridge.loadXML(next).then(() => persistence.scheduleDrawioSave(next));
+        void bridge.loadXML(next);
       } catch (error) {
         console.error("[useDfdBadges] badge update failed:", error);
       }
     }, delay);
     return () => clearTimeout(timer);
-    // The signature stands for the options; bridge / persistence are stable.
+    // The signature stands for the options; the bridge is stable.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signature, bridge.isLoading, delay]);
 }

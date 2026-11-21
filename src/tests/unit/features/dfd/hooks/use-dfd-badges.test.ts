@@ -4,7 +4,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useDfdBadges, badgeSignature, type UseDfdBadgesOptions } from "features/dfd/hooks/use-dfd-badges";
 import type { UseDrawioBridgeReturn } from "features/dfd/hooks/use-drawio-bridge";
-import type { UseDFDPersistenceReturn } from "features/dfd/hooks/use-dfd-persistence";
 import type { DFDElement } from "features/dfd/models/dfd-types";
 
 const XML =
@@ -36,13 +35,19 @@ describe("badgeSignature", () => {
     expect(
       badgeSignature(options({ defaultExposureLevel: "EL1" }, { pages: [{ pageId: "p", name: "P", order: 0, links: [{ cellId: "c", tfId: "tb", role: "ref" }] }] })),
     ).not.toBe(base);
+    // the zone frame follows the boundary's size
+    const zoned = (w: number) =>
+      badgeSignature({
+        ...options({ safetyZone: "yes" }, { en50742: true }),
+        elements: [{ ...tb({ safetyZone: "yes" }), size: { width: w, height: 100 } } as DFDElement],
+      });
+    expect(zoned(200)).not.toBe(zoned(300));
   });
 });
 
 describe("useDfdBadges", () => {
   let xml: string;
   let bridge: UseDrawioBridgeReturn;
-  let persistence: UseDFDPersistenceReturn;
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -54,18 +59,16 @@ describe("useDfdBadges", () => {
         xml = next;
       }),
     } as unknown as UseDrawioBridgeReturn;
-    persistence = { scheduleDrawioSave: vi.fn() } as unknown as UseDFDPersistenceReturn;
   });
   afterEach(() => vi.useRealTimers());
 
-  it("writes the badges after the load, then only on a change", async () => {
-    const { rerender } = renderHook((o: UseDfdBadgesOptions) => useDfdBadges(bridge, persistence, o), {
+  it("puts the badges into the editor after the load, then only on a change — never saves (patch 23)", async () => {
+    const { rerender } = renderHook((o: UseDfdBadgesOptions) => useDfdBadges(bridge, o), {
       initialProps: options({ defaultExposureLevel: "EL1" }),
     });
     await vi.advanceTimersByTimeAsync(20);
     expect(bridge.loadXML).toHaveBeenCalledTimes(1);
     expect(xml).toContain('label="EL1"');
-    expect(persistence.scheduleDrawioSave).toHaveBeenCalledWith(xml);
 
     // a re-render with the same data does nothing
     rerender(options({ defaultExposureLevel: "EL1", boundaryType: "network" }));
@@ -80,15 +83,14 @@ describe("useDfdBadges", () => {
   });
 
   it("a diagram that already shows the badges is not reloaded", async () => {
-    renderHook(() => useDfdBadges(bridge, persistence, options({})));
+    renderHook(() => useDfdBadges(bridge, options({})));
     await vi.advanceTimersByTimeAsync(20);
     expect(bridge.loadXML).not.toHaveBeenCalled();
-    expect(persistence.scheduleDrawioSave).not.toHaveBeenCalled();
   });
 
   it("waits for the editor", async () => {
     (bridge as { isLoading: boolean }).isLoading = true;
-    renderHook(() => useDfdBadges(bridge, persistence, options({ defaultExposureLevel: "EL1" })));
+    renderHook(() => useDfdBadges(bridge, options({ defaultExposureLevel: "EL1" })));
     await vi.advanceTimersByTimeAsync(50);
     expect(bridge.getCurrentXML).not.toHaveBeenCalled();
   });

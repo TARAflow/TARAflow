@@ -11,14 +11,14 @@
   (only for stores holding audit logs) for 8.5 and Approach A 7.3.4.
 - **Exposure levels in the diagram:** trust, chip and physical boundaries and interfaces
   show their exposure level (EL / PEL) as a small text at the top right, as in the
-  examples of EN 50742; context copies on child pages too. The text is written by the
-  app and cannot be edited in draw.io — the value is changed in the side panel. The
-  safety zone is drawn yellow and dashed, its text reads *Safety · EL2*. A new project
-  setting (*Diagram*, on by default) turns the texts off. The report explains the marks
-  in a legend below the DFD statistics. Opening a project with exposure levels adds the
-  texts to its diagram (one change to save).
-
-### Changed
+  examples of EN 50742; context copies on child pages too. The safety zone gets a yellow,
+  dashed frame; its text reads *Safety · EL2*. The marks are drawn by the app in the
+  editor and cannot be edited there — the value is changed in the side panel. They are
+  never stored in the project file: opening a project does not change it, and the content
+  hash of a component does not depend on them. The page images the app saves show them,
+  and the report explains them in a legend below the DFD statistics (a page image saved
+  before 0.20 gets them with the next save). A new project setting (*Diagram*, on by
+  default) turns the texts off.
 - **EN 50742 relevance:** EN 50742 is about the interfaces to the safety functions and
   the data flows crossing them. A trust boundary marked as *Safety zone (EN 50742)* (new mark,
   next to its type) marks the safety-related (yellow) part of a machine; without one, the interfaces and

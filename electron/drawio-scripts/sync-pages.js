@@ -90,7 +90,7 @@
         if (!clone) continue;
         for (var j = clone.getChildCount() - 1; j >= 0; j--) {
           var childType = typeOf(clone.getChildAt(j));
-          if (childType && childType !== 'idlabel' && childType !== 'elbadge') clone.remove(j);
+          if (childType && childType !== 'idlabel' && childType !== 'elbadge' && childType !== 'elzone') clone.remove(j);
         }
         kept.push(clone);
         originalOf.push(originals[i]);

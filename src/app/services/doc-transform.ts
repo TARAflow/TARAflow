@@ -11,7 +11,7 @@ import type {
   DocComputedValues,
 } from "../../features/documentation/models/doc-types";
 import type { StrideCategory } from "../../shared";
-import { EMPTY_PROJECT_TAGS, regulationPresetFromTags } from "../../shared";
+import { EMPTY_PROJECT_TAGS, en50742ApproachFromTags, regulationPresetFromTags } from "../../shared";
 import { buildMethodologyRecord } from "./methodology-record";
 import { docResidualView } from "./doc-residual";
 import { docImportedAttackTrees, docImportedComponents, docImportedRiskNotes, docImportedThreats } from "./doc-imported";
@@ -242,6 +242,10 @@ export function transformProjectToDocData(
     ...(project.itemDefinition ? { itemDefinition: project.itemDefinition } : {}),
     ...(project.cybersecurityConcept ? { cybersecurityConcept: project.cybersecurityConcept } : {}),
     ...(project.compliance?.componentId ? { complianceComponentId: project.compliance.componentId } : {}),
+    dfdMarks: {
+      badges: project.settings?.dfdBadges !== false,
+      en50742: en50742ApproachFromTags(project.info?.tags ?? EMPTY_PROJECT_TAGS) !== undefined,
+    },
 
     // Computed values (performance optimization)
     computed: computeDocValues(project, language, residual.uncredited),

@@ -47,7 +47,7 @@ import { fnv1aHex12 } from "shared/utils/fnv1a";
 import type { DFDCellLink, DFDConnection, DFDElement, DFDPage } from "../../models/dfd-types";
 import type { DFDAsset } from "../../models/dfd-asset-types";
 import { collectCellIdentities, identityOf, type CellIdentity } from "../parsers/identity-reader";
-import { DFD_BADGE_TYPE } from "../parsers/xml-parser";
+import { isDfdDecorationType } from "../parsers/xml-parser";
 import { pageLink, ROOT_PAGE_NAME } from "./child-pages";
 import { buildDfdGraph } from "../build-dfd-graph";
 
@@ -261,7 +261,7 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
   const parentIdentities = collectCellIdentities(parentPage.links);
   /** Machine tfId → its cell on the parent page (definition or copy). */
   const parentCellOf = (tfId: string): Element | undefined =>
-    cellsOf(parentRoot).find((c) => identityOf(parentIdentities, c.getAttribute("id") ?? "").tfId === tfId && typeOf(c) !== "idlabel" && typeOf(c) !== DFD_BADGE_TYPE);
+    cellsOf(parentRoot).find((c) => identityOf(parentIdentities, c.getAttribute("id") ?? "").tfId === tfId && typeOf(c) !== "idlabel" && !isDfdDecorationType(typeOf(c)));
 
   // ---- component pages
   const componentDoc = asMxfile(parseXml(component.xml), "component-top");
@@ -366,7 +366,7 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
       const identity = identityOf(identities, id);
       cellIdentity.set(id, identity);
       const type = typeOf(cell);
-      if (type === "idlabel" || type === DFD_BADGE_TYPE) {
+      if (type === "idlabel" || isDfdDecorationType(type)) {
         newCellId.set(id, ns(`label|${cPage.pageId}|${id}`));
         continue;
       }
@@ -436,7 +436,7 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
       const id = originalIdOf.get(nid)!;
       const mx = mxCellOf(cell);
       const type = typeOf(cell);
-      if (type === "idlabel" || type === DFD_BADGE_TYPE) continue;
+      if (type === "idlabel" || isDfdDecorationType(type)) continue;
       const identity = cellIdentity.get(id)!;
       const tf = identity.tfId;
 
@@ -786,7 +786,7 @@ export function replaceComponentInstance(input: ReplaceComponentInput): ReplaceC
   for (const cell of cellsOf(parentRoot)) {
     const id = cell.getAttribute("id") ?? "";
     const parent = mxCellOf(cell).getAttribute("parent") ?? "";
-    if (removeIds.has(id) || ((typeOf(cell) === "idlabel" || typeOf(cell) === DFD_BADGE_TYPE) && removeIds.has(parent))) parentRoot.removeChild(cell);
+    if (removeIds.has(id) || ((typeOf(cell) === "idlabel" || isDfdDecorationType(typeOf(cell))) && removeIds.has(parent))) parentRoot.removeChild(cell);
   }
   // remove the instance's child pages
   const oldPageIds = new Set(

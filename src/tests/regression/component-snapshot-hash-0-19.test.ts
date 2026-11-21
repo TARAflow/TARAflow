@@ -26,6 +26,7 @@ import { componentSnapshotOfText } from "app/services/component-import/component
 import { serialiseProject } from "app/services/prepare-for-disk";
 import { changedJsonPaths } from "features/audit/services/unlisted-changes";
 import { canonicalStringify } from "shared/utils/tcs-canonical";
+import { applyDfdBadges, stripDfdBadges } from "features/dfd/services/dfd-badges";
 
 const DIR = join(__dirname, "../fixtures/component-0.19");
 const COMPONENT_0_19 = readFileSync(join(DIR, "SmokeDetectorCase.tara.json"), "utf-8");
@@ -60,5 +61,26 @@ describe("component snapshot hash — reference 0.19 (rule 5)", () => {
     const now = JSON.parse(canonicalStringify(snapshotOf(COMPONENT_0_19).snapshot));
     const then = JSON.parse(canonicalStringify(STORED_0_19.snapshot));
     expect(changedJsonPaths(then, now)).toEqual([]);
+  });
+});
+
+describe("component snapshot hash — the EL badges are display only (0.20 patch 23, review 2026-11-21)", () => {
+  // The editor shows badges on every boundary / interface with an EL (10 in
+  // this component). They must neither reach the file nor the hash.
+  const project = JSON.parse(COMPONENT_0_19) as { dfd: { xml: string; elements: { id: string; type: string; properties?: object }[] } };
+  const elements = new Map(project.dfd.elements.map((e) => [e.id, e]));
+  const withBadges = applyDfdBadges(project.dfd.xml, elements, undefined, { enabled: true, en50742: true });
+
+  it("the editor's diagram holds badges", () => {
+    expect((withBadges.match(/type="elbadge"/g) ?? []).length).toBeGreaterThan(0);
+  });
+
+  it("strip(apply(xml)) gives back the stored diagram byte for byte", () => {
+    expect(stripDfdBadges(withBadges)).toBe(project.dfd.xml);
+  });
+
+  it("a component file holding badges (an earlier 0.20 build) still has the hash of 0.19", () => {
+    const text = JSON.stringify({ ...JSON.parse(COMPONENT_0_19), dfd: { ...JSON.parse(COMPONENT_0_19).dfd, xml: withBadges } });
+    expect(snapshotOf(text).contentHash).toBe(STORED_0_19.contentHash);
   });
 });

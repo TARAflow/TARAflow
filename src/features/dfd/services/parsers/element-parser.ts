@@ -12,7 +12,7 @@ import {
   firstByTag,
   getGeometry,
   getElementType as getXmlElementType,
-  DFD_BADGE_TYPE,
+  isDfdDecorationType,
 } from "./xml-parser";
 import {
   determineElementType,
@@ -149,8 +149,8 @@ export function parseElementFromObject(
     return null;
   }
 
-  // Skip if no type or is idlabel, EL badge (dfd-badges.ts) or asset
-  if (!objType || objType === "idlabel" || objType === DFD_BADGE_TYPE || objType === "asset") return null;
+  // Skip if no type or is idlabel, an EL badge / zone frame (dfd-badges.ts) or asset
+  if (!objType || objType === "idlabel" || isDfdDecorationType(objType) || objType === "asset") return null;
 
   // No [ID] label guard for trustboundary, chipboundary, or physicalboundary.
   // All three carry type="..." explicitly — the type attribute is the

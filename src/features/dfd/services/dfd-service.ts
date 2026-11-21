@@ -41,6 +41,7 @@ import { reassignDuplicateDefinitions } from "./leveled";
 import { RecentRemovals } from "./recent-removals";
 import { reconcileAssetRollup } from "./leveled/asset-rollup";
 import { parseDfd } from "./leveled/leveled-analysis";
+import { stripDfdBadges } from "./dfd-badges";
 import type { DfdGraphSource } from "./build-dfd-graph";
 
 /** pageIds of dfd.pages — an adopted multi-page DFD is analysable (§11.2.1). */
@@ -464,8 +465,10 @@ class DFDService {
       // Sync from legacy keys (DrawIO writes to legacy keys)
       adapter.syncFromLegacy();
 
-      // Get current XML
-      const xml = adapter.getXml();
+      // Get current XML — without the badges / zone frames the editor shows
+      // (display only, never stored; patch 23)
+      const rawXml = adapter.getXml();
+      const xml = rawXml ? stripDfdBadges(rawXml) : rawXml;
 
       // Phase 0 guard: never derive the model from an unsupported layout.
       const pageLayout = inspectDrawioPages(
@@ -638,7 +641,9 @@ class DFDService {
    * The autosave event already carries the XML; reading it back from
    * localStorage is unnecessary and adds a race condition.
    */
-  saveDFDFromXml(project: DFDProjectData, xml: string): DFDSaveResult {
+  saveDFDFromXml(project: DFDProjectData, editorXml: string): DFDSaveResult {
+    // The badges / zone frames are display only (patch 23): never stored.
+    const xml = stripDfdBadges(editorXml);
     const emptyResult: DFDSaveResult = {
       success: false,
       dfd: { elements: [], connections: [], assets: [] },
@@ -927,8 +932,10 @@ class DFDService {
     const adapter = createDFDStorageAdapter(projectId);
     adapter.syncFromLegacy();
 
+    const xml = adapter.getXml();
     return {
-      xml: adapter.getXml(),
+      // without the display-only badges / zone frames (patch 23)
+      xml: xml ? stripDfdBadges(xml) : xml,
       overviewTable: adapter.getOverviewTable(),
       threatTables: adapter.getThreatTables(),
     };

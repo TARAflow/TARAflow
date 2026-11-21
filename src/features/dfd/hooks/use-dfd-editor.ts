@@ -520,7 +520,7 @@ export function useDFDEditor(
   });
 
   // EL badges and the safety-zone style (0.20) — written by the app, read-only in draw.io
-  useDfdBadges(bridge, persistence, {
+  useDfdBadges(bridge, {
     elements: project.dfd?.elements,
     pages: project.dfd?.pages,
     enabled: project.settings?.dfdBadges !== false,
