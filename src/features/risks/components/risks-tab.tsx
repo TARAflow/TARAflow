@@ -90,7 +90,7 @@ import {
   DEFAULT_TOP_HEIGHT,
   MainView,
 } from "../utils/risks-tab-helpers";
-import { calculateProgress } from "../utils/risk-progress";
+import { calculateProgress, openRiskReasonLines, openRiskReasons } from "../utils/risk-progress";
 
 // ==================== COMPONENT ====================
 
@@ -376,6 +376,12 @@ const RisksTabView: React.FC<RiskTabProps> = ({
   const completedRiskCount = useMemo(
     () => calculateProgress(toolbarRisks, project.en50742SrslOpenRiskIds).done,
     [toolbarRisks, project.en50742SrslOpenRiskIds],
+  );
+
+  // Why the risks not done are open (0.20 item 14) — the status chip's tooltip.
+  const openReasonLinesOfTab = useMemo(
+    () => openRiskReasonLines(openRiskReasons(toolbarRisks, project.en50742SrslOpenRiskIds), (k, o) => t(k, o)),
+    [toolbarRisks, project.en50742SrslOpenRiskIds, t],
   );
 
   // EN 50742 (patch 29): what the register marks — the threats whose risk is
@@ -956,6 +962,7 @@ const RisksTabView: React.FC<RiskTabProps> = ({
         riskCount={toolbarRisks.length}
         assessedRiskCount={assessedRiskCount}
         completedRiskCount={completedRiskCount}
+        openReasonLines={openReasonLinesOfTab}
         wontCount={wontRisks.length}
         perElementCount={perElementCount}
         perInteractionCount={perInteractionCount}

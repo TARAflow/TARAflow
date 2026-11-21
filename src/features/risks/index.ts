@@ -144,6 +144,7 @@ export {
 // ==================== SERVICES ====================
 export { riskService } from "./services/risk-service";
 export { riskFindings, riskFindingLines, type RiskFinding } from "./services/risk-findings";
+export { openRiskReasons, openRiskReasonLines, type OpenRiskReason } from "./utils/risk-progress";
 export { calculateRiskValues } from "./services/risk-calculation-service";
 // Multi-project TARA (I5): recalculate after ratings were copied between instances.
 export { recalculateRiskValues } from "./services/risk-sync-service";

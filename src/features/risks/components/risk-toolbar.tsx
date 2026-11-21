@@ -47,6 +47,8 @@ export interface RisksToolbarProps {
   riskCount: number;
   assessedRiskCount: number;
   completedRiskCount: number;
+  /** Why the risks not done are open (0.20 item 14) — the status chip's tooltip. */
+  openReasonLines?: readonly string[];
   wontCount: number;
   /** Threats of the method — whether there is anything to switch to. */
   perElementCount: number;
@@ -114,6 +116,7 @@ export const RisksToolbar: React.FC<RisksToolbarProps> = ({
   riskCount,
   assessedRiskCount,
   completedRiskCount,
+  openReasonLines = [],
   wontCount,
   perElementCount,
   perInteractionCount,
@@ -484,7 +487,26 @@ export const RisksToolbar: React.FC<RisksToolbarProps> = ({
           />
         </Tooltip>
       ) : (
-        <Chip label={getStatusText()} size="small" color={getStatusColor()} />
+        <Tooltip
+          title={
+            riskCount > 0 && completedRiskCount < riskCount ? (
+              <Box sx={{ whiteSpace: "pre-line" }} data-testid="risk-status-reasons">
+                {[
+                  t("tabs.risks.openReasons.summary", {
+                    done: completedRiskCount,
+                    total: riskCount,
+                    defaultValue: "{{done}} of {{total}} risks done. Open:",
+                  }),
+                  ...openReasonLines,
+                ].join("\n")}
+              </Box>
+            ) : (
+              ""
+            )
+          }
+        >
+          <Chip label={getStatusText()} size="small" color={getStatusColor()} data-testid="risk-status-chip" />
+        </Tooltip>
       )}
 
       {isDirty && (

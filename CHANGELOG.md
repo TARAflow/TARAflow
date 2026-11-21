@@ -78,6 +78,11 @@
   and B; a mark, no calculation). In Approach A, a risk whose SRSL controls are missing
   stays open in the progress whatever its treatment — the same test as the requirement
   matrix — and the progress tooltip says how many.
+- **Why risks are still open:** the status chip of the Risks tab and the tooltip of the
+  Risk phase name the reasons when the risks are not all done — mitigations not
+  implemented yet, no mitigation selected, or SRSL controls missing (EN 50742), each
+  with the risks concerned. Before, *In Progress* said nothing once there were no
+  findings.
 - **Warning before a tag change deletes risk ratings:** a tag change that switches off
   risk factors (e.g. EN 50742 A removed: exposure level and attacker capability; ETSI TVRA
   added or removed) deletes their ratings. Saving the project information now asks first,

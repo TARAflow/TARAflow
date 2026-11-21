@@ -45,6 +45,12 @@
       "progressDone": "{{done}}/{{total}} done",
       "progressTooltip": "{{done}} of {{total}} risks done: a treatment without implementation of its own (accept, transfer / share, won't) or every selected mitigation implemented, verified or rejected.",
       "progressSrslOpen": "{{count}} stay open: their SRSL controls are missing (EN 50742).",
+      "openReasons": {
+        "summary": "{{done}} of {{total}} risks done. Open:",
+        "srslOpen": "SRSL controls missing (EN 50742) ({{count}}): {{list}}",
+        "noMitigation": "to reduce, no mitigation selected yet ({{count}}): {{list}}",
+        "mitigationsOpen": "mitigations not implemented yet ({{count}}): {{list}}"
+      },
       "assessed": "Assessed",
       "assessedTooltip": "Assessed risks / Total risks",
       "wontMissingJustification": "Missing justification",

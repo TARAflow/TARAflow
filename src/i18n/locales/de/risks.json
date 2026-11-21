@@ -45,6 +45,12 @@
       "progressDone": "{{done}}/{{total}} erledigt",
       "progressTooltip": "{{done}} von {{total}} Risiken erledigt: Behandlung ohne eigene Umsetzung (akzeptieren, übertragen / teilen, won't) oder alle ausgewählten Mitigations umgesetzt, verifiziert oder abgelehnt.",
       "progressSrslOpen": "{{count}} bleiben offen: ihre SRSL-Maßnahmen fehlen (EN 50742).",
+      "openReasons": {
+        "summary": "{{done}} von {{total}} Risiken erledigt. Offen:",
+        "srslOpen": "SRSL-Maßnahmen fehlen (EN 50742) ({{count}}): {{list}}",
+        "noMitigation": "zu reduzieren, noch keine Mitigation gewählt ({{count}}): {{list}}",
+        "mitigationsOpen": "Mitigations noch nicht umgesetzt ({{count}}): {{list}}"
+      },
       "assessed": "Bewertet",
       "assessedTooltip": "Bewertete Risiken / Gesamtrisiken",
       "wontMissingJustification": "Fehlende Begründung",

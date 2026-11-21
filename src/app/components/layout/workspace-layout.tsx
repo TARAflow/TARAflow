@@ -265,6 +265,7 @@ export const WorkspaceLayout: React.FC = () => {
     componentFindings: dfdData.componentDfdFindings,
     assetDataRef: assetData.assetDataRef,
     verificationStatus: overview.verificationStatus,
+    ...(en50742SrslOpenRiskIds ? { srslOpenRiskIds: en50742SrslOpenRiskIds } : {}),
     t,
   });
 

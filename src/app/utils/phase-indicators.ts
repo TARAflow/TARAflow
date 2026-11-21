@@ -51,6 +51,8 @@ export interface PhaseIndicatorInput {
   hazardValidation?: { errors: readonly string[]; warnings: readonly string[] } | null;
   /** The Risk tab's validation of the current state, translated (riskFindingLines, FX-4). */
   riskValidation?: { errors: readonly string[]; warnings: readonly string[] } | null;
+  /** Why the risks not done are open, one line per reason (0.20 item 14) — details only, not counted. */
+  openRisks?: readonly string[];
   /** Stored threats the current rules would no longer / additionally generate. */
   threatDrift?: { obsolete: number; added: number };
   /**
@@ -150,6 +152,10 @@ export function phaseIndicators(input: PhaseIndicatorInput): PhaseIndicators {
     };
     const lines = [...input.riskValidation.errors, ...input.riskValidation.warnings];
     if (lines.length > 0) details[PhaseId.Risk] = capped(lines, t);
+  }
+  // Why risks are open (0.20 item 14): "In Progress" with no finding said nothing.
+  if (input.openRisks && input.openRisks.length > 0) {
+    details[PhaseId.Risk] = [...(details[PhaseId.Risk] ?? []), ...input.openRisks];
   }
 
   // Hazard: the Hazard tab's validation messages.

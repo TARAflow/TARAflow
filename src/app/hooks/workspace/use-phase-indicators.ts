@@ -11,7 +11,7 @@ import { verificationStatusText } from "features/overview";
 import { hazardValidator, hazardFindingLines } from "features/hazards";
 import { dfdService, type DFDGraphAnalysisContext, type ValidationFinding } from "features/dfd";
 import { outdatedCatalog, projectGenerationDrift, NO_DRIFT, type ThreatProjectData } from "features/threats";
-import { riskFindingLines, riskFindings } from "features/risks";
+import { openRiskReasonLines, openRiskReasons, riskFindingLines, riskFindings } from "features/risks";
 import { useAuditHints } from "features/audit";
 import type { Project } from "../../models/project-types";
 import { phaseIndicators } from "../../utils/phase-indicators";
@@ -36,6 +36,8 @@ export interface PhaseIndicatorsInput {
   } | null;
   assetDataRef: AssetDataReference | undefined;
   verificationStatus: ReturnType<typeof verificationStatus> | undefined;
+  /** EN 50742 A (patch 29): risks whose SRSL controls are open — not done. */
+  srslOpenRiskIds?: ReadonlySet<string>;
   t: TFunction;
 }
 
@@ -50,6 +52,7 @@ export function usePhaseIndicators({
   componentFindings,
   assetDataRef,
   verificationStatus: verification,
+  srslOpenRiskIds,
   t,
 }: PhaseIndicatorsInput) {
   // ── Threat generation drift (phase tab badge) ────────────────────────────
@@ -153,6 +156,8 @@ export function usePhaseIndicators({
                   return { errors: lines.errors, warnings: [...lines.warnings, ...fromComponents] };
                 })()
               : null,
+            // Why risks are not done (0.20 item 14): the phase says it too.
+            openRisks: openRiskReasonLines(openRiskReasons(activeProject.risks?.risks ?? [], srslOpenRiskIds), (k, o) => t(k, o)),
             threatDrift: threatDriftCounts,
             threatCatalog,
             undescribed: undescribedOf(activeProject.dfd),
@@ -163,7 +168,7 @@ export function usePhaseIndicators({
             t,
           })
         : null,
-    [activeProject, dfdSavedValidation, threatDriftCounts, threatCatalog, assetDataRef, verification, componentFindings, t],
+    [activeProject, dfdSavedValidation, threatDriftCounts, threatCatalog, assetDataRef, verification, componentFindings, srslOpenRiskIds, t],
   );
 
   return { threatDriftCounts, auditHintLines, indicators };
