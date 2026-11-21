@@ -83,6 +83,10 @@
   implemented yet, no mitigation selected, or SRSL controls missing (EN 50742), each
   with the risks concerned. Before, *In Progress* said nothing once there were no
   findings.
+- **Window title:** names the open project and its file (`Machine — /work/machine.tara.json
+  — TARAflow 0.20.0-beta`), so two windows or a copy can be told apart.
+- **Assumption of use *not fulfilled*:** the note field asks why it is not fulfilled
+  instead of for an evidence note.
 - **Warning before a tag change deletes risk ratings:** a tag change that switches off
   risk factors (e.g. EN 50742 A removed: exposure level and attacker capability; ETSI TVRA
   added or removed) deletes their ratings. Saving the project information now asks first,

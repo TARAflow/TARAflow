@@ -125,3 +125,17 @@ describe("ComponentAssumptionsChecklist", () => {
     expect(screen.queryByTestId("component-assumption-measures-tooltip-ASM-02")).toBeNull();
   });
 });
+
+describe("the note of a not fulfilled assumption says why (0.19 manual test, 0.20 item 17)", () => {
+  it("not fulfilled: 'Why it is not fulfilled'; fulfilled: 'Evidence note'", () => {
+    const list = [
+      { assumptionId: "a1", displayId: "ASM-01", text: "Bus inside", componentStatus: "confirmed", status: "not_fulfilled" as const },
+      { assumptionId: "a2", displayId: "ASM-02", text: "Auth", componentStatus: "open", status: "fulfilled" as const },
+    ];
+    render(<ComponentAssumptionsChecklist prefix="SD1" assumptions={list} measures={measures} onChange={vi.fn()} />);
+    const summary = screen.getByTestId("component-assumptions").querySelector("[aria-expanded]")!;
+    if (summary.getAttribute("aria-expanded") !== "true") fireEvent.click(screen.getByText(/Assumptions of use/));
+    expect(within(screen.getByTestId("component-assumption-ASM-01")).getByLabelText("Why it is not fulfilled")).toBeTruthy();
+    expect(within(screen.getByTestId("component-assumption-ASM-02")).getByLabelText("Evidence note")).toBeTruthy();
+  });
+});

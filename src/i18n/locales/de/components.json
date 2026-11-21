@@ -225,6 +225,7 @@
       "measuresNone": "keine gewählt — eine oder mehrere auswählen",
       "measuresChosen": "Als Nachweis gewählt ({{count}}):",
       "note": "Nachweis-Notiz",
+      "notFulfilledNote": "Warum sie nicht erfüllt ist",
       "status": {
         "open": "offen",
         "fulfilled": "erfüllt",

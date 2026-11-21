@@ -225,6 +225,7 @@
       "measuresNone": "none chosen — select one or more",
       "measuresChosen": "Chosen as evidence ({{count}}):",
       "note": "Evidence note",
+      "notFulfilledNote": "Why it is not fulfilled",
       "status": {
         "open": "open",
         "fulfilled": "fulfilled",

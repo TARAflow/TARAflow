@@ -26,6 +26,7 @@
 // All project writes go through context.updateProject() — a single,
 // stable, ref-based write channel. No stale-closure risk.
 
+import { projectWindowTitle } from "app/utils/project-window-title";
 import { ratingLossOfTagChange } from "../../services/rating-loss";
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -179,6 +180,11 @@ export const WorkspaceLayout: React.FC = () => {
 
   const dfdData = useDfdDerivedData(activeProject);
   // EN 50742 (O18): which risks get EL / AC / WoO / SRSL, with the reason.
+  // The window title names the open project and its file (0.20 item 17).
+  useEffect(() => {
+    document.title = projectWindowTitle(activeProject);
+  }, [activeProject?.info?.name, activeProject?.filePath]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const {
     withRelevance: withEn50742Relevance,
     relevantAnchorIds: en50742RelevantAnchorIds,
