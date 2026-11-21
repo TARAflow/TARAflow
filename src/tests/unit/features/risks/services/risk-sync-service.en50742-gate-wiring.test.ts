@@ -287,3 +287,42 @@ describe("syncRisksFromThreats — O18 relevance gate", () => {
     expect(riskById(result, "T-U").calculatedSrsl).not.toBeNull();
   });
 });
+
+describe("syncRisksFromThreats — the overlay of EN 50742 A on ETSI TVRA (0.20)", () => {
+  const tvraWithA = (base: RiskConfiguration): RiskConfiguration => ({
+    ...configWithEN50742Enabled(base),
+    likelihoodMethod: "etsi-tvra",
+    en50742Overlay: true,
+  });
+
+  it("TVRA + A: the SRSL is computed as with the standard method", () => {
+    const configuration = tvraWithA(createDefaultRiskData().configuration);
+    const threat = perElementThreat("T-10", "if-1", ["A-1"]);
+    const empty = createEmptyRisk(threat, configuration);
+    const existing = {
+      ...empty,
+      linkedAssetIds: ["A-1"],
+      factorRatings: empty.factorRatings.map((r) => (r.factorId === "attacker_capability" ? { ...r, value: 4 } : r)),
+    };
+    const result = syncRisksFromThreats(
+      { ...createDefaultRiskData(), configuration, risks: [existing] },
+      [threat],
+      dfdWithElementEL("if-1", "EL3"),
+      assetDataRef([asset("A-1", "fatal")]),
+    );
+    expect(riskById(result, "T-10").calculatedSrsl).not.toBeNull();
+  });
+
+  it("the A tag removed: a stored SRSL goes on the next sync, also without a rating change", () => {
+    const configuration = createDefaultRiskData().configuration; // no overlay
+    const threat = perElementThreat("T-11", "if-1", ["A-1"]);
+    const stored = { ...createEmptyRisk(threat, configuration), linkedAssetIds: ["A-1"], calculatedSrsl: "SRSL2" as const, calculatedApScore: 7, calculatedApBand: null };
+    const riskData: RiskData = { ...createDefaultRiskData(), configuration, risks: [stored] };
+    const dfd: DFDReference = { elements: [], connections: [] };
+    const assets = assetDataRef([asset("A-1", "fatal")]);
+    expect(checkRiskSyncStatus(riskData, [threat], dfd).changedExposureLevels).toBe(1);
+    const risk = riskById(syncRisksFromThreats(riskData, [threat], dfd, assets), "T-11");
+    expect(risk.calculatedSrsl).toBeUndefined();
+    expect(risk.calculatedApScore).toBeUndefined();
+  });
+});

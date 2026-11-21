@@ -33,6 +33,7 @@ import {
   hasSafetyData,
   hasDFDSafetyAnnotations,
   getWorstCriterionValue,
+  hasEn50742Overlay,
 } from "shared";
  import {
    applyAssetCriteriaToFactorRatings,
@@ -455,10 +456,10 @@ export function checkRiskSyncStatus(
     );
     // O18: an SRSL on a risk whose anchor is no longer EN 50742 relevant
     // (a manual EL stays, the SRSL goes) — the sync takes it away.
-    const srslGatedAway =
-      riskData.configuration.likelihoodMethod === "en-50742-a" &&
-      threat.en50742?.relevant === false &&
-      risk.calculatedSrsl != null;
+    // Without the overlay (the A tag removed) a stored SRSL goes as well.
+    const srslGatedAway = hasEn50742Overlay(riskData.configuration)
+      ? threat.en50742?.relevant === false && risk.calculatedSrsl != null
+      : risk.calculatedSrsl !== undefined;
     return srslGatedAway || !sameContent(withEl, risk.factorRatings);
   }).length;
 
@@ -741,10 +742,10 @@ export function syncRisksFromThreats(
 
     // O18: an anchor that is no longer EN 50742 relevant takes its SRSL away
     // even when no rating changed (a safety zone was drawn, a flow moved).
-    const srslGatedAway =
-      updatedConfiguration.likelihoodMethod === "en-50742-a" &&
-      threat.en50742?.relevant === false &&
-      risk.calculatedSrsl != null;
+    // Without the overlay (the A tag removed) a stored SRSL goes as well.
+    const srslGatedAway = hasEn50742Overlay(updatedConfiguration)
+      ? threat.en50742?.relevant === false && risk.calculatedSrsl != null
+      : risk.calculatedSrsl !== undefined;
 
     if (
       srslGatedAway ||

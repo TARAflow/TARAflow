@@ -19,7 +19,7 @@
 import type { FactorRating } from "../models/risk-factor-types";
 import type { RiskConfiguration } from "../models/risk-config-types";
 import { LIKELIHOOD_SCALES } from "../models/risk-scale-types";
-import { normaliseImpactValue, type SafetySeverity } from "shared";
+import { hasEn50742Overlay, normaliseImpactValue, type SafetySeverity } from "shared";
 import type { WindowOfOpportunity, DFDReference, AssetReference } from "shared";
 import {
   calculateRiskValues,
@@ -341,10 +341,10 @@ export function resolveEN50742Severity(
 // apply it before computing risk values), so this function only ever reads
 // `ratings`, never `dfd`/`threat` itself.
 //
-//   method !== "en-50742-a"            → generic path, srsl/apScore/apBand
+//   no EN 50742 A overlay              → generic path, srsl/apScore/apBand
 //                                         simply absent (not an EN 50742
 //                                         project at all).
-//   method === "en-50742-a":
+//   overlay (en-50742-a, or TVRA + A tag, hasEn50742Overlay):
 //     exposure_level unrated (value 0)
 //     OR windowOfOpportunity not yet configured on the project
 //                                       → generic R×L path, srsl/apScore/
@@ -394,7 +394,9 @@ export function calculateGatedRiskValues(
   // the SRSL, which is overlaid here as a parallel output. Setting EL/AC/WoO
   // never moves the risk.
   const generic = calculateRiskValues(ratings, configuration);
-  if (configuration.likelihoodMethod !== "en-50742-a") {
+  // The overlay of EN 50742 A on the base method (preset en-50742-a, or
+  // ETSI TVRA + the A tag — hasEn50742Overlay, 0.20).
+  if (!hasEn50742Overlay(configuration)) {
     return generic;
   }
 

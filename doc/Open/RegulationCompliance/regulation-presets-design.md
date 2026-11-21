@@ -406,13 +406,27 @@ method:
   (`getRegulationConflicts`).
 - B without any 62443-4-2 edition is hinted.
 
-**Open — patch 18.** The preset still makes `en-50742-a` a likelihood method
-of its own (§10.5), and `regulationPresetFromTags` takes the first matching
-tag. Today the overlay already keeps L × I on the standard factors
-(`calculateGatedRiskValues`). Patch 18 makes Approach A an overlay switch
-next to the base preset:
+**Patch 18 — Approach A as an overlay (done):**
 
-- TVRA + A computes L by TVRA and adds AP / SRSL.
-- TVRA + B computes L by TVRA.
-- The derivation no longer depends on the order of the tags.
-- Results of standard + A stay identical (results dump).
+- **Preset:** `regulationPresetFromTags` follows the base method, not the
+  order of the tags: ISO 21434, then ETSI TVRA, then EN 50742 B, then A, else
+  standard.
+- **One test for the overlay:** `hasEn50742Overlay(configuration)` (shared)
+  replaces every check for `likelihoodMethod === "en-50742-a"`. It covers
+  the risk gate, the factor scales, the risk table and dialog, the SRSL
+  report chapter and the PDF table. The overlay is on for the preset
+  `en-50742-a`, or with `RiskConfiguration.en50742Overlay`.
+- **The flag:** the orchestrator sets `en50742Overlay` only for A on another
+  base method (TVRA + A). There `applyRegulationPreset` keeps EL and AC as
+  targets, which the exclusive TVRA pool would otherwise switch off.
+  Standard + A keeps its stored form without the flag. The results dump of
+  all examples is unchanged.
+- **EN 50742 questions follow the A / B tag**, not the preset: the safety
+  zone, the relevance, the WoO selector and the dump use
+  `en50742ApproachFromTags`. TVRA + A therefore asks for the safety zone and
+  the WoO.
+- **The tag removed:** the next risk sync takes a stored SRSL away.
+- **TVRA + B** computes L by TVRA. The B matrix comes from the tag, as
+  before.
+- **Open:** the methodology section of the report names the base method
+  only; mentioning the A overlay there is a follow-up.

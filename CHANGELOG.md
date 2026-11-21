@@ -39,6 +39,13 @@
   refused (choose A or B); other spellings are written as the catalogue tag, also
   when a project is opened (*EN 50742* and *EN50742_A* become *EN 50742 A*, as they
   were read before). ETSI TVRA with EN 50742 is no longer flagged as a conflict.
+- **EN 50742 A with ETSI TVRA:** Approach A is an addition to the base method. With
+  ETSI TVRA the risks are rated by TVRA (R = L × I), and the safety-relevant ones get
+  the exposure level, attacker capability, window of opportunity and the SRSL next to it,
+  as with the standard method. Which method computes the likelihood no longer depends on
+  the order of the tags (ISO 21434, then ETSI TVRA, then EN 50742 B, then A). Removing
+  the A tag removes the SRSL of the risks on the next update. Results of existing
+  projects do not change.
 - **Git:** the app's read-only git channels accept read-only commands only; the user's
   SSH command, askpass, CA certificates and git configuration from the environment reach
   commit and push; the SSH key field of the Audit settings is used for the push; a

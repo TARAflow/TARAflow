@@ -61,7 +61,7 @@ import {
 } from "../../models/en50742-approach-a-core";
 import type { StrideCategory, DataColumn, FeasibilityBandLevel } from "shared";
 // ~10 tooltips per row: mount them on first hover only (see lazy-tooltip.tsx).
-import { LazyTooltip as Tooltip } from "shared";
+import { LazyTooltip as Tooltip, hasEn50742Overlay } from "shared";
 
 // ==================== COLUMN TYPE ====================
 
@@ -524,7 +524,7 @@ export const useRiskColumns = ({
     //}
 
     // ── SRSL (EN 50742 Approach A) — categorical safety-security level ───────
-    if (configuration.likelihoodMethod === "en-50742-a") {
+    if (hasEn50742Overlay(configuration)) {
       cols.push({
         id: "srsl",
         header: t("tabs.risks.columns.srsl", { defaultValue: "SRSL" }),

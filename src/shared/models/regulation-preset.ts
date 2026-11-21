@@ -212,6 +212,24 @@ export function getRequiredImpactScale(
   return getRegulationPreset(id).requiredImpactScale;
 }
 
+// ==================== EN 50742 A OVERLAY ====================
+// EN 50742 Approach A is an addition, not a base method (user 2026-11-21):
+// R = L × I comes from the base method (standard or ETSI TVRA), and the
+// safety-relevant risks get AP from EL, WoO and AC, and from it the SRSL,
+// next to it. With the standard method the preset is en-50742-a (its
+// likelihood method means standard factors + overlay); with ETSI TVRA the
+// preset is etsi-tvra and the risk configuration carries en50742Overlay.
+
+/** The per-risk factors of the overlay (WoO is project-global). */
+export const EN50742_OVERLAY_FACTOR_IDS: readonly string[] = ["exposure_level", "attacker_capability"];
+
+/** The risks of this configuration get AP and SRSL (EN 50742 A). The one test for it. */
+export function hasEn50742Overlay(
+  configuration: { likelihoodMethod?: string; en50742Overlay?: boolean } | null | undefined,
+): boolean {
+  return configuration?.likelihoodMethod === "en-50742-a" || configuration?.en50742Overlay === true;
+}
+
 // ==================== THREAT GENERATOR ACTIVATION ====================
 // A preset may disable specific STRIDE threat generators. Resolve the active
 // preset from tags via regulationPresetFromTags(), then ask these helpers.

@@ -120,6 +120,7 @@ import {
   getRegulationTags,
 } from "../../../../shared/utils/tag-categories";
 import { flattenProjectTags } from "../../../../shared/models/project-tags";
+import { hasEn50742Overlay } from "../../../../shared/models/regulation-preset";
 import {
   getElementSecurityLevel,
   getElementTrustLevel,
@@ -1638,7 +1639,7 @@ export abstract class BaseDocumentGenerator {
     const config = project.risks?.configuration;
     const tableTemplate = this.getSRSLTableTemplate();
 
-    if (config?.likelihoodMethod !== "en-50742-a" || !tableTemplate) {
+    if (!config || !hasEn50742Overlay(config) || !tableTemplate) {
       return { id: chapterId, title, content: "", hasContent: false };
     }
 

@@ -277,15 +277,31 @@ export function requiresHazardAnalysis(tags: ProjectTags): boolean {
 export function regulationPresetFromTags(
   tags: ProjectTags,
 ): RegulationPresetId {
-  for (const reg of tags.regulation) {
-    const group = methodGroupOf(reg);
-    if (group === "EN 50742") {
-      return en50742ApproachOf(reg) === "B" ? "en-50742-b" : "en-50742-a";
-    }
-    if (group === "ISO 21434") return "iso-21434";
-    if (group === "ETSI TVRA") return "etsi-tvra";
-  }
+  // The base method decides, not the order of the tags (0.20, user
+  // 2026-11-21): ISO 21434, then ETSI TVRA — EN 50742 A then is an overlay
+  // on it (hasEn50742Overlay), B a matrix next to it — then EN 50742 B, A.
+  const methods = new Set(tags.regulation.map(methodTagOf));
+  if (methods.has("ISO 21434")) return "iso-21434";
+  if (methods.has("ETSI TVRA")) return "etsi-tvra";
+  const approach = en50742ApproachFromTags(tags);
+  if (approach === "B") return "en-50742-b";
+  if (approach === "A") return "en-50742-a";
   return "standard";
+}
+
+/**
+ * The EN 50742 approach of the project (its first EN 50742 tag; the bare
+ * "EN 50742" is A), or undefined. Independent of the base method: an
+ * EN 50742 project with ETSI TVRA asks for the safety zone, has the
+ * relevance and (A) the WoO just as one with the standard method.
+ */
+export function en50742ApproachFromTags(tags: ProjectTags): "A" | "B" | undefined {
+  for (const reg of tags.regulation) {
+    const method = methodTagOf(reg);
+    if (method === "EN 50742 A") return "A";
+    if (method === "EN 50742 B") return "B";
+  }
+  return undefined;
 }
 
 // ==================== TAG EFFECT ====================

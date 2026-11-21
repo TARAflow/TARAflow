@@ -7,23 +7,22 @@
 
 import { useCallback, useMemo } from "react";
 import type { TFunction } from "i18next";
-import { EMPTY_PROJECT_TAGS, regulationPresetFromTags, type ThreatReference } from "shared";
+import { EMPTY_PROJECT_TAGS, en50742ApproachFromTags, type ThreatReference } from "shared";
 import type { Project } from "../../models/project-types";
 import { prepareProjectCompliance } from "../../services/compliance-report";
 import { threatRelevance, threatRelevanceText } from "../../utils/en50742-relevance";
 
-const EN50742_PRESETS = new Set(["en-50742-a", "en-50742-b"]);
-
 export function useEn50742Relevance(project: Project | undefined, t: TFunction) {
-  const preset = regulationPresetFromTags(project?.info?.tags ?? EMPTY_PROJECT_TAGS);
+  // A or B tag, whatever the base method (0.20: also with ETSI TVRA)
+  const en50742 = en50742ApproachFromTags(project?.info?.tags ?? EMPTY_PROJECT_TAGS) !== undefined;
   const dfd = project?.dfd;
   const assets = project?.assets;
   const relevance = useMemo(
-    () => (project && EN50742_PRESETS.has(preset) ? prepareProjectCompliance(project)?.en50742Relevance() : undefined),
+    () => (project && en50742 ? prepareProjectCompliance(project)?.en50742Relevance() : undefined),
     // The relevance reads the DFD (zones, flows, interfaces) and the
     // safety-function assets — not the threats, risks or ratings.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [preset, dfd, assets],
+    [en50742, dfd, assets],
   );
 
   const labelOf = useMemo(() => {

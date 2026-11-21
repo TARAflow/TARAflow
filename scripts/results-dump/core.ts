@@ -44,6 +44,7 @@ import {
   EMPTY_PROJECT_TAGS,
   getDisabledThreatGenerators,
   regulationPresetFromTags,
+  en50742ApproachFromTags,
   type DFDReference,
 } from "shared";
 
@@ -235,9 +236,10 @@ function dumpRisks(project: Project) {
     : undefined;
   const iso = isIsoProject(project) ? computeIsoRisks(project).risks?.risks : undefined;
   // EN 50742 (O18): the relevance of each risk's anchor, as the Risk tab gets it.
-  const preset = regulationPresetFromTags(project.info?.tags ?? EMPTY_PROJECT_TAGS);
   const relevance =
-    preset === "en-50742-a" || preset === "en-50742-b" ? prepareProjectCompliance(project)?.en50742Relevance() : undefined;
+    en50742ApproachFromTags(project.info?.tags ?? EMPTY_PROJECT_TAGS) !== undefined
+      ? prepareProjectCompliance(project)?.en50742Relevance()
+      : undefined;
   const threatsById = new Map(
     [...(project.threats?.perElementTables ?? []), ...(project.threats?.perInteractionTables ?? [])]
       .flatMap((t) => t.threats)

@@ -119,6 +119,8 @@ export {
   WINDOW_OF_OPPORTUNITY_MULTIPLIERS,
   getRegulationPreset,
   getDisabledThreatGenerators,
+  hasEn50742Overlay,
+  EN50742_OVERLAY_FACTOR_IDS,
   isThreatGeneratorEnabled,
   getRequiredImpactScale,
   type RegulationPreset,
@@ -554,6 +556,7 @@ export {
 
 export {
   regulationPresetFromTags,
+  en50742ApproachFromTags,
   getRegulationConflicts,
   hasTagConflicts,
   getTagWarnings,

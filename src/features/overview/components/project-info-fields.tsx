@@ -4,7 +4,7 @@ import { AlertCircle } from "lucide-react";
 import {
   SafetyAnalysisToggle,
   ProjectTagsEditor,
-  regulationPresetFromTags,
+  en50742ApproachFromTags,
 } from "shared";
 import type { ProjectInfoData } from "../models/overview-types";
 import { WindowOfOpportunitySelector } from "./window-of-opportunity-selector";
@@ -93,7 +93,7 @@ export const ProjectInfoFields: React.FC<ProjectInfoFieldsProps> = ({
       </div>
     ) : null;
 
-  const wooRelevant = regulationPresetFromTags(value.tags) === "en-50742-a";
+  const wooRelevant = en50742ApproachFromTags(value.tags) === "A";
 
   return (
     <div className="space-y-4">

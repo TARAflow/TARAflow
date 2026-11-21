@@ -16,7 +16,7 @@ import { RISK_SCALES } from "../../models/risk-scale-types";
 import { calculateRiskValues } from "../../services/risk-calculation-service";
 import { resolveMitigationDrafts, resolveVerificationDrafts } from "../../../threats/services/threat-catalog-service";
 import type { AssetReference } from "shared";
-import { feasibilityLevelToRiskScale } from "shared";
+import { feasibilityLevelToRiskScale, hasEn50742Overlay } from "shared";
 import { calculateGatedRiskValues, resolveEN50742Severity } from "../../services/en50742-risk-calculation";
 import type { ExposureLevel, AttackerCapability } from "../../models/en50742-approach-a-core";
 import { en50742LevelFromRating, mandatedRequirementsForThreat, formatMandatedControlLabel, EN50742_SRSL_FACTOR_IDS, EXPOSURE_LEVEL_SCORE, ATTACKER_CAPABILITY_SCORE } from "../../models/en50742-approach-a-core";
@@ -40,7 +40,7 @@ export function useRiskDialogDerived({
 
   // §11.2: WoO/AC/EL feed AP/SRSL, not the standard weighted mean — gates
   // both the severity lookup below and the factor-list split further down.
-  const isEN50742 = configuration.likelihoodMethod === "en-50742-a";
+  const isEN50742 = hasEn50742Overlay(configuration);
   // ISO 21434: likelihood comes from the attack tree (attack_tree_likelihood,
   // rendered read-only below), never from likelihood factors rated on the risk.
   // Hide the editable likelihood factors so the analyst rates feasibility on the

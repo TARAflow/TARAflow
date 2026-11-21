@@ -18,7 +18,7 @@ import {
   validateProjectForDoc,
   getMimeType,
 } from "../utils/doc-generator";
-import { isRegulationTag, flattenProjectTags } from "shared";
+import { isRegulationTag, flattenProjectTags, hasEn50742Overlay } from "shared";
 import {
   createProjectWithPng,
   createPdfBlob,
@@ -206,7 +206,7 @@ export const useDocumentGeneration = ({
       // EN 50742 SRSL chapter — only for en-50742-a projects (the generator
       // additionally auto-hides when no risk carries an exposure anchor).
       "srsl-assessment":
-        project.risks?.configuration?.likelihoodMethod === "en-50742-a",
+        hasEn50742Overlay(project.risks?.configuration),
       "accepted-risks": risks.wont > 0,
       // ISO/SAE 21434 traceability matrix — only for iso-21434 projects, and
       // only once there is at least one risk to walk the AS->...->RR chain for.
