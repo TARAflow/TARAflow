@@ -191,6 +191,59 @@ export function isEn50742ApproachBTag(tag: string): boolean {
   return methodGroupOf(tag) === "EN 50742" && en50742ApproachOf(tag) === "B";
 }
 
+// ==================== METHOD TAG COMBINATIONS (0.20) ====================
+// Which method tags go together (user 2026-11-21). R = L × I comes from one
+// base method — TARAflow standard (no tag), ETSI TVRA or ISO 21434. EN 50742
+// A is an addition: AP and SRSL for the safety-relevant risks next to
+// L × I, never alone; EN 50742 B always comes with an IEC 62443-4-2 edition.
+//
+//   allowed    standard / ETSI TVRA + EN 50742 A
+//              standard / ETSI TVRA + EN 50742 B (+ IEC 62443-4-2)
+//   excluded   EN 50742 A <-> EN 50742 B (Clause 4.1)
+//              ISO 21434  <-> EN 50742 A, EN 50742 B, ETSI TVRA
+//
+// The tag editor enforces it: an excluded tag is replaced by the one added
+// (project-tags.ts addTagWithOutcome). The warnings of getRegulationConflicts
+// stay for projects saved before. Tags are written in their catalogue
+// spelling; the bare "EN 50742" is refused (choose A or B).
+
+/** A method tag in its catalogue spelling. */
+export type MethodTag = "ISO 21434" | "ETSI TVRA" | "EN 50742 A" | "EN 50742 B";
+
+/** The method tag of any spelling ("EN50742_B" → "EN 50742 B"; the bare "EN 50742" reads as A), or null. */
+export function methodTagOf(tag: string): MethodTag | null {
+  const group = methodGroupOf(tag);
+  if (group === "EN 50742") return en50742ApproachOf(tag) === "B" ? "EN 50742 B" : "EN 50742 A";
+  if (group === "ISO 21434") return "ISO 21434";
+  if (group === "ETSI TVRA") return "ETSI TVRA";
+  return null;
+}
+
+const EXCLUDED_PAIRS: readonly (readonly [MethodTag, MethodTag])[] = [
+  ["EN 50742 A", "EN 50742 B"],
+  ["ISO 21434", "EN 50742 A"],
+  ["ISO 21434", "EN 50742 B"],
+  ["ISO 21434", "ETSI TVRA"],
+];
+
+/** The two method tags cannot be in one project. */
+export function methodTagsExclude(a: MethodTag, b: MethodTag): boolean {
+  return EXCLUDED_PAIRS.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
+}
+
+/**
+ * EN 50742 without an approach ("EN 50742", "EN50742") — no catalogue tag:
+ * the editor asks for A or B. Projects saved with it are read as A.
+ */
+export function isBareEn50742Tag(tag: string): boolean {
+  return methodGroupOf(tag) === "EN 50742" && en50742ApproachOf(tag) === null;
+}
+
+/** The catalogue spelling of a method tag; other tags as they are (trimmed). */
+export function canonicalMethodTag(tag: string): string {
+  return methodTagOf(tag) ?? tag.trim();
+}
+
 // ==================== SAFETY / HAZARD IMPLICATION ====================
 
 /**
@@ -290,64 +343,37 @@ function getMissingContextWarnings(tags: ProjectTags): TagWarning[] {
  * One warning per conflicting pair (deduplicated, order-independent).
  */
 export function getRegulationConflicts(tags: ProjectTags): TagWarning[] {
+  // The first tag of each method (any spelling; the bare "EN 50742" is A —
+  // the same rule as the preset and the Compliance sub-tabs).
+  const first = new Map<MethodTag, string>();
+  for (const reg of tags.regulation) {
+    const method = methodTagOf(reg);
+    if (method && !first.has(method)) first.set(method, reg);
+  }
   const warnings: TagWarning[] = [];
-  const seenPairs = new Set<string>();
-
-  const pairKey = (a: string, b: string) => [a, b].sort().join("|");
-
-  // (1) Cross-method conflict: distinct method groups selected together.
-  const groupToTag = new Map<string, string>();
-  for (const reg of tags.regulation) {
-    const group = methodGroupOf(reg);
-    if (group && !groupToTag.has(group)) groupToTag.set(group, reg);
+  for (const [x, y] of EXCLUDED_PAIRS) {
+    const a = first.get(x);
+    const b = first.get(y);
+    if (!a || !b) continue;
+    const approaches = x === "EN 50742 A" && y === "EN 50742 B";
+    warnings.push({
+      kind: "mutual-exclusion",
+      regulation: a,
+      conflictsWith: [b],
+      message: approaches
+        ? i18n.t("projectInfo.tagConflicts.en50742Approach", {
+            a,
+            b,
+            defaultValue:
+              "EN 50742 Approach A and Approach B are mutually exclusive (Clause 4.1) — choose one approach.",
+          })
+        : i18n.t("projectInfo.tagConflicts.methodRegime", {
+            a,
+            b,
+            defaultValue: "{{a}} and {{b}} cannot be combined in one project — remove one of them.",
+          }),
+    });
   }
-  const groups = [...groupToTag.entries()]; // [group, representativeTag]
-  for (let i = 0; i < groups.length; i++) {
-    for (let j = i + 1; j < groups.length; j++) {
-      const [, tagA] = groups[i];
-      const [, tagB] = groups[j];
-      const key = pairKey(tagA, tagB);
-      if (seenPairs.has(key)) continue;
-      seenPairs.add(key);
-      warnings.push({
-        kind: "mutual-exclusion",
-        regulation: tagA,
-        conflictsWith: [tagB],
-        message: i18n.t("projectInfo.tagConflicts.methodRegime", {
-          a: tagA,
-          b: tagB,
-          defaultValue:
-            "{{a}} and {{b}} each define the project's risk method — a project follows only one. Choose a single regulation preset.",
-        }),
-      });
-    }
-  }
-
-  // (2) EN 50742 Approach A vs B — mutually exclusive per Clause 4.1.
-  const approachTags = { A: undefined as string | undefined, B: undefined as string | undefined };
-  for (const reg of tags.regulation) {
-    const ap = en50742ApproachOf(reg);
-    if (ap === "A" && !approachTags.A) approachTags.A = reg;
-    if (ap === "B" && !approachTags.B) approachTags.B = reg;
-  }
-  if (approachTags.A && approachTags.B) {
-    const key = pairKey(approachTags.A, approachTags.B);
-    if (!seenPairs.has(key)) {
-      seenPairs.add(key);
-      warnings.push({
-        kind: "mutual-exclusion",
-        regulation: approachTags.A,
-        conflictsWith: [approachTags.B],
-        message: i18n.t("projectInfo.tagConflicts.en50742Approach", {
-          a: approachTags.A,
-          b: approachTags.B,
-          defaultValue:
-            "EN 50742 Approach A and Approach B are mutually exclusive (Clause 4.1) — choose one approach.",
-        }),
-      });
-    }
-  }
-
   return warnings;
 }
 
@@ -358,7 +384,32 @@ export function getRegulationConflicts(tags: ProjectTags): TagWarning[] {
  * above the softer missing-context hints.
  */
 export function getTagWarnings(tags: ProjectTags): TagWarning[] {
-  return [...getRegulationConflicts(tags), ...getMissingContextWarnings(tags), ...getCraPairingHints(tags)];
+  return [
+    ...getRegulationConflicts(tags),
+    ...getMissingContextWarnings(tags),
+    ...getCraPairingHints(tags),
+    ...getEn50742BPairingHints(tags),
+  ];
+}
+
+/**
+ * EN 50742 B is a subset of IEC 62443-4-2 (Table 4): it always goes with an
+ * edition of it — the 2019 one (added with the B tag) or the CRA one.
+ */
+function getEn50742BPairingHints(tags: ProjectTags): TagWarning[] {
+  const b = tags.regulation.find(isEn50742ApproachBTag);
+  if (!b || MATRIX_TAGS.some((m) => tags.regulation.includes(m))) return [];
+  return [
+    {
+      kind: "missing-context",
+      regulation: b,
+      suggestedTag: "IEC 62443",
+      message: i18n.t("projectInfo.tagWarnings.en50742BWithout62443", {
+        defaultValue:
+          "EN 50742 B evaluates a subset of IEC 62443-4-2 — add IEC 62443 (2019 edition) or EN IEC 62443 (CRA).",
+      }),
+    },
+  ];
 }
 
 /**

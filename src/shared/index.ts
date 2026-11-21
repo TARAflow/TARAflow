@@ -545,6 +545,8 @@ export {
   EMPTY_PROJECT_TAGS,
   migrateProjectTags,
   addTagToProject,
+  addTagWithOutcome,
+  canonicalizeMethodTags,
   removeTagFromProject,
   flattenProjectTags,
   isProjectTags,
@@ -559,6 +561,9 @@ export {
   tagEffectOf,
   isEn50742ApproachATag,
   isEn50742ApproachBTag,
+  methodTagOf,
+  methodTagsExclude,
+  type MethodTag,
   MATRIX_TAGS,
 } from "./services/tag-validator";
 

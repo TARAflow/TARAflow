@@ -372,3 +372,47 @@ step 1) — no compliance-tab seeding occurs.
   `en-50742-a`'s likelihood dimension and `en-50742-b`'s compliance dimension
   are evaluated by entirely separate services (`computeLikelihood` vs.
   `compliance-evaluator`) and never share state.
+
+### 10.9 Tag combinations — one base method, EN 50742 A as an addition (0.20, user 2026-11-21)
+
+R = L × I always comes from one **base method**: the TARAflow standard
+(weighted mean, no tag), ETSI TVRA or ISO/SAE 21434. EN 50742 is not a base
+method:
+
+- **Approach A is an addition.** For the safety-relevant risks (O17 / O18)
+  it gives AP from EL, WoO and AC, and the SRSL from it, *next to*
+  R = L × I. AP never stands alone, because it assesses a different relevance
+  than L × I. A goes with the standard method or ETSI TVRA.
+- **Approach B always goes with an IEC 62443-4-2 edition.** Its tag adds the
+  2019 edition (Table 4); the CRA edition may go with it too. B goes with the
+  standard method or ETSI TVRA.
+
+| Combination | Allowed |
+|---|---|
+| standard / ETSI TVRA + EN 50742 A | yes |
+| standard / ETSI TVRA + EN 50742 B + IEC 62443-4-2 | yes |
+| EN 50742 A ↔ EN 50742 B (Clause 4.1) | no |
+| ISO 21434 ↔ EN 50742 A, EN 50742 B, ETSI TVRA | no |
+
+**Tag editor (patch 17):**
+- Adding a tag replaces the tag it cannot go with, and the editor names the
+  replaced tag.
+- Method tags are written in their catalogue spelling.
+- The bare "EN 50742" is refused, with the request to choose A or B.
+
+**Loading:**
+- Old spellings, including the bare tag read as A, become the catalogue tag.
+- Excluded combinations stay as they are and are shown as conflicts
+  (`getRegulationConflicts`).
+- B without any 62443-4-2 edition is hinted.
+
+**Open — patch 18.** The preset still makes `en-50742-a` a likelihood method
+of its own (§10.5), and `regulationPresetFromTags` takes the first matching
+tag. Today the overlay already keeps L × I on the standard factors
+(`calculateGatedRiskValues`). Patch 18 makes Approach A an overlay switch
+next to the base preset:
+
+- TVRA + A computes L by TVRA and adds AP / SRSL.
+- TVRA + B computes L by TVRA.
+- The derivation no longer depends on the order of the tags.
+- Results of standard + A stay identical (results dump).

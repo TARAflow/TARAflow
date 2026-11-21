@@ -8,6 +8,9 @@ import {
   EMPTY_PROJECT_TAGS,
   getRegulationPreset,
   getAllPredefinedTagNames,
+  addTagWithOutcome,
+  canonicalizeMethodTags,
+  getTagWarnings,
 } from "shared";
 import type { ProjectTags } from "shared";
 
@@ -94,8 +97,8 @@ describe("EN 50742 Approach B (0.20)", () => {
     expect(once.regulation).toEqual(["EN 50742 B", "IEC 62443"]);
     const already = addTagToProject({ ...EMPTY_PROJECT_TAGS, regulation: ["IEC 62443"] }, "EN 50742 B");
     expect(already.regulation).toEqual(["IEC 62443", "EN 50742 B"]);
-    // an alias spelling (custom bucket) brings it along too
-    expect(addTagToProject(EMPTY_PROJECT_TAGS, "EN50742_B").regulation).toEqual(["IEC 62443"]);
+    // an alias spelling is written as the catalogue tag (0.20) and brings it along too
+    expect(addTagToProject(EMPTY_PROJECT_TAGS, "EN50742_B").regulation).toEqual(["EN 50742 B", "IEC 62443"]);
     // Approach A brings nothing along
     expect(addTagToProject(EMPTY_PROJECT_TAGS, "EN 50742 A").regulation).toEqual(["EN 50742 A"]);
   });
@@ -113,5 +116,68 @@ describe("EN 50742 Approach B (0.20)", () => {
 
   it("the B tag is offered in the tag editor", () => {
     expect(getAllPredefinedTagNames()).toContain("EN 50742 B");
+  });
+});
+
+describe("method tag combinations (user 2026-11-21)", () => {
+  const add = (regulation: string[], tag: string) => addTagWithOutcome(tags(regulation), tag);
+
+  it("EN 50742 A is an addition: with the standard method or ETSI TVRA, no conflict", () => {
+    expect(add(["ETSI TVRA"], "EN 50742 A")).toMatchObject({ tags: { regulation: ["ETSI TVRA", "EN 50742 A"] }, replaced: [] });
+    expect(getRegulationConflicts(tags(["ETSI TVRA", "EN 50742 A"]))).toEqual([]);
+  });
+
+  it("EN 50742 B goes with ETSI TVRA and IEC 62443", () => {
+    expect(add(["ETSI TVRA"], "EN 50742 B").tags.regulation).toEqual(["ETSI TVRA", "EN 50742 B", "IEC 62443"]);
+    expect(getRegulationConflicts(tags(["ETSI TVRA", "EN 50742 B", "IEC 62443"]))).toEqual([]);
+  });
+
+  it("the excluded pairs: the added tag replaces the other one", () => {
+    expect(add(["EN 50742 A", "CRA"], "EN 50742 B")).toMatchObject({
+      tags: { regulation: ["CRA", "EN 50742 B", "IEC 62443"] },
+      replaced: ["EN 50742 A"],
+    });
+    expect(add(["EN 50742 B", "IEC 62443"], "EN 50742 A")).toMatchObject({
+      tags: { regulation: ["IEC 62443", "EN 50742 A"] },
+      replaced: ["EN 50742 B"],
+    });
+    expect(add(["ISO 21434"], "EN 50742 A")).toMatchObject({ tags: { regulation: ["EN 50742 A"] }, replaced: ["ISO 21434"] });
+    expect(add(["ETSI TVRA", "EN 50742 A"], "ISO 21434")).toMatchObject({
+      tags: { regulation: ["ISO 21434"] },
+      replaced: ["ETSI TVRA", "EN 50742 A"],
+    });
+    expect(add(["ISO 21434"], "ETSI TVRA")).toMatchObject({ tags: { regulation: ["ETSI TVRA"] }, replaced: ["ISO 21434"] });
+  });
+
+  it("the bare EN 50742 is refused; a free spelling becomes the catalogue tag", () => {
+    expect(add([], "EN 50742")).toMatchObject({ tags: { regulation: [] }, refused: "en50742-approach" });
+    expect(add([], "EN50742")).toMatchObject({ refused: "en50742-approach" });
+    expect(add([], "EN 50742 Approach A").tags.regulation).toEqual(["EN 50742 A"]);
+    expect(add([], "ISO/SAE 21434").tags.regulation).toEqual(["ISO 21434"]);
+    // the same method in an old spelling goes silently
+    expect(add(["EN50742_A"], "EN 50742 A")).toMatchObject({ tags: { regulation: ["EN 50742 A"] }, replaced: [] });
+    // a free tag is untouched
+    expect(addTagWithOutcome(EMPTY_PROJECT_TAGS, "Kiosk").tags.custom).toEqual(["Kiosk"]);
+  });
+
+  it("conflicts of projects saved before — the bare EN 50742 counts as A (was missed)", () => {
+    expect(getRegulationConflicts(tags(["EN 50742", "EN 50742 B"]))).toHaveLength(1);
+    expect(getRegulationConflicts(tags(["ISO 21434", "ETSI TVRA", "EN 50742 A"]))).toHaveLength(2);
+  });
+
+  it("EN 50742 B without any IEC 62443-4-2 edition is hinted; with the CRA edition not", () => {
+    const hint = (r: string[]) => getTagWarnings(tags(r)).filter((w) => w.regulation === "EN 50742 B");
+    expect(hint(["EN 50742 B"])).toHaveLength(1);
+    expect(hint(["EN 50742 B", "EN IEC 62443 (CRA)"])).toHaveLength(0);
+    expect(hint(["EN 50742 B", "IEC 62443"])).toHaveLength(0);
+  });
+
+  it("loading writes the catalogue spelling — the preset reads the same", () => {
+    const old = tags(["EN 50742", "CRA", "EN50742_A"]);
+    const fixed = canonicalizeMethodTags(old);
+    expect(fixed.regulation).toEqual(["EN 50742 A", "CRA"]);
+    expect(regulationPresetFromTags(fixed)).toBe(regulationPresetFromTags(old));
+    const clean = tags(["EN 50742 A", "CRA"]);
+    expect(canonicalizeMethodTags(clean)).toBe(clean);
   });
 });

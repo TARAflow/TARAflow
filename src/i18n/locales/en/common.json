@@ -318,12 +318,17 @@
       "en18031": "EN 18031 targets connected products. Consider adding a platform tag (Embedded, IoT, Web, or Mobile).",
       "enIec62443Cra": "EN IEC 62443 (CRA) targets industrial automation components. Consider adding OT platform or an industrial domain tag.",
       "enIec62443CraWithoutCra": "EN IEC 62443 (CRA) is a harmonised standard under the Cyber Resilience Act — consider adding the CRA tag as well.",
+      "en50742BWithout62443": "EN 50742 B evaluates a subset of IEC 62443-4-2 — add IEC 62443 (2019 edition) or EN IEC 62443 (CRA).",
       "iec62443": "IEC 62443 targets OT/industrial systems. Consider adding OT platform or an industrial domain tag.",
       "iso27017": "ISO 27017 is cloud-specific. Consider adding the Cloud platform tag."
     },
     "tagConflicts": {
-      "methodRegime": "{{a}} and {{b}} each define the project's risk method — a project follows only one. Choose a single regulation preset.",
+      "methodRegime": "{{a}} and {{b}} cannot be combined in one project — remove one of them.",
       "en50742Approach": "EN 50742 Approach A and Approach B are mutually exclusive (Clause 4.1) — choose one approach."
+    },
+    "tagNotices": {
+      "replaced": "{{added}} replaces {{removed}} — the two cannot be combined in one project.",
+      "bareEn50742": "Choose the approach: EN 50742 A (risk-based, additional SRSL) or EN 50742 B (IEC 62443-4-2 subset)."
     }
   },
   "stride": {

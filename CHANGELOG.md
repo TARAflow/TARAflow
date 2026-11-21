@@ -30,6 +30,15 @@
   the whole machine; with neither a safety zone nor a linked safety function they stay
   *unknown*. Results of existing EN 50742 A projects can change (SRSL of risks outside
   the zone, the matrix rows).
+- **Regulation tags:** a project has one base method for R = L × I — the standard
+  method, ETSI TVRA or ISO 21434; EN 50742 A adds AP and SRSL for the safety-relevant
+  risks and goes with the standard method or ETSI TVRA; EN 50742 B goes with an
+  IEC 62443-4-2 edition. Combinations that cannot go together (EN 50742 A and B;
+  ISO 21434 with EN 50742 or ETSI TVRA) are no longer only warned about: adding one
+  tag replaces the other, and the tag editor says so. The bare tag *EN 50742* is
+  refused (choose A or B); other spellings are written as the catalogue tag, also
+  when a project is opened (*EN 50742* and *EN50742_A* become *EN 50742 A*, as they
+  were read before). ETSI TVRA with EN 50742 is no longer flagged as a conflict.
 - **Git:** the app's read-only git channels accept read-only commands only; the user's
   SSH command, askpass, CA certificates and git configuration from the environment reach
   commit and push; the SSH key field of the Audit settings is used for the push; a

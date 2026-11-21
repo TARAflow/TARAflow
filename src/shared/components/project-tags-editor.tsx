@@ -8,11 +8,11 @@ import { Tooltip } from "@mui/material";
 // "shared/components".
 import {
   ProjectTags,
-  addTagToProject,
+  addTagWithOutcome,
   removeTagFromProject,
   flattenProjectTags,
 } from "../models/project-tags";
-import { getTagWarnings, tagEffectOf } from "../services/tag-validator";
+import { canonicalMethodTag, getTagWarnings, tagEffectOf } from "../services/tag-validator";
 
 import {
   TAG_CATEGORIES,
@@ -45,6 +45,9 @@ export const ProjectTagsEditor: React.FC<ProjectTagsEditorProps> = ({
   const { t } = useTranslation();
   const [tagInput, setTagInput] = useState("");
   const [tagCategory, setTagCategory] = useState<TagCategoryKey>("domain");
+  // What the last add did when it was not a plain add (a tag replaced, the
+  // bare "EN 50742" refused) — shown until the next add.
+  const [notice, setNotice] = useState<string | null>(null);
   // Unique per instance so project-info and new-project-dialog (which can be
   // mounted at the same time — modal over overview) never share an input id.
   const customTagInputId = React.useId();
@@ -54,7 +57,25 @@ export const ProjectTagsEditor: React.FC<ProjectTagsEditorProps> = ({
   const addTag = (tag: string, categoryOverride?: TagCategoryKey) => {
     const trimmed = tag.trim();
     if (!trimmed) return;
-    onChange(addTagToProject(tags, trimmed, categoryOverride));
+    const outcome = addTagWithOutcome(tags, trimmed, categoryOverride);
+    if (outcome.refused) {
+      setNotice(
+        t("projectInfo.tagNotices.bareEn50742", {
+          defaultValue: "Choose the approach: EN 50742 A (risk-based, additional SRSL) or EN 50742 B (IEC 62443-4-2 subset).",
+        }),
+      );
+      return;
+    }
+    setNotice(
+      outcome.replaced.length > 0
+        ? t("projectInfo.tagNotices.replaced", {
+            added: canonicalMethodTag(trimmed),
+            removed: outcome.replaced.join(", "),
+            defaultValue: "{{added}} replaces {{removed}} — the two cannot be combined in one project.",
+          })
+        : null,
+    );
+    onChange(outcome.tags);
     setTagInput("");
   };
 
@@ -319,6 +340,14 @@ export const ProjectTagsEditor: React.FC<ProjectTagsEditorProps> = ({
           </button>
         </div>
       </div>
+
+      {/* What the last add replaced or refused */}
+      {notice && (
+        <p className="text-xs flex items-center gap-1 text-blue-700" role="status" data-testid="tag-notice">
+          <AlertTriangle className="w-3 h-3" />
+          {notice}
+        </p>
+      )}
 
       {/* Tag Warnings — conflicts (red) above context hints (amber) */}
       {warnings.length > 0 && (
