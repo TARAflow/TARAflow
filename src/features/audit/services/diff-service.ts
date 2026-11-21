@@ -17,6 +17,7 @@
 // asset<->DFD relations (`linkedDFDElements`, the asset-side mirror of a flow's
 // `assetRelations`) were not compared at all. Both are covered now.
 
+import { sameValue } from "shared/utils/same-value";
 import type { Project } from "app";
 import type {
   PhaseChanges,
@@ -36,7 +37,6 @@ import { formatRiskLabel } from "shared/models/risk-label";
 import { storedCatalogVersion } from "shared/models/threat-catalog-stamp";
 import type { A2ARelation, CybersecurityConcept, ItemDefinition } from "shared";
 import { RETIRED_ASSET_FIELDS, type RetiredAssetField } from "shared/models/retired-asset-fields";
-import { canonicalStringify } from "shared/utils/tcs-canonical";
 
 /**
  * Asset fields retired from the model (shared/models/retired-asset-fields.ts),
@@ -60,23 +60,8 @@ function legacyAssetValue(asset: Asset, field: RetiredAssetField): string | unde
   return value === undefined || value === null ? undefined : typeof value === "string" ? value : JSON.stringify(value);
 }
 
-/**
- * Value equality for the change detection: the canonical form (TCS — keys
- * sorted, arrays in order), so an object rebuilt with the same content but
- * another key order is no change. JSON.stringify is order-sensitive: a
- * mitigation draft re-created by the threat sync ({id, alreadyImplemented, …}
- * instead of the file's sorted {alreadyImplemented, id, …}) showed up as a
- * modified threat in the commit message although the file stayed identical.
- * Values TCS rejects (NaN, functions) fall back to JSON.stringify.
- */
-function sameValue(a: unknown, b: unknown): boolean {
-  if (a === undefined || b === undefined) return a === b;
-  try {
-    return canonicalStringify(a) === canonicalStringify(b);
-  } catch {
-    return JSON.stringify(a) === JSON.stringify(b);
-  }
-}
+// Value equality for the change detection: shared/utils/same-value.ts (the
+// canonical form — another key order is no change; moved there in 0.20).
 
 /** The description of a DFD change ("Page added", "Layout changed"). */
 function dfdChangeText(change: DfdChange): string {

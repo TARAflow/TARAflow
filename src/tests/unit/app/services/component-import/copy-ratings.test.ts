@@ -162,3 +162,37 @@ describe("copy ratings between instances (I5)", () => {
     expect(r.counts).toMatchObject({ relevanceOverrides: 0, pathOverlays: 0 });
   });
 });
+
+describe("copy ratings — the same content in another key order is no change (0.20 item 15)", () => {
+  it("an identical relevance override written in another key order: not counted", () => {
+    const m = machine();
+    const a = { threatKey: "k1", relevance: "not_relevant", rationale: "cabinet", componentRelevance: "relevant", date: "d" };
+    const b = { date: "d", componentRelevance: "relevant", rationale: "cabinet", relevance: "not_relevant", threatKey: "k1" };
+    const p = {
+      ...m,
+      components: { ...m.components!, instances: m.components!.instances.map((i) => ({ ...i, relevanceOverrides: [i.id === "s" ? a : b] })) },
+    } as unknown as Project;
+    expect(copyInstanceRatings(p, "s", "t", ALL).counts.relevanceOverrides).toBe(0);
+    // characterization: a different decision still counts
+    const c = { ...b, rationale: "own" };
+    const q = { ...p, components: { ...p.components!, instances: p.components!.instances.map((i) => (i.id === "t" ? { ...i, relevanceOverrides: [c] } : i)) } } as unknown as Project;
+    expect(copyInstanceRatings(q, "s", "t", ALL).counts.relevanceOverrides).toBe(1);
+  });
+
+  it("an identical factor rating in another key order: not copied, not counted", () => {
+    let m = machine();
+    m = setRating(m, "s", "ease_of_exploit", 3, { source: "manual" });
+    const rating = valueOf(m, "s", "ease_of_exploit");
+    const reordered = Object.fromEntries(Object.entries(rating).reverse());
+    m = {
+      ...m,
+      risks: {
+        ...m.risks!,
+        risks: m.risks!.risks.map((r) =>
+          r === riskOf(m, "t") ? { ...r, factorRatings: r.factorRatings.map((f) => (f.factorId === "ease_of_exploit" ? (reordered as typeof f) : f)) } : r,
+        ),
+      },
+    };
+    expect(copyInstanceRatings(m, "s", "t", ALL).counts.factors).toBe(0);
+  });
+});

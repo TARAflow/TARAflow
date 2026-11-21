@@ -32,6 +32,7 @@
 // match only within one state of the component. Risk treatment (measures)
 // stays out — it is a decision per risk (phase 3).
 
+import { sameValue } from "shared/utils/same-value";
 import type { Asset, AssetData } from "features/assets";
 import { assetService } from "features/assets";
 import { componentInstanceTfId, instanceAssetId } from "features/dfd";
@@ -108,7 +109,8 @@ export function copyInstanceRatings(
       let n = 0;
       for (const x of theirs ?? []) {
         if (fill && out.has(key(x))) continue;
-        if (JSON.stringify(out.get(key(x))) === JSON.stringify(x)) continue;
+        // another key order is the same decision (0.20 item 15)
+        if (sameValue(out.get(key(x)), x)) continue;
         out.set(key(x), x);
         n++;
       }
@@ -171,7 +173,7 @@ export function copyInstanceRatings(
         const t = theirs.get(f.factorId);
         if (!t || unrated(t) || !decided(t) || !copies(f.factorId)) return f;
         if (fill && !unrated(f)) return f;
-        if (JSON.stringify(t) === JSON.stringify(f)) return f;
+        if (sameValue(t, f)) return f;
         changed++;
         return { ...t };
       });

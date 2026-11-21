@@ -6,6 +6,7 @@
 //   risks         selectedMitigations[].id, proposedMitigations[].id
 //   attack trees  path assessments mitigationIds[], DSL lists "[M-001,M-C-001]" (read by the attacktree parser)
 
+import { sameValue } from "shared/utils/same-value";
 import type { Project } from "../models/project-types";
 import { dslMitigationIds, replaceDslMitigation } from "features/attacktree";
 
@@ -66,7 +67,8 @@ const JOINED_FIELDS = ["notes", "evidenceNote"] as const;
 
 type Entry = Record<string, unknown>;
 const present = (v: unknown) => v !== undefined && v !== null && v !== "";
-const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+// another key order is the same value (0.20 item 15)
+const same = sameValue;
 
 function entriesConflict(into: Entry, from: Entry): boolean {
   return CONFLICT_FIELDS.some((k) => {
