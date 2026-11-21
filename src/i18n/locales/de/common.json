@@ -124,6 +124,7 @@
     "saving": "Speichern",
     "diagram": "Diagramm",
     "dfdBadges": "Exposure Levels im Diagramm anzeigen",
+    "dfdBadgesDefault": "Standard: in EN-50742-Projekten an, sonst aus. Eine Änderung hier bleibt als deine Wahl bestehen.",
     "dfdBadgesDescription": "Schreibt das Exposure Level (EL / PEL) oben rechts an Trust-, Chip- und Physical Boundaries sowie Interfaces und markiert die Safety-Zone. Geändert wird der Wert nur im Seitenpanel.",
     "standardWorkflow": "Standard:",
     "criticalWorkflow": "Kritisch:",

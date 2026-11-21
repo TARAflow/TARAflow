@@ -75,20 +75,32 @@ export interface DfdBadgeOptions {
   enabled: boolean;
   /** EN 50742 project — only there a trust boundary can be the safety zone. */
   en50742: boolean;
+  /**
+   * The word before the level on the safety zone's badge, in the UI language
+   * (i18n tabs.dfd.badges.safety; patch 24). Display only — never stored, so the
+   * language of the diagram file does not depend on it. Default "Safety".
+   */
+  safetyLabel?: string;
 }
 
 /** The badge text of an element, or undefined for no badge. */
-export function badgeText(xmlType: string, element: BadgeElement | undefined, en50742: boolean): string | undefined {
+export function badgeText(
+  xmlType: string,
+  element: BadgeElement | undefined,
+  en50742: boolean,
+  safetyLabel = "Safety",
+): string | undefined {
   const property = LEVEL_PROPERTY[xmlType];
   if (!property || !element) return undefined;
   const props = (element.properties ?? {}) as Record<string, unknown>;
   const raw = props[property];
   const level = typeof raw === "string" && /^P?EL[0-4]$/.test(raw) ? raw : undefined;
-  if (xmlType === "trustboundary" && isSafetyZone(element, en50742)) return level ? `Safety · ${level}` : "Safety";
+  if (xmlType === "trustboundary" && isSafetyZone(element, en50742)) return level ? `${safetyLabel} · ${level}` : safetyLabel;
   return level;
 }
 
-function isSafetyZone(element: BadgeElement | undefined, en50742: boolean): boolean {
+/** The element is the safety zone the diagram marks (EN 50742 project, the shared helper). */
+export function isSafetyZone(element: BadgeElement | undefined, en50742: boolean): boolean {
   if (!en50742 || !element) return false;
   // The shared helper decides what counts as the zone (property-visibility guard R-3).
   return safetyZoneIds([{ id: "", type: element.type, properties: element.properties as Readonly<Record<string, unknown>> | undefined }]).length > 0;
@@ -202,7 +214,7 @@ export function applyDfdBadges(
         usedIds.add(id);
         text += zoneObject(id, cellId, Number(geometry?.getAttribute("width") ?? 0), Number(geometry?.getAttribute("height") ?? 0));
       }
-      const label = options.enabled ? badgeText(xmlType, element, options.en50742) : undefined;
+      const label = options.enabled ? badgeText(xmlType, element, options.en50742, options.safetyLabel) : undefined;
       if (label) {
         const id = uniqueId(`${cellId}-elbadge`, usedIds);
         usedIds.add(id);

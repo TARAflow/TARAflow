@@ -17,8 +17,9 @@
   never stored in the project file: opening a project does not change it, and the content
   hash of a component does not depend on them. The page images the app saves show them,
   and the report explains them in a legend below the DFD statistics (a page image saved
-  before 0.20 gets them with the next save). A new project setting (*Diagram*, on by
-  default) turns the texts off.
+  before 0.20 gets them with the next save). A new project setting (*Diagram*) turns the
+  texts on or off; without a choice they follow the EN 50742 tag — on in EN 50742
+  projects, off in the others (EL is EN 50742 vocabulary).
 - **EN 50742 relevance:** EN 50742 is about the interfaces to the safety functions and
   the data flows crossing them. A trust boundary marked as *Safety zone (EN 50742)* (new mark,
   next to its type) marks the safety-related (yellow) part of a machine; without one, the interfaces and

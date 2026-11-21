@@ -5,6 +5,9 @@
       "description": "Create and edit your Data Flow Diagram here.",
       "loading": "Loading DFD Editor...",
       "proceed": "Continue",
+      "badges": {
+        "safety": "Safety"
+      },
       "assetGraph": {
         "locked": {
           "label": "Component {{prefix}}",

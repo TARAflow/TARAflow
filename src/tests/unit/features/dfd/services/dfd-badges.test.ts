@@ -262,3 +262,13 @@ describe("strip — what is stored and hashed", () => {
     expect(after.stats).toEqual(before.stats);
   });
 });
+
+describe("the safety zone's word in the UI language (patch 24)", () => {
+  it("badgeText and apply take the label; default Safety", () => {
+    const zoneTb = { type: "TrustBoundary", properties: { safetyZone: "yes", defaultExposureLevel: "EL2" } };
+    expect(badgeText("trustboundary", zoneTb, true)).toBe("Safety · EL2");
+    expect(badgeText("trustboundary", zoneTb, true, "Sicherheit")).toBe("Sicherheit · EL2");
+    const out = applyDfdBadges(single(boundary("tb", "trustboundary", "Machine [TB]")), els([["tb", zoneTb]]), undefined, { ...ON, safetyLabel: "Sicherheit" });
+    expect(badges(out).map((b) => b.label)).toEqual(["Sicherheit · EL2"]);
+  });
+});

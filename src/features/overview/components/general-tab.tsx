@@ -6,6 +6,7 @@ import {
   SourceBinding,
   EMPTY_PROJECT_TAGS,
   regulationPresetFromTags,
+  en50742ApproachFromTags,
   type ProjectTags,
 } from "shared";
 import { itemDefinitionFindings } from "../services/item-definition-findings";
@@ -376,6 +377,7 @@ const GeneralTabView: React.FC<GeneralTabProps> = ({
           <ProjectSettings
             settings={data.settings}
             onUpdate={handleSettingsUpdate}
+            en50742={en50742ApproachFromTags(data.info.tags ?? EMPTY_PROJECT_TAGS) !== undefined}
           />
         </>
       )}

@@ -10,7 +10,7 @@ describe("transformProjectToDocData — dfdMarks", () => {
   const loaded = parseAndRepair(loadProjectFixture("Simple_Test_Project.tara.json"))!;
   const project = { ...loaded, info: { ...loaded.info, tags: { ...loaded.info.tags, regulation: ["IEC 62443", "EN 50742 A"] } } };
 
-  it("EN 50742 A project, badges by default", () => {
+  it("EN 50742 A project: badges on by default (patch 24)", () => {
     expect(transformProjectToDocData(project, "en").dfdMarks).toEqual({ badges: true, en50742: true });
   });
 
@@ -18,7 +18,10 @@ describe("transformProjectToDocData — dfdMarks", () => {
     const off = { ...project, settings: { ...project.settings, dfdBadges: false } };
     expect(transformProjectToDocData(off, "en").dfdMarks).toEqual({ badges: false, en50742: true });
     const other = { ...project, info: { ...project.info, tags: { ...project.info.tags, regulation: ["CRA"] } } };
-    expect(transformProjectToDocData(other, "en").dfdMarks?.en50742).toBe(false);
+    // no EN 50742 tag: off by default, on by choice
+    expect(transformProjectToDocData(other, "en").dfdMarks).toEqual({ badges: false, en50742: false });
+    const chosen = { ...other, settings: { ...other.settings, dfdBadges: true } };
+    expect(transformProjectToDocData(chosen, "en").dfdMarks).toEqual({ badges: true, en50742: false });
     const alias = { ...project, info: { ...project.info, tags: { ...project.info.tags, regulation: ["EN50742_A"] } } };
     expect(transformProjectToDocData(alias, "en").dfdMarks?.en50742).toBe(true);
   });

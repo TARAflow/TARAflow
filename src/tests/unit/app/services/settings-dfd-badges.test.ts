@@ -1,9 +1,10 @@
-// Project setting "Show exposure levels in the diagram" (0.20): absent = on,
-// only an explicit false is stored — and survives loading and repair.
+// Project setting "Show exposure levels in the diagram" (0.20): absent = by
+// the EN 50742 tag (patch 24), an explicit choice true / false is stored and
+// survives loading and repair.
 import { describe, it, expect } from "vitest";
 import { parseAndRepair, repairProject } from "app/services/migration-service";
 import { CURRENT_SCHEMA_VERSION } from "app/services/schema-version";
-import { EMPTY_PROJECT_TAGS } from "shared";
+import { EMPTY_PROJECT_TAGS, dfdBadgesShown } from "shared";
 
 const raw = (settings: object) => ({
   id: "P",
@@ -30,8 +31,15 @@ describe("settings.dfdBadges", () => {
     expect(repairProject(off)?.settings.dfdBadges).toBe(false);
   });
 
-  it("absent or true is not written (on by default)", () => {
+  it("true survives too (a choice in a project without EN 50742); absent is not written", () => {
+    expect(repairProject(raw({ strictMode: false, autoSave: true, dfdBadges: true }))?.settings.dfdBadges).toBe(true);
     expect(repairProject(raw({ strictMode: false, autoSave: true }))?.settings).not.toHaveProperty("dfdBadges");
-    expect(repairProject(raw({ strictMode: false, autoSave: true, dfdBadges: true }))?.settings).not.toHaveProperty("dfdBadges");
+  });
+
+  it("dfdBadgesShown: the choice, else the EN 50742 tag", () => {
+    expect(dfdBadgesShown(undefined, true)).toBe(true);
+    expect(dfdBadgesShown(undefined, false)).toBe(false);
+    expect(dfdBadgesShown(true, false)).toBe(true);
+    expect(dfdBadgesShown(false, true)).toBe(false);
   });
 });

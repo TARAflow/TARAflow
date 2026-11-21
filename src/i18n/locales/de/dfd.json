@@ -5,6 +5,9 @@
       "description": "Erstelle und bearbeite hier dein Datenflussdiagramm.",
       "loading": "DFD-Editor wird geladen...",
       "proceed": "Weiter",
+      "badges": {
+        "safety": "Safety"
+      },
       "assetGraph": {
         "locked": {
           "label": "Komponente {{prefix}}",

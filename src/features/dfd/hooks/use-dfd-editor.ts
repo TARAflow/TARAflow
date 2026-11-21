@@ -3,7 +3,7 @@
 // Follows Facade Pattern - simple interface, complex implementation
 
 import type { A2AOp, PhaseStatusMap } from "shared";
-import { PHASE_STATUS_KEY } from "shared";
+import { PHASE_STATUS_KEY, dfdBadgesShown } from "shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   DFDPage,
@@ -523,7 +523,7 @@ export function useDFDEditor(
   useDfdBadges(bridge, {
     elements: project.dfd?.elements,
     pages: project.dfd?.pages,
-    enabled: project.settings?.dfdBadges !== false,
+    enabled: dfdBadgesShown(project.settings?.dfdBadges, project.en50742 === true),
     en50742: project.en50742 === true,
   });
 

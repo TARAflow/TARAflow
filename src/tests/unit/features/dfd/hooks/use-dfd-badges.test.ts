@@ -42,6 +42,8 @@ describe("badgeSignature", () => {
         elements: [{ ...tb({ safetyZone: "yes" }), size: { width: w, height: 100 } } as DFDElement],
       });
     expect(zoned(200)).not.toBe(zoned(300));
+    // the zone's word (UI language) redraws the badges
+    expect(badgeSignature(options({ defaultExposureLevel: "EL1" }, { safetyLabel: "Sicherheit" }))).not.toBe(base);
   });
 });
 

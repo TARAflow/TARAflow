@@ -614,3 +614,6 @@ export {
   compareFingerprints,
   type FingerprintComparison,
 } from "./utils/methodology-fingerprint";
+
+// EL badges in the diagram: shown by choice, else in EN 50742 projects (0.20)
+export { dfdBadgesShown } from "./models/dfd-badges-setting";

@@ -14,7 +14,8 @@
 import { useEffect, useRef } from "react";
 import type { UseDrawioBridgeReturn } from "./use-drawio-bridge";
 import type { DFDElement, DFDPage } from "../models/dfd-types";
-import { applyDfdBadges, badgeText, type BadgeElement } from "../services/dfd-badges";
+import { useTranslation } from "react-i18next";
+import { applyDfdBadges, badgeText, isSafetyZone, type BadgeElement } from "../services/dfd-badges";
 
 const BADGE_XML_TYPE: Record<string, string> = {
   TrustBoundary: "trustboundary",
@@ -26,23 +27,25 @@ const BADGE_XML_TYPE: Record<string, string> = {
 export interface UseDfdBadgesOptions {
   elements: readonly DFDElement[] | undefined;
   pages: readonly DFDPage[] | undefined;
-  /** Project setting settings.dfdBadges — absent = on. */
+  /** The badges are shown (dfdBadgesShown: the setting, else the EN 50742 tag). */
   enabled: boolean;
   en50742: boolean;
+  /** The word on the safety zone's badge, in the UI language (patch 24). */
+  safetyLabel?: string;
   /** Delay after load / change, so draw.io holds the diagram (ms). */
   delay?: number;
 }
 
 /** What the badges depend on — a change runs the badge update. */
 export function badgeSignature(options: UseDfdBadgesOptions): string {
-  const parts: string[] = [`on=${options.enabled}`, `en50742=${options.en50742}`];
+  const parts: string[] = [`on=${options.enabled}`, `en50742=${options.en50742}`, `label=${options.safetyLabel ?? ""}`];
   for (const element of options.elements ?? []) {
     const xmlType = BADGE_XML_TYPE[element.type];
     if (!xmlType) continue;
-    const text = badgeText(xmlType, element, options.en50742) ?? "";
+    const text = badgeText(xmlType, element, options.en50742, options.safetyLabel) ?? "";
     // the zone frame has the boundary's size — a resize redraws it
     const zone =
-      element.type === "TrustBoundary" && text.startsWith("Safety")
+      isSafetyZone(element, options.en50742)
         ? `zone@${element.size?.width ?? ""}x${element.size?.height ?? ""}`
         : "";
     parts.push(`${element.id}:${text}:${zone}`);
@@ -53,7 +56,12 @@ export function badgeSignature(options: UseDfdBadgesOptions): string {
   return parts.join("|");
 }
 
-export function useDfdBadges(bridge: UseDrawioBridgeReturn, options: UseDfdBadgesOptions): void {
+export function useDfdBadges(bridge: UseDrawioBridgeReturn, given: UseDfdBadgesOptions): void {
+  const { t } = useTranslation();
+  const options: UseDfdBadgesOptions = {
+    ...given,
+    safetyLabel: given.safetyLabel ?? t("tabs.dfd.badges.safety", { defaultValue: "Safety" }),
+  };
   const signature = badgeSignature(options);
   const optionsRef = useRef(options);
   optionsRef.current = options;
@@ -64,10 +72,10 @@ export function useDfdBadges(bridge: UseDrawioBridgeReturn, options: UseDfdBadge
     const timer = setTimeout(() => {
       const xml = bridge.getCurrentXML();
       if (!xml) return;
-      const { elements, pages, enabled, en50742 } = optionsRef.current;
+      const { elements, pages, enabled, en50742, safetyLabel } = optionsRef.current;
       const byId = new Map<string, BadgeElement>((elements ?? []).map((e) => [e.id, e]));
       try {
-        const next = applyDfdBadges(xml, byId, pages, { enabled, en50742 });
+        const next = applyDfdBadges(xml, byId, pages, { enabled, en50742, ...(safetyLabel ? { safetyLabel } : {}) });
         if (next === xml) return;
         void bridge.loadXML(next);
       } catch (error) {
