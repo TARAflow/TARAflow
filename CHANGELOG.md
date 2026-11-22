@@ -115,6 +115,11 @@
   by an earlier push is removed on the next push — **revoke it**).
 
 ### Fixed
+- **Nested component imports:** the elements of a component that brings its own imports
+  read their ids back wrong after the save — "C1:M1:P-1" instead of "M1:C1:P-1" (the outer
+  prefix went behind the inner one in the diagram). The outer prefix now goes in front of
+  the whole chain, also when the inner and the outer instance have the same prefix
+  ("C1:C1:P-1", "[C1:C1:CASE]").
 - **Threat and risk text showing an i18n key** (e.g. `general.D-009.threat`): a threat
   generated before its text existed stored the key, and it stayed even after the text was
   added. Opening a project now replaces such text with the template's text (also on its

@@ -470,12 +470,14 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
       }
       // boundaries carry their display id in their own label: "Case [SD1:CASE]"
       if (BOUNDARY_CELL_TYPES.has(type)) cell.setAttribute("label", prefixBoundaryLabel(cell.getAttribute("label") ?? "", prefix));
-      // the instance prefix on the display id (E9)
+      // the instance prefix on the display id (E9). The page is a fresh copy of
+      // the component's, so it is prefixed exactly once — no "already
+      // prefixed?" check: an inner instance may carry the same prefix
+      // ("C1:P-1" in a component imported as C1 again → "C1:C1:P-1",
+      // review 2026-11-22)
       const label = idlabelOf(root, nid);
       const text = label?.getAttribute("label");
-      if (label && text && !text.includes(`${prefix}:`)) {
-        label.setAttribute("label", prefixDisplayLabel(text, prefix));
-      }
+      if (label && text) label.setAttribute("label", prefixDisplayLabel(text, prefix));
     }
 
     machineDoc.documentElement.appendChild(copy);
@@ -635,8 +637,11 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
  * label may be wrapped in a <font> / <span> (shape library).
  */
 export function prefixDisplayLabel(text: string, prefix: string): string {
-  if (/[A-Z]{1,3}-[0-9x.]+[a-z]?/.test(text)) {
-    return text.replace(/([A-Z]{1,3}-[0-9x.]+[a-z]?)/, `${prefix}:$1`);
+  // in front of the whole chain of an inner instance's prefixes:
+  // "SD1:P-1" → "C1:SD1:P-1" (review 2026-11-22: was "SD1:C1:P-1")
+  const ID = /((?:[A-Za-z0-9_-]+:)*[A-Z]{1,3}-[0-9x.]+[a-z]?)/;
+  if (ID.test(text)) {
+    return text.replace(ID, `${prefix}:$1`);
   }
   // A free display id (e.g. a boundary's "SDC"): before the first text.
   return text.replace(/(^|>)(\s*)([^<\s][^<]*)/, `$1$2${prefix}:$3`);
@@ -649,13 +654,13 @@ const BOUNDARY_CELL_TYPES = new Set(["trustboundary", "chipboundary", "physicalb
  * last one: "Case [CASE]" → "Case [SD1:CASE]". A component that brings its
  * own imports (design §6.5, E8) has prefixed boundaries already; they get the
  * outer prefix in front, like the inner elements ("Case [C1:SD1:CASE]",
- * review 2026-11-22). An id that starts with this prefix, or a label without
- * a bracket: unchanged.
+ * review 2026-11-22). Always — the label comes fresh from the component at
+ * the insert and at an update, and an inner instance may carry the same
+ * prefix ("[C1:CASE]" imported as C1 → "[C1:C1:CASE]"). Without a bracket:
+ * unchanged.
  */
 export function prefixBoundaryLabel(text: string, prefix: string): string {
-  return text.replace(/\[([a-zA-Z0-9_-]+(?::[a-zA-Z0-9_-]+)*)\](?!.*\[)/s, (whole, id: string) =>
-    id.startsWith(`${prefix}:`) ? whole : `[${prefix}:${id}]`,
-  );
+  return text.replace(/\[([a-zA-Z0-9_-]+(?::[a-zA-Z0-9_-]+)*)\](?!.*\[)/s, `[${prefix}:$1]`);
 }
 
 const CONTAINER_TYPES = new Set(["trustboundary", "chipboundary", "physicalboundary", "legend"]);
