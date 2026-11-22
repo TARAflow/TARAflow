@@ -83,6 +83,10 @@
   implemented yet, no mitigation selected, or SRSL controls missing (EN 50742), each
   with the risks concerned. Before, *In Progress* said nothing once there were no
   findings.
+- **Imported component boundaries carry the instance prefix:** "Smoke Detector Case
+  [SD1:CASE]" — on the component's pages, on the copies around the multiprocess and in the
+  report, so two instances of one component no longer bring the same boundary ids. Instances
+  imported with 0.19 keep their labels until their next component update.
 - **Window title:** names the open project and its file (`Machine — /work/machine.tara.json
   — TARAflow 0.20.0-beta`), so two windows or a copy can be told apart.
 - **Assumption of use *not fulfilled*:** the note field asks why it is not fulfilled
@@ -111,6 +115,9 @@
   machine that imported it reports a newer state of the component one time. This is a
   deliberate exception to the rule that opening never changes a component's hash.
   Components without such text are not touched.
+- **Imported component instances from 0.19** keep their unprefixed boundary labels
+  ("[CASE]"). The next component update builds the instance again with the prefix
+  ("[SD1:CASE]"); the audit then shows the boundaries' new display ids once.
 - **EN 50742 A projects:**
   - **SRSL 0** now needs an isolated safety function. Stored SRSL values that no longer
     fit are corrected on the next update of the risks (sync banner in the Risks tab).

@@ -286,7 +286,8 @@ export function isDefaultName(name: string): boolean {
 
 /**
  * Validate Trust Boundary ID format
- * Must match: /\[([a-zA-Z0-9_-]+)\]\s*$/
+ * Must match: /\[([a-zA-Z0-9_-]+(?::[a-zA-Z0-9_-]+)?)\]\s*$/ — the
+ * optional "PREFIX:" is a component instance's ("Case [SD1:CASE]")
  */
 export function validateTrustBoundaryId(name: string): {
   isValid: boolean;
@@ -294,7 +295,7 @@ export function validateTrustBoundaryId(name: string): {
 } {
   if (!name) return { isValid: false };
 
-  const match = name.match(/\[([a-zA-Z0-9_-]+)\]\s*$/);
+  const match = name.match(/\[([a-zA-Z0-9_-]+(?::[a-zA-Z0-9_-]+)?)\]\s*$/);
   if (!match) return { isValid: false };
 
   return { isValid: true, id: match[1] };

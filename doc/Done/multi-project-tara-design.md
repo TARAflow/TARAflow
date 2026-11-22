@@ -561,7 +561,10 @@ over the instance's and the component's own multiprocesses): the component's ids
 the multiprocess and the boundary flows are numbered, copies of machine elements on the component
 page follow their definition. Fixed from patch 07: the instance prefix is now written into the
 idlabels (it only reached the records, the save read the ids back without it); boundaries keep their
-label-borne display id unprefixed. The phase-bar badge does not count the component findings yet.
+label-borne display id unprefixed. *0.20 (item 17):* boundaries get the prefix too, inside their id
+bracket ("Case [SD1:CASE]") — on the component's pages, on the attached shell copies and in the
+records; the parser and the missing-id check accept `PREFIX:ID`. Instances from 0.19 keep their labels
+until the next update rebuilds them (no rewrite on load). The phase-bar badge does not count the component findings yet.
 Patch 10: read-only component pages (draw.io plugin lock, repair from the snapshot), delete an
 instance, "Open component TARA".
 *Patch 08 (2026-11-07):* import UI. DFD toolbar "Import component TARA…" (only with the

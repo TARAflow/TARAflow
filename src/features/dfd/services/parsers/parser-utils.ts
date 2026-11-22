@@ -98,12 +98,13 @@ export function determineElementType(cell: Element): DFDElementType | "Asset" | 
 
 /**
  * Extract trust boundary ID from name
- * Must match: /\[([a-zA-Z0-9_-]+)\]\s*$/
+ * Must match: /\[([a-zA-Z0-9_-]+(?::[a-zA-Z0-9_-]+)?)\]\s*$/ — the
+ * optional "PREFIX:" is a component instance's ("Case [SD1:CASE]")
  */
 export function extractTrustBoundaryId(name: string): string | undefined {
   if (!name) return undefined;
 
-  const match = name.match(/\[([a-zA-Z0-9_-]+)\]/);
+  const match = name.match(/\[([a-zA-Z0-9_-]+(?::[a-zA-Z0-9_-]+)?)\]/);
   if (!match) return undefined;
 
   return match[1];

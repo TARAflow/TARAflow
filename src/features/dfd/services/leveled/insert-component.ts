@@ -468,6 +468,8 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
         const target = componentPages.find((p) => `data:page/id,${p.pageId}` === cell.getAttribute("link"));
         if (target) cell.setAttribute("link", pageLink(ns(`page|${target.pageId}`)));
       }
+      // boundaries carry their display id in their own label: "Case [SD1:CASE]"
+      if (BOUNDARY_CELL_TYPES.has(type)) cell.setAttribute("label", prefixBoundaryLabel(cell.getAttribute("label") ?? "", prefix));
       // the instance prefix on the display id (E9)
       const label = idlabelOf(root, nid);
       const text = label?.getAttribute("label");
@@ -522,6 +524,7 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
     cell.setAttribute("id", cellId);
     shellLinks.push({ cellId, tfId: mapTf(tf), role: "ref", attached: true });
     cell.removeAttribute("link");
+    cell.setAttribute("label", prefixBoundaryLabel(cell.getAttribute("label") ?? "", input.prefix));
     const mx = mxCellOf(cell);
     mx.setAttribute("parent", "1");
     const old = mx.getElementsByTagName("mxGeometry")[0];
@@ -541,15 +544,28 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
   /** Asset relations of a record, pointing to the instance assets. */
   const remapRelations = <T extends { assetId: string }>(relations: readonly T[] | undefined): T[] =>
     (relations ?? []).filter((r) => assetIds.has(r.assetId)).map((r) => ({ ...r, assetId: mapAsset(r.assetId) }));
-  // Boundaries carry their display id in their label ("… [SHE]"), not in an
-  // idlabel — it stays as the component named it.
-  const LABEL_IDS = BOUNDARY_TYPES;
+  // Boundaries carry their display id in their label ("Case [SD1:CASE]"),
+  // not in an idlabel — the record follows the label (0.20 item 17: two
+  // instances of one component would otherwise bring the same boundary ids).
   for (const e of component.elements) {
     if (eeIds.has(e.id)) continue;
+    if (BOUNDARY_TYPES.has(e.type)) {
+      const name = prefixBoundaryLabel(e.name, prefix);
+      const props = e.properties as { boundaryId?: string } | undefined;
+      newElements.push({
+        ...e,
+        id: mapTf(e.id),
+        name,
+        displayId: prefixed(e.displayId),
+        ...(props?.boundaryId ? { properties: { ...props, boundaryId: prefixed(props.boundaryId) } as DFDElement["properties"] } : {}),
+        assetRelations: remapRelations(e.assetRelations),
+      });
+      continue;
+    }
     newElements.push({
       ...e,
       id: mapTf(e.id),
-      displayId: LABEL_IDS.has(e.type) ? e.displayId : prefixed(e.displayId),
+      displayId: prefixed(e.displayId),
       assetRelations: remapRelations(e.assetRelations),
     });
   }
@@ -624,6 +640,17 @@ export function prefixDisplayLabel(text: string, prefix: string): string {
   }
   // A free display id (e.g. a boundary's "SDC"): before the first text.
   return text.replace(/(^|>)(\s*)([^<\s][^<]*)/, `$1$2${prefix}:$3`);
+}
+
+const BOUNDARY_CELL_TYPES = new Set(["trustboundary", "chipboundary", "physicalboundary"]);
+
+/**
+ * A boundary's label gets the instance prefix inside its id bracket — the
+ * last one: "Case [CASE]" → "Case [SD1:CASE]". Already prefixed or without a
+ * bracket: unchanged.
+ */
+export function prefixBoundaryLabel(text: string, prefix: string): string {
+  return text.replace(/\[([a-zA-Z0-9_-]+)\](?!.*\[)/s, `[${prefix}:$1]`);
 }
 
 const CONTAINER_TYPES = new Set(["trustboundary", "chipboundary", "physicalboundary", "legend"]);
