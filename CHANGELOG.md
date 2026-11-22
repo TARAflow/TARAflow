@@ -85,8 +85,10 @@
   findings.
 - **Imported component boundaries carry the instance prefix:** "Smoke Detector Case
   [SD1:CASE]" — on the component's pages, on the copies around the multiprocess and in the
-  report, so two instances of one component no longer bring the same boundary ids. Instances
-  imported with 0.19 keep their labels until their next component update.
+  report, so two instances of one component no longer bring the same boundary ids. A
+  component that brings its own imports gets one prefix per level ("[C1:SD1:CASE]"), like
+  its inner elements. Instances imported with 0.19 keep their labels until their next
+  component update.
 - **Window title:** names the open project and its file (`Machine — /work/machine.tara.json
   — TARAflow 0.20.0-beta`), so two windows or a copy can be told apart.
 - **Assumption of use *not fulfilled*:** the note field asks why it is not fulfilled
@@ -117,7 +119,9 @@
   Components without such text are not touched.
 - **Imported component instances from 0.19** keep their unprefixed boundary labels
   ("[CASE]"). The next component update builds the instance again with the prefix
-  ("[SD1:CASE]"); the audit then shows the boundaries' new display ids once.
+  ("[SD1:CASE]"); the audit then shows the boundaries' new display ids once. Manual
+  threats in the machine's threat table of such a boundary stay in that table (tables are
+  matched by the boundary, no longer by its display id).
 - **EN 50742 A projects:**
   - **SRSL 0** now needs an isolated safety function. Stored SRSL values that no longer
     fit are corrected on the next update of the risks (sync banner in the Risks tab).

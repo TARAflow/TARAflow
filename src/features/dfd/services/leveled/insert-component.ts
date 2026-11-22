@@ -646,11 +646,16 @@ const BOUNDARY_CELL_TYPES = new Set(["trustboundary", "chipboundary", "physicalb
 
 /**
  * A boundary's label gets the instance prefix inside its id bracket — the
- * last one: "Case [CASE]" → "Case [SD1:CASE]". Already prefixed or without a
- * bracket: unchanged.
+ * last one: "Case [CASE]" → "Case [SD1:CASE]". A component that brings its
+ * own imports (design §6.5, E8) has prefixed boundaries already; they get the
+ * outer prefix in front, like the inner elements ("Case [C1:SD1:CASE]",
+ * review 2026-11-22). An id that starts with this prefix, or a label without
+ * a bracket: unchanged.
  */
 export function prefixBoundaryLabel(text: string, prefix: string): string {
-  return text.replace(/\[([a-zA-Z0-9_-]+)\](?!.*\[)/s, `[${prefix}:$1]`);
+  return text.replace(/\[([a-zA-Z0-9_-]+(?::[a-zA-Z0-9_-]+)*)\](?!.*\[)/s, (whole, id: string) =>
+    id.startsWith(`${prefix}:`) ? whole : `[${prefix}:${id}]`,
+  );
 }
 
 const CONTAINER_TYPES = new Set(["trustboundary", "chipboundary", "physicalboundary", "legend"]);

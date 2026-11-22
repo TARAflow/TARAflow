@@ -382,9 +382,15 @@ export function mergeGeneratedTables(
   }));
 }
 
-/** Grouping key for matching a manual threat's previous table to a fresh one. */
+/**
+ * Grouping key for matching a manual threat's previous table to a fresh one:
+ * the boundary's id when the table has one — its display id may change (an
+ * imported component's boundary gets the instance prefix with an update,
+ * 0.20 item 17; an analyst renames "[CASE]"), the table stays the same —
+ * else the fixed label ("[DF]", "[EE]", "[IF]").
+ */
 function tableGroupKey(table: ThreatTable): string {
-  return `${table.trustBoundaryId ?? "∅"}::${table.displayIdentifier}`;
+  return table.trustBoundaryId ? `id::${table.trustBoundaryId}` : `∅::${table.displayIdentifier}`;
 }
 
 /**

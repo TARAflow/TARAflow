@@ -283,6 +283,9 @@ describe("insertComponentInstance — refusals and helpers", () => {
     expect(prefixBoundaryLabel("Zone [old] [Z-1]", "SD2")).toBe("Zone [old] [SD2:Z-1]");
     expect(prefixBoundaryLabel("Case [SD2:CASE]", "SD2")).toBe("Case [SD2:CASE]");
     expect(prefixBoundaryLabel("Case", "SD2")).toBe("Case");
+    // nested (review 2026-11-22): the outer prefix in front of the inner one
+    expect(prefixBoundaryLabel("Case [SD1:CASE]", "C1")).toBe("Case [C1:SD1:CASE]");
+    expect(prefixBoundaryLabel("Case [C1:SD1:CASE]", "C1")).toBe("Case [C1:SD1:CASE]");
   });
 
   it("a mapping to an element that is not on the parent page is refused", () => {
@@ -473,6 +476,57 @@ describe("insertComponentInstance — shells around the multiprocess", () => {
     expect(r.xml.match(/label="Case \[C1:CASE\]"/g)).toHaveLength(2); // definition + attached copy
     expect(r.xml).not.toContain("C1:C1:");
     expect(r.elements.find((e) => e.id === first.idMap.c_case)?.displayId).toBe("C1:CASE");
+  });
+
+  // Review 2026-11-22: a component brings its own imports (design §6.5, E8).
+  // Its boundaries are prefixed already; the outer import puts its prefix in
+  // front, like for the inner elements (M1:C1:P-1) — label and record alike,
+  // and the save reads the same id back.
+  it("a nested import: the outer prefix in front of the inner one — label, record and save agree", () => {
+    const inner = insertCase();
+    // the machine with its Case instance, imported as a component itself
+    const controller = {
+      xml: inner.xml,
+      pages: inner.pages,
+      elements: [...machineElements, ...inner.elements],
+      connections: [...machineConnections, ...inner.connections],
+      assets: [],
+    };
+    const importInto = (machine: { xml: string; pages?: DFDPage[]; elements: DFDElement[]; connections: DFDConnection[] }, instanceId: string, prefix: string, y: number) =>
+      insertComponentInstance({
+        machine,
+        component: controller,
+        instanceId,
+        prefix,
+        parentPageId: "top",
+        multiprocess: { name: `Controller ${prefix}`, x: 600, y },
+        eeMapping: { m_plc: "m_plc" },
+      });
+    const base = { xml: machineXml, elements: machineElements, connections: machineConnections };
+    const m1 = importInto(base, "inst-m1", "M1", 200);
+    const m2 = importInto({ xml: m1.xml, pages: m1.pages, elements: [...machineElements, ...m1.elements], connections: [...machineConnections, ...m1.connections] }, "inst-m2", "M2", 700);
+    expect(m2.xml).toContain('label="Case [M1:C1:CASE]"');
+    expect(m2.xml).toContain('label="Case [M2:C1:CASE]"');
+    expect(m2.xml).not.toMatch(/label="Case \[C1:CASE\]"/);
+    expect(m1.elements.find((e) => e.name === "Case [M1:C1:CASE]")?.displayId).toBe("M1:C1:CASE");
+    const project = {
+      id: "m",
+      name: "m",
+      phaseStatus: {},
+      dfd: {
+        xml: machineXml,
+        pages: m2.pages,
+        elements: [...machineElements, ...m1.elements, ...m2.elements],
+        connections: [...machineConnections, ...m1.connections, ...m2.connections],
+        assets: [],
+      },
+    } as unknown as DFDProjectData;
+    const saved = dfdService.saveDFDFromXml(project, m2.xml);
+    expect(saved.success).toBe(true);
+    const caseIds = saved.dfd.elements.filter((e) => e.type === "PhysicalBoundary").map((e) => e.displayId).sort();
+    expect(caseIds).toEqual(["M1:C1:CASE", "M2:C1:CASE"]);
+    const all = [...saved.validation.errors, ...saved.validation.warnings].map((f) => f.key);
+    expect(all.filter((k) => /trustBoundaryMissingId|duplicateIdLabel/i.test(k))).toEqual([]);
   });
 
   it("the shells go with the component's page: once it is deleted they are dangling attached copies to remove", () => {

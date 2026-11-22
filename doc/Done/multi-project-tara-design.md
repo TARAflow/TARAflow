@@ -563,7 +563,9 @@ page follow their definition. Fixed from patch 07: the instance prefix is now wr
 idlabels (it only reached the records, the save read the ids back without it); boundaries keep their
 label-borne display id unprefixed. *0.20 (item 17):* boundaries get the prefix too, inside their id
 bracket ("Case [SD1:CASE]") — on the component's pages, on the attached shell copies and in the
-records; the parser and the missing-id check accept `PREFIX:ID`. Instances from 0.19 keep their labels
+records; the parser and the missing-id check accept `PREFIX:ID`, one prefix per import level
+("Case [C1:SD1:CASE]" for a component that brings its own imports, review 2026-11-22). Manual
+threats are re-attached to their table by the boundary's id, not its display id. Instances from 0.19 keep their labels
 until the next update rebuilds them (no rewrite on load). The phase-bar badge does not count the component findings yet.
 Patch 10: read-only component pages (draw.io plugin lock, repair from the snapshot), delete an
 instance, "Open component TARA".
