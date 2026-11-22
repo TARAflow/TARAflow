@@ -32,7 +32,7 @@ function catalogText(
 export const MethodologyView: React.FC<MethodologyViewProps> = ({ summary, onOpenRiskTab }) => {
   const { t } = useTranslation();
   const rows: [string, React.ReactNode][] = [
-    [t("tabs.doc.methodology.overview", { defaultValue: "Method" }), t(summary.presetNameKey, { defaultValue: summary.presetNameKey })],
+    [t("tabs.doc.methodology.overview", { defaultValue: "Method" }), (summary.basisNameKeys ?? [summary.presetNameKey]).map((k) => t(k, { defaultValue: k })).join(" + ")],
     [
       t(`${M}.impactScale`, { defaultValue: "Impact scale" }),
       <>

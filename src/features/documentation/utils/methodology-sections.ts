@@ -39,7 +39,7 @@ const FEASIBILITY_FALLBACK: Record<string, string> = {
 };
 
 export function methodologyContent(m: DocMethodology, t: TranslateFn): MethodologyContent {
-  const basis = t(m.presetNameKey, m.presetId);
+  const basis = m.basisNameKeys ? m.basisNameKeys.map((k) => t(k, k)).join(" + ") : t(m.presetNameKey, m.presetId);
 
   // ── Overview ──────────────────────────────────────────────────────────────
   const isoScale = m.impact.scale === "4-level";

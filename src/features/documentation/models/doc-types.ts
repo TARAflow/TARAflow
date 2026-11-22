@@ -565,6 +565,8 @@ export interface DocVerification {
 export interface DocMethodology {
   presetId: string;
   presetNameKey: string;
+  /** The base method, then EN 50742 A if it adds AP and SRSL (joined with " + "). */
+  basisNameKeys?: string[];
   impact: {
     scale: string;
     requiredScale?: string;

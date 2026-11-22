@@ -14,6 +14,7 @@ import {
   EMPTY_PROJECT_TAGS,
   getRegulationPreset,
   regulationPresetFromTags,
+  hasEn50742Overlay,
   type ImpactAggregation,
   type LikelihoodMethod,
   type RegulationPresetId,
@@ -45,6 +46,13 @@ export interface MethodologyRecord {
   /** Regulation preset (from the project tags) and its i18n name key. */
   presetId: RegulationPresetId;
   presetNameKey: string;
+  /**
+   * The method as a whole, as i18n name keys joined with " + ": the base
+   * method for R = L × I, then EN 50742 A when it adds AP and SRSL (0.20,
+   * rule sheet R1) — "ETSI TVRA + EN 50742 Approach A", "Standard (TARAflow) +
+   * EN 50742 Approach A". Before, TVRA + A was named "ETSI TVRA" only.
+   */
+  basisNameKeys: string[];
   impact: {
     scale: ImpactScaleType;
     /** Scale the preset prescribes (iso-21434 → 4-level); undefined = free. */
@@ -119,9 +127,15 @@ export function buildMethodologyRecord(project: Project): MethodologyRecord {
   const vocabulary = treatmentVocabulary(riskConfig);
   const requiredScale = preset.requiredImpactScale;
 
+  const overlay = presetId === "en-50742-a" || hasEn50742Overlay(riskConfig);
+  const basisNameKeys = overlay
+    ? [presetId === "en-50742-a" ? getRegulationPreset("standard").nameKey : preset.nameKey, getRegulationPreset("en-50742-a").nameKey]
+    : [preset.nameKey];
+
   return {
     presetId,
     presetNameKey: preset.nameKey,
+    basisNameKeys,
     impact: {
       scale: assetConfig.impactScale,
       requiredScale,

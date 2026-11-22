@@ -146,6 +146,8 @@ export interface ItemModelItem {
  */
 export interface MethodologySummary {
   presetNameKey: string;
+  /** The base method, then EN 50742 A if it adds AP and SRSL (shown joined with " + "). */
+  basisNameKeys?: string[];
   impactScale: string;
   requiredImpactScale?: string;
   impactScaleConforms: boolean;

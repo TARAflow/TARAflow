@@ -29,4 +29,27 @@ describe("buildMethodologySummary", () => {
     expect(s.riskMatrix).toBe(false);
     expect(s.calcStamps).toBeUndefined();
   });
+
+  // 0.20 (rule sheet R1): EN 50742 A adds AP and SRSL to a base method — the
+  // record names both; TVRA + A was named "ETSI TVRA" only.
+  describe("the method as a whole: base method + EN 50742 A", () => {
+    const project = (regulation: string[], risks: Record<string, unknown> = {}) =>
+      ({
+        ...parseAndRepair(loadProjectFixture("Simple_Test_Project.tara.json"))!,
+        info: { name: "P", tags: { domain: [], platform: [], regulation, custom: [] } },
+        risks: { configuration: { method: "complex", ...risks }, risks: [] },
+      }) as never;
+    const A = "regulationPresets.en-50742-a.name";
+
+    it.each([
+      ["standard", [], {}, ["regulationPresets.standard.name"]],
+      ["ETSI TVRA", ["ETSI TVRA"], { likelihoodMethod: "etsi-tvra" }, ["regulationPresets.etsi-tvra.name"]],
+      ["ETSI TVRA + A", ["ETSI TVRA", "EN 50742 A"], { likelihoodMethod: "etsi-tvra", en50742Overlay: true }, ["regulationPresets.etsi-tvra.name", A]],
+      ["standard + A", ["EN 50742 A"], { likelihoodMethod: "en-50742-a" }, ["regulationPresets.standard.name", A]],
+    ])("%s", (_name, regulation, risks, keys) => {
+      const p = project(regulation as string[], risks as Record<string, unknown>);
+      expect(buildMethodologyRecord(p).basisNameKeys).toEqual(keys);
+      expect(buildMethodologySummary(p).basisNameKeys).toEqual(keys);
+    });
+  });
 });

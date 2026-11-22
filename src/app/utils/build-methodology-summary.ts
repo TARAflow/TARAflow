@@ -16,6 +16,7 @@ export function buildMethodologySummary(project: Project): MethodologySummary {
   const r = buildMethodologyRecord(project);
   return {
     presetNameKey: r.presetNameKey,
+    basisNameKeys: r.basisNameKeys,
     impactScale: r.impact.scale,
     ...(r.impact.requiredScale ? { requiredImpactScale: r.impact.requiredScale } : {}),
     impactScaleConforms: r.impact.scaleConforms,
