@@ -138,6 +138,12 @@ existing EN 50742 A projects can change (see the upgrade notes).
   by an earlier push is removed on the next push — **revoke it**).
 
 ### Fixed
+- **Assets of an imported component lost their DFD links:** a DFD update (also right after
+  opening a machine) re-derived them from the machine's diagram, whose copies of the
+  component's elements carry no asset relations — the links were emptied, the impact
+  recomputed, and the machine file changed although nothing was edited. These assets belong
+  to the component: the DFD sync leaves them as the import or the last component update
+  set them.
 - **Method of an ETSI TVRA + EN 50742 A or B project:** the Methodology view named it
   *ETSI TVRA* only. It now names the base method and the EN 50742 approach: *ETSI TVRA +
   EN 50742 Approach A*, *Standard (TARAflow) + EN 50742 Approach B* and so on.
@@ -153,6 +159,10 @@ existing EN 50742 A projects can change (see the upgrade notes).
   they show "[D-009] (threat text pending translation)" until the text exists.
 
 ### Upgrade notes
+- **Machines with an imported component saved with 0.19** may have lost the DFD links of
+  the component's assets (the asset list shows them without linked elements). The next
+  update of the component sets the links again from the component; their impact values
+  stay the machine's.
 - **Machines with a nested component import from 0.19** (a component that brings its own
   imports) have the wrong ids stored for its elements, e.g. "C1:M1:P-1" instead of
   "M1:C1:P-1". Opening the project does not change them; the next update of the component
