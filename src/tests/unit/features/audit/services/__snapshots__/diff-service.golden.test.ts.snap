@@ -7,7 +7,12 @@ exports[`DiffService — commit body for single changes (SmokeDetector golden) >
         Name: smoke meas data → Renamed asset"
 `;
 
-exports[`DiffService — commit body for single changes (SmokeDetector golden) > asset: physical impact rationale 1`] = `"(nothing listed)"`;
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > asset: physical impact rationale 1`] = `
+"- Changes:
+  - Changes the audit diff does not list: 1 items
+    ~ assets.assets[DA-001].physicalImpactRationale: not listed by the audit diff
+        value: Because relations are insufficient → Burn injury possible"
+`;
 
 exports[`DiffService — commit body for single changes (SmokeDetector golden) > asset: security goal level 1`] = `
 "- Changes:
@@ -16,7 +21,11 @@ exports[`DiffService — commit body for single changes (SmokeDetector golden) >
         Security Goals: C:low → C:high"
 `;
 
-exports[`DiffService — commit body for single changes (SmokeDetector golden) > derived: phase status 1`] = `"(nothing listed)"`;
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > derived: phase status 1`] = `
+"- Changes:
+  - Derived values: 1 items
+    ~ phaseStatus.0: derived value"
+`;
 
 exports[`DiffService — commit body for single changes (SmokeDetector golden) > dfd: element property 1`] = `
 "- Changes:
@@ -25,17 +34,45 @@ exports[`DiffService — commit body for single changes (SmokeDetector golden) >
         properties.notes: SPI-Protokoll CB-1-Seite. Empfängt Kommandos von CB-2, sendet Messdaten und Diagnosestatus. Puffert Daten bei SPI-Ausfall. → Changed note"
 `;
 
-exports[`DiffService — commit body for single changes (SmokeDetector golden) > hazard: description 1`] = `"(nothing listed)"`;
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > hazard: description 1`] = `
+"- Changes:
+  - Changes the audit diff does not list: 1 items
+    ~ hazards.hazards[8a347696-0b01-43fc-afc5-e8a191ebd9d2].description: not listed by the audit diff
+        value: Beim Schweissen spezieller Werkstoffe kann der Geräuschpegel über 70 dB (A) liegen (Gefährdung durch Lärm, akkustische E… → Changed hazard"
+`;
 
-exports[`DiffService — commit body for single changes (SmokeDetector golden) > presentation: element position 1`] = `"(nothing listed)"`;
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > presentation: element position 1`] = `
+"- Changes:
+  - Derived values: 1 items
+    ~ dfd.elements[PB-1].position.x: layout or report setting"
+`;
 
-exports[`DiffService — commit body for single changes (SmokeDetector golden) > presentation: report language 1`] = `"(nothing listed)"`;
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > presentation: report language 1`] = `
+"- Changes:
+  - Derived values: 1 items
+    ~ documentation.configuration.language: layout or report setting"
+`;
 
-exports[`DiffService — commit body for single changes (SmokeDetector golden) > project: name 1`] = `"(nothing listed)"`;
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > project: name 1`] = `
+"- Changes:
+  - Changes the audit diff does not list: 1 items
+    ~ info.name: not listed by the audit diff
+        value: Smoke Detector → Renamed project"
+`;
 
-exports[`DiffService — commit body for single changes (SmokeDetector golden) > project: regulation tags 1`] = `"(nothing listed)"`;
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > project: regulation tags 1`] = `
+"- Changes:
+  - Changes the audit diff does not list: 1 items
+    ~ info.tags.regulation: not listed by the audit diff
+        value: [CRA, IEC 62443] → [CRA, IEC 62443, EN 50742 A]"
+`;
 
-exports[`DiffService — commit body for single changes (SmokeDetector golden) > risk configuration: method 1`] = `"(nothing listed)"`;
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > risk configuration: method 1`] = `
+"- Changes:
+  - Changes the audit diff does not list: 1 items
+    ~ risks.configuration.method: not listed by the audit diff
+        value: complex → complex-changed"
+`;
 
 exports[`DiffService — commit body for single changes (SmokeDetector golden) > risk: MoSCoW priority 1`] = `
 "- Changes:
@@ -44,7 +81,12 @@ exports[`DiffService — commit body for single changes (SmokeDetector golden) >
         MoSCoW Priority: should → must"
 `;
 
-exports[`DiffService — commit body for single changes (SmokeDetector golden) > risk: mitigation evidence note 1`] = `"(nothing listed)"`;
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > risk: mitigation evidence note 1`] = `
+"- Changes:
+  - Changes the audit diff does not list: 1 items
+    ~ risks.risks[R-3858ee2c-f62f-492c-93ab-c483252cdffc].selectedMitigations[M-T-001].evidenceNote: not listed by the audit diff
+        value: Design review SD-DR-04, 2026-10-28 → Test report TR-7"
+`;
 
 exports[`DiffService — commit body for single changes (SmokeDetector golden) > risk: mitigation status 1`] = `
 "- Changes:
@@ -60,11 +102,26 @@ exports[`DiffService — commit body for single changes (SmokeDetector golden) >
         Risk Before Mitigation: 0 → 1"
 `;
 
-exports[`DiffService — commit body for single changes (SmokeDetector golden) > risk: treatment 1`] = `"(nothing listed)"`;
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > risk: treatment 1`] = `
+"- Changes:
+  - Changes the audit diff does not list: 1 items
+    ~ risks.risks[R-P3-D-1].treatment: not listed by the audit diff
+        value: reduce → accept"
+`;
 
-exports[`DiffService — commit body for single changes (SmokeDetector golden) > risk: treatment justification 1`] = `"(nothing listed)"`;
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > risk: treatment justification 1`] = `
+"- Changes:
+  - Changes the audit diff does not list: 1 items
+    ~ risks.risks[R-P3-D-1].treatmentJustification: not listed by the audit diff
+        value: — → Accepted by the product owner"
+`;
 
-exports[`DiffService — commit body for single changes (SmokeDetector golden) > settings: strict mode 1`] = `"(nothing listed)"`;
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > settings: strict mode 1`] = `
+"- Changes:
+  - Changes the audit diff does not list: 1 items
+    ~ settings.strictMode: not listed by the audit diff
+        value: false → true"
+`;
 
 exports[`DiffService — commit body for single changes (SmokeDetector golden) > threat: description 1`] = `
 "- Changes:
@@ -73,6 +130,16 @@ exports[`DiffService — commit body for single changes (SmokeDetector golden) >
         Threat Description: Physical boundary identity spoofing — attacker impersonates authorized personnel to gain physical access → Changed threat text"
 `;
 
-exports[`DiffService — commit body for single changes (SmokeDetector golden) > threat: relevance 1`] = `"(nothing listed)"`;
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > threat: relevance 1`] = `
+"- Changes:
+  - Changes the audit diff does not list: 1 items
+    ~ threats.perElement[SDC-S-1].relevance: not listed by the audit diff
+        value: unrated → relevant"
+`;
 
-exports[`DiffService — commit body for single changes (SmokeDetector golden) > threat: threat actor 1`] = `"(nothing listed)"`;
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > threat: threat actor 1`] = `
+"- Changes:
+  - Changes the audit diff does not list: 1 items
+    ~ threats.perElement[SDC-S-1].threatActor: not listed by the audit diff
+        value: external → insider"
+`;

@@ -243,7 +243,10 @@ loads, and saved again loads, with the content hash 0.19 recorded at its import
     object rebuilt with another key order counts as changed — the canonical compare
     instead, as the DiffService does since 0.19 (characterization test first);
   - audit diff gaps: each field named by a "Changes the audit diff does not list" commit
-    (`unlisted-changes.ts`) and seen in practice is covered in the DiffService;
+    (`unlisted-changes.ts`) and seen in practice is covered in the DiffService —
+    done differently (0.20 patch 38): every field the DiffService does not compare is
+    named in every commit, a register (`audit-field-register.ts`) names the fields left
+    out on purpose, a coverage test checks every field of the fixtures;
   - smaller notes: a label for the rationale of a "not fulfilled" AoU; boundary prefix
     variant A; the window title shows the project file; the signing key from the git
     config shown in its field.

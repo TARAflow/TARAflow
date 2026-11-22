@@ -236,6 +236,8 @@ Mark each row: OK, or a deviation with a note (screenshot, finding text, console
 | AUD-12 | Repository with a committed signer manifest (`.tara/allowed_signers`). | Commit dialog: "Sign commit — required, this repository has a signer manifest", ticked and locked, even if signing is off in the project. A missing key or an unauthorized author e-mail shows its error before the click; Commit is disabled. |
 | AUD-13 | Delete `.tara/allowed_signers` locally (not committed). | The dialog still requires signing. |
 | AUD-14 | Commit the deletion of the manifest. | Commit blocked: "The signer manifest was removed from this branch — …". No unsigned commit. |
+| AUD-16 | Change a threat's relevance and a risk's MoSCoW priority, save, open the Audit tab. | The risk change in "Risks"; the relevance below "Changes the audit diff does not list" as `threats.perElement[<id>].relevance: … → …`. Commit: the list sits before the trailers, the commit is accepted. |
+| AUD-17 | Change only the report language and move an element, save. | "Derived values" with "layout or report setting" — no "does not list". |
 | AUD-15 | A signed commit. | Trailer `Author:` is the entered author, never "Unknown". Label "Sign commit (SSH)" or "(GPG)" by format. |
 
 ## Integration / Trackers

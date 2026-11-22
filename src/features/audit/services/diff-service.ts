@@ -281,6 +281,8 @@ export class DiffService {
     const changes: ChangeItem[] = [];
 
     if (!current && !previous) return changes;
+    // the same object: nothing to compare (no XML parse)
+    if (current === previous) return changes;
 
     // New DFD created
     if (current && !previous) {
@@ -294,14 +296,14 @@ export class DiffService {
             field: "elements",
             fieldLabel: "Elements",
             oldValue: 0,
-            newValue: current.elements.length,
+            newValue: current.elements?.length ?? 0,
             valueType: "number",
           },
           {
             field: "connections",
             fieldLabel: "Data Flows",
             oldValue: 0,
-            newValue: current.connections.length,
+            newValue: current.connections?.length ?? 0,
             valueType: "number",
           },
         ],
@@ -732,8 +734,8 @@ export class DiffService {
 
     // One-sided null = whole phase added/removed; treat the missing side as an
     // empty threat set so first generation is committable.
-    const currentThreats = current ? this.getActiveThreats(current) : [];
-    const previousThreats = previous ? this.getActiveThreats(previous) : [];
+    const currentThreats = current ? this.allThreats(current) : [];
+    const previousThreats = previous ? this.allThreats(previous) : [];
 
     const currentMap = new Map(currentThreats.map((t) => [t.id, t]));
     const previousMap = new Map(previousThreats.map((t) => [t.id, t]));
@@ -818,13 +820,14 @@ export class DiffService {
     return changes;
   }
 
-  private getActiveThreats(threatData: ThreatData): Threat[] {
-    const method = threatData.configuration.activeMethod;
-    const tables =
-      method === "per-element"
-        ? threatData.perElementTables
-        : threatData.perInteractionTables;
-    return tables.flatMap((table) => table.threats);
+  /**
+   * The threats of both methods: the other method's are in the file too, and
+   * a change of them is a change of the file (0.20 item 16 — before, only the
+   * active method's were compared, the rest went into the commit unnamed).
+   */
+  private allThreats(threatData: ThreatData): Threat[] {
+    // a file read raw from git may lack parts (a phase never opened)
+    return [...(threatData.perElementTables ?? []), ...(threatData.perInteractionTables ?? [])].flatMap((table) => table.threats ?? []);
   }
 
   private compareThreatDetails(
@@ -976,12 +979,14 @@ export class DiffService {
       });
     }
 
-    // Implementation status is derived — compare selectedMitigations instead
+    // Implementation status is derived — compare selectedMitigations instead:
+    // which measure and its status (0.20 item 16: a measure replaced by
+    // another of the same status was no change before)
     const prevImpl =
       current.selectedMitigations.length !==
         previous.selectedMitigations.length ||
       current.selectedMitigations.some(
-        (m, i) => m.status !== previous.selectedMitigations[i]?.status,
+        (m, i) => m.status !== previous.selectedMitigations[i]?.status || m.id !== previous.selectedMitigations[i]?.id,
       );
     if (prevImpl) {
       details.push({

@@ -8,7 +8,8 @@
 // existing comparisons stay as they are.
 //
 // The previous state is the raw file, as the Audit tab reads it from git
-// (audit-prev-state.ts: JSON.parse, no migration).
+// (audit-prev-state.ts: JSON.parse, no migration). Since 0.20 item 16 the
+// body also names the fields the diff does not list (withUnlistedChanges).
 //
 // The snapshot is the deliberate golden: regenerate with `vitest -u` only
 // when the audit diff changes on purpose.
@@ -18,6 +19,7 @@ import { readFileSync } from "fs";
 import { resolve } from "path";
 import { diffService } from "features/audit/services/diff-service";
 import { generateCommitMessage } from "features/audit/models/audit-types";
+import { withUnlistedChanges } from "features/audit/services/unlisted-changes";
 import type { Project } from "app";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -34,7 +36,13 @@ function body(mutate: (p: Json) => void): string {
   const previous: Json = JSON.parse(text);
   const current: Json = JSON.parse(text);
   mutate(current);
-  const changes = diffService.detectChanges(current as Project, previous as Project);
+  // as the Audit tab: the diff's list plus the fields it does not list (0.20 item 16)
+  const changes = withUnlistedChanges(
+    diffService.detectChanges(current as Project, previous as Project),
+    JSON.stringify(previous),
+    JSON.stringify(current),
+    true,
+  );
   if (changes.length === 0) return "(nothing listed)";
   const message = generateCommitMessage(diffService.generateCommitMessageData(changes, "Detail Review", "Tester"));
   return message.split("\n\n")[1] ?? message;
