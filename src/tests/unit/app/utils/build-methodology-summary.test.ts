@@ -32,7 +32,7 @@ describe("buildMethodologySummary", () => {
 
   // 0.20 (rule sheet R1): EN 50742 A adds AP and SRSL to a base method — the
   // record names both; TVRA + A was named "ETSI TVRA" only.
-  describe("the method as a whole: base method + EN 50742 A", () => {
+  describe("the method as a whole: base method + EN 50742 A or B", () => {
     const project = (regulation: string[], risks: Record<string, unknown> = {}) =>
       ({
         ...parseAndRepair(loadProjectFixture("Simple_Test_Project.tara.json"))!,
@@ -40,12 +40,16 @@ describe("buildMethodologySummary", () => {
         risks: { configuration: { method: "complex", ...risks }, risks: [] },
       }) as never;
     const A = "regulationPresets.en-50742-a.name";
+    const B = "regulationPresets.en-50742-b.name";
 
     it.each([
       ["standard", [], {}, ["regulationPresets.standard.name"]],
       ["ETSI TVRA", ["ETSI TVRA"], { likelihoodMethod: "etsi-tvra" }, ["regulationPresets.etsi-tvra.name"]],
       ["ETSI TVRA + A", ["ETSI TVRA", "EN 50742 A"], { likelihoodMethod: "etsi-tvra", en50742Overlay: true }, ["regulationPresets.etsi-tvra.name", A]],
       ["standard + A", ["EN 50742 A"], { likelihoodMethod: "en-50742-a" }, ["regulationPresets.standard.name", A]],
+      // review 2026-11-22: B alike
+      ["ETSI TVRA + B", ["ETSI TVRA", "IEC 62443", "EN 50742 B"], { likelihoodMethod: "etsi-tvra" }, ["regulationPresets.etsi-tvra.name", B]],
+      ["standard + B", ["IEC 62443", "EN 50742 B"], {}, ["regulationPresets.standard.name", B]],
     ])("%s", (_name, regulation, risks, keys) => {
       const p = project(regulation as string[], risks as Record<string, unknown>);
       expect(buildMethodologyRecord(p).basisNameKeys).toEqual(keys);

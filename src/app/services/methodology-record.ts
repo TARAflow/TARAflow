@@ -15,6 +15,7 @@ import {
   getRegulationPreset,
   regulationPresetFromTags,
   hasEn50742Overlay,
+  en50742ApproachFromTags,
   type ImpactAggregation,
   type LikelihoodMethod,
   type RegulationPresetId,
@@ -48,9 +49,10 @@ export interface MethodologyRecord {
   presetNameKey: string;
   /**
    * The method as a whole, as i18n name keys joined with " + ": the base
-   * method for R = L × I, then EN 50742 A when it adds AP and SRSL (0.20,
-   * rule sheet R1) — "ETSI TVRA + EN 50742 Approach A", "Standard (TARAflow) +
-   * EN 50742 Approach A". Before, TVRA + A was named "ETSI TVRA" only.
+   * method for R = L × I, then the EN 50742 approach the project adds — A
+   * (AP and SRSL, rule sheet R1) or B (the requirement set): "ETSI TVRA +
+   * EN 50742 Approach A", "Standard (TARAflow) + EN 50742 Approach B".
+   * Before, TVRA + A / B was named "ETSI TVRA" only.
    */
   basisNameKeys: string[];
   impact: {
@@ -127,9 +129,14 @@ export function buildMethodologyRecord(project: Project): MethodologyRecord {
   const vocabulary = treatmentVocabulary(riskConfig);
   const requiredScale = preset.requiredImpactScale;
 
-  const overlay = presetId === "en-50742-a" || hasEn50742Overlay(riskConfig);
-  const basisNameKeys = overlay
-    ? [presetId === "en-50742-a" ? getRegulationPreset("standard").nameKey : preset.nameKey, getRegulationPreset("en-50742-a").nameKey]
+  // The base method (an EN 50742 preset rates R = L × I with the standard
+  // method), then the EN 50742 approach the project adds: A (AP and SRSL)
+  // or B (the requirement set) — review 2026-11-22: B was not named either.
+  const tags = project.info?.tags ?? EMPTY_PROJECT_TAGS;
+  const approach = presetId === "en-50742-a" || hasEn50742Overlay(riskConfig) ? "A" : en50742ApproachFromTags(tags) === "B" ? "B" : undefined;
+  const baseKey = presetId === "en-50742-a" || presetId === "en-50742-b" ? getRegulationPreset("standard").nameKey : preset.nameKey;
+  const basisNameKeys = approach
+    ? [baseKey, getRegulationPreset(approach === "A" ? "en-50742-a" : "en-50742-b").nameKey]
     : [preset.nameKey];
 
   return {

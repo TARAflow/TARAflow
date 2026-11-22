@@ -115,9 +115,9 @@
   by an earlier push is removed on the next push — **revoke it**).
 
 ### Fixed
-- **Method of an ETSI TVRA + EN 50742 A project:** the Methodology view named it
-  *ETSI TVRA* only. It now names the base method and the addition: *ETSI TVRA + EN 50742
-  Approach A*, and *Standard (TARAflow) + EN 50742 Approach A* for the standard method.
+- **Method of an ETSI TVRA + EN 50742 A or B project:** the Methodology view named it
+  *ETSI TVRA* only. It now names the base method and the EN 50742 approach: *ETSI TVRA +
+  EN 50742 Approach A*, *Standard (TARAflow) + EN 50742 Approach B* and so on.
 - **Nested component imports:** the elements of a component that brings its own imports
   read their ids back wrong after the save — "C1:M1:P-1" instead of "M1:C1:P-1" (the outer
   prefix went behind the inner one in the diagram). The outer prefix now goes in front of
