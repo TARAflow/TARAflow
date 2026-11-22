@@ -127,6 +127,11 @@
   they show "[D-009] (threat text pending translation)" until the text exists.
 
 ### Upgrade notes
+- **Machines with a nested component import from 0.19** (a component that brings its own
+  imports) have the wrong ids stored for its elements, e.g. "C1:M1:P-1" instead of
+  "M1:C1:P-1". Opening the project does not change them; the next update of the component
+  builds the instance again with the right ids — the audit then shows the new display ids
+  of these elements once.
 - **Component TARAs with threat text stored as an i18n key** (e.g. `general.D-009.threat`)
   are repaired when opened. The repair changes the component's content once, so a
   machine that imported it reports a newer state of the component one time. This is a

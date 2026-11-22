@@ -40,6 +40,32 @@
 
 ---
 
+## 0. Rule sheet — what TARAflow decides in an EN 50742 A project (0.20)
+
+One page on purpose (scope review 2026-11-22): if the rules no longer fit here,
+customers and auditors will not follow them either — then something goes, nothing
+is added. Each rule says whether the standard asks for it (**norm**) or TARAflow
+derives it (**TARAflow**), and why. Clause numbers: prEN 50742:2025.
+
+| # | Rule | Basis | Why |
+|---|---|---|---|
+| R1 | **Method.** A project has one base method for R = L × I (standard or ETSI TVRA). EN 50742 A adds AP (WoO, EL, AC; Annex B) and an SRSL (Table B.6) next to it, for the relevant risks only. AP never stands alone. | norm (Annex B) + TARAflow (overlay) | Keeps the cyber risk of every threat; A rates the safety side. |
+| R2 | **Relevance — zone.** A trust boundary marked as the safety zone marks the yellow area. Relevant: every flow crossing its border (either direction) and every interface such a flow passes. | TARAflow | The standard is about the interfaces to the safety functions; the zone is the machine builder's grey / yellow separation. |
+| R3 | **Relevance — path.** Without a zone: the interfaces and flows on a path to a safety function (an asset with a physical impact). Neither zone nor safety function: nothing is relevant, the rows stay *unknown*, never *met*. | TARAflow | Same intent without a drawn zone; no silent "met". |
+| R4 | **Relevance — attack paths.** An attack-path risk is relevant when a leaf names a relevant interface / flow, not relevant when every leaf names an element and none is relevant, and relevant (to be safe) when it cannot be told. | TARAflow | Attack trees are not part of A; an optional extra must not let a risk off. |
+| R5 | **EL of an attack-path risk** is prefilled with the lowest EL of its leaves on a relevant anchor (else of all anchored leaves). The analyst can change it. | TARAflow | AND = MIN, the EN 50742 aggregation; a step behind the border says where, not how hard. |
+| R6 | **Isolation.** A safety function is isolated when every interface on a path to it has EL0 (an interface without EL counts as not isolated). | norm (Table 2, strict reading) | SRSL0 is for a completely isolated safety function. |
+| R7 | **SRSL0 gate.** Table B.6 can give SRSL0 for AP0; TARAflow raises it to SRSL1 unless the interface is EL0 **and** the risk's safety functions are isolated. Stored values that no longer fit are corrected with the next risk update. | norm (Table 2 over informative B.6) | Normative table wins over the informative one. |
+| R8 | **SRSL open.** A risk with an SRSL whose mandated controls (7.4.3) are not all done stays open in the progress — whatever its treatment. | norm (7.4.3 is mandatory) | Accepting the cyber risk lifts no safety requirement. |
+| R9 | **"Won't".** A risk prioritised *won't* stays in the SRSL rows of the requirement matrix. | norm (as R8) | Same reason: priority is a cyber decision. |
+| R10 | **7.1 per threat.** An exposed interface is assessed when every one of its threats has a risk with an SRSL or is dismissed with a reason; dismissing a threat on a relevant interface needs the reason. | norm (7.1) | The assessment covers each interface completely, not one threat of it. |
+
+**Strip candidates** (TARAflow rules the standard does not ask for), if a real project
+shows they confuse more than they help: R4 and R5 (attack paths in A), R3's path mode.
+Not before a customer or seminar case (scope review 2026-11-22).
+
+---
+
 ## 1. The Approach A method (normative model)
 
 Approach A is **risk-derived**: for each safety function, per interface, an
