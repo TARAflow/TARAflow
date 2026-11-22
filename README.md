@@ -6,7 +6,7 @@ TARAflow is a desktop-based Threat Analysis and Risk Assessment (TARA) tool for 
 
 It combines **Data Flow Diagrams (DFDs)**, asset analysis, threat generation, risk assessment, attack trees, safety analysis, documentation, and an auditable Git-based workflow in a single application.
 
-> **Current version:** `v0.19.0-beta`
+> **Current version:** `v0.20.0-beta`
 
 TARAflow is currently under active development. The `0.x` version series is a beta: the features are complete enough for real projects, but interfaces and the project format may still change between releases; older project files are migrated when they are opened.
 
@@ -138,6 +138,7 @@ Features include:
 * Before/after mitigation assessment
 * EN 50742 Approach A — Security Requirement Severity Level (SRSL), as a parallel output to R = L × I
 * Mandated EN 50742 §7.4.3 controls surfaced in the mitigation picker and reports
+* EN 50742 relevance: only the risks on interfaces and flows into the safety zone (or on a path to a safety function) get the EN 50742 rating; a *Safety* column and filter in the risk register
 * Risk-level filtering (Critical / High / Medium / Low)
 * Risk impact from the security goals the threat violates, including per-goal impact
 * Impact aggregation per regulation preset — **harm floor** (safety, physical damage and environment are never diluted by milder consequences), **maximum** (ISO/SAE 21434, ETSI TVRA) or weighted mean — switchable with a preview of every changed risk
@@ -302,6 +303,10 @@ An unset property is *unknown*, never *not applicable*; a statement keeps the mo
 The model fields behind the rows — accounts, password rules, role mapping, default credentials, login lockout, update delivery, secure by default, deletion of user data — sit in sub-tabs of the Security section and appear only where the earlier settings make them meaningful. A multiprocess without a child page (a black box such as a supplier's module) summarises its contents in *Inside* fields. A requirement the system around the component meets is covered by a supporting claim; project mitigations name the requirements they implement.
 
 With the tag `EN 50742 A` the Compliance tab adds **EN 50742 Approach A** as a standard of its own: the baseline requirements checked against the model, the risks (SRSL, mandated §7.4.3 controls) and the project data, with the highest SRSL per safety function and the interfaces on the path to it derived from the DFD; the report has one part per active standard.
+
+With the tag `EN 50742 B` (the component role of prEN 50742) it adds **EN 50742 Approach B**: the IEC 62443-4-2:2019 requirements of Table 4 for the component's safety functions at a fixed SL-T, the EN 50742 clauses that apply to every component, and the system role as a statement. The tag brings `IEC 62443` along; both matrices share their statements.
+
+Which interfaces and data flows EN 50742 is about is derived from the DFD, in both approaches: a trust boundary marked as the **safety zone** sets the border, without one the path to a safety function does. The rules TARAflow applies in an EN 50742 A project — and which of them the standard asks for — are on one page in `doc/InProgress/RegulationCompliance/en-50742-approach-a-design.md` §0.
 
 ---
 
@@ -716,11 +721,12 @@ Recent development versions include:
 * `v0.17.2-beta` — fix: switching or closing projects no longer writes risks, hazards, audit settings or Overview data of one project into another; attack-tree changes saved on switch
 * `v0.18.0-beta` — more matrix rows from new model fields (Security sub-tabs, black-box multiprocess), EN 50742 Approach A requirement matrix, secure channels (TLS, mTLS, VPN, SSH, application level), "Information missing" with the empty field, Azure DevOps plus Jira Server / DC, GitHub, GitLab, OpenProject (preview), AND gate = one attack path, asset filter, hazard findings panel (schema 13)
 * `v0.19.0-beta` — component TARAs imported into a machine TARA (pinned to a commit, per-instance decisions, component measures credited only while their assumptions hold, drift check and update, Overview tab *Components* with the deviations, report chapter, AVE v2 check `component-import`); tracker link dialog; asset protection need and criticality removed (schema 14)
+* `v0.20.0-beta` — EN 50742 Approach B; EN 50742 relevance by safety zone or path for A and B, SRSL 0 only for an isolated safety function, exposure levels and the safety zone shown in the diagram (never stored); threat catalogue version stamp; audit commits name every change of the file; prefixed boundaries of imported components; git channel hardening (schema 14, no conversion)
 
 The current development state is represented by:
 
 ```text
-v0.19.0-beta
+v0.20.0-beta
 ```
 
 Versions in the beta: releases without a new project schema count the patch number (`0.15.1-beta`, `0.15.2-beta`, …), a release with a new project schema raises the minor version — no extra pre-release counter.
@@ -781,10 +787,10 @@ https://github.com/TARAflow/TARAflow
 
 ## Status
 
-**TARAflow 0.19.0-beta**
+**TARAflow 0.20.0-beta**
 
 TARAflow is an actively developed threat analysis and risk assessment platform combining:
 
-**System Modeling → Asset Analysis → Threat Analysis → Risk Assessment → Attack Trees → Safety Analysis → Compliance (IEC 62443-4-2, EN 50742 A) → Documentation → Auditable Git History**
+**System Modeling → Asset Analysis → Threat Analysis → Risk Assessment → Attack Trees → Safety Analysis → Compliance (IEC 62443-4-2, EN 50742 A / B) → Documentation → Auditable Git History**
 
 The project is currently focused on extending the analysis capabilities while improving traceability, reproducibility, verification, and integration with engineering workflows.
