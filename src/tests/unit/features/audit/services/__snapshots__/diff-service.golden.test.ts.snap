@@ -1,0 +1,78 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > asset: name 1`] = `
+"- Changes:
+  - Assets: 1 items
+    ~ DA-001: Renamed asset
+        Name: smoke meas data → Renamed asset"
+`;
+
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > asset: physical impact rationale 1`] = `"(nothing listed)"`;
+
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > asset: security goal level 1`] = `
+"- Changes:
+  - Assets: 1 items
+    ~ DA-001: smoke meas data
+        Security Goals: C:low → C:high"
+`;
+
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > derived: phase status 1`] = `"(nothing listed)"`;
+
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > dfd: element property 1`] = `
+"- Changes:
+  - DFD: 1 items
+    ~ P-2: Sensor Communication Controller [semantic]
+        properties.notes: SPI-Protokoll CB-1-Seite. Empfängt Kommandos von CB-2, sendet Messdaten und Diagnosestatus. Puffert Daten bei SPI-Ausfall. → Changed note"
+`;
+
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > hazard: description 1`] = `"(nothing listed)"`;
+
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > presentation: element position 1`] = `"(nothing listed)"`;
+
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > presentation: report language 1`] = `"(nothing listed)"`;
+
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > project: name 1`] = `"(nothing listed)"`;
+
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > project: regulation tags 1`] = `"(nothing listed)"`;
+
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > risk configuration: method 1`] = `"(nothing listed)"`;
+
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > risk: MoSCoW priority 1`] = `
+"- Changes:
+  - Risks: 1 items
+    ~ R-P3-D-1: R-P3-D-1 (D)
+        MoSCoW Priority: should → must"
+`;
+
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > risk: mitigation evidence note 1`] = `"(nothing listed)"`;
+
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > risk: mitigation status 1`] = `
+"- Changes:
+  - Risks: 1 items
+    ~ R-3858ee2c-f62f-492c-93ab-c483252cdffc: R-P2-T-1 (T)
+        Mitigations: M-T-001:implemented → M-T-001:verified"
+`;
+
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > risk: risk before mitigation 1`] = `
+"- Changes:
+  - Risks: 1 items
+    ~ R-P3-D-1: R-P3-D-1 (D)
+        Risk Before Mitigation: 0 → 1"
+`;
+
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > risk: treatment 1`] = `"(nothing listed)"`;
+
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > risk: treatment justification 1`] = `"(nothing listed)"`;
+
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > settings: strict mode 1`] = `"(nothing listed)"`;
+
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > threat: description 1`] = `
+"- Changes:
+  - Threats: 1 items
+    ~ SDC-S-1: SDC-S-1 (S)
+        Threat Description: Physical boundary identity spoofing — attacker impersonates authorized personnel to gain physical access → Changed threat text"
+`;
+
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > threat: relevance 1`] = `"(nothing listed)"`;
+
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > threat: threat actor 1`] = `"(nothing listed)"`;
