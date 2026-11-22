@@ -385,6 +385,7 @@
           "intro": "Die aktuellen Generierungsregeln oder Schutzziele erzeugen diese Bedrohungen nicht mehr. Behalten macht eine Bedrohung zur manuellen Bedrohung: Sie behält ID und Risiko und übersteht jede Neugenerierung. Entfernen löscht sie; ein verknüpftes Risiko wird beim nächsten Risiko-Sync entfernt.",
           "keepAll": "Alle behalten",
           "removeWithoutRisk": "Alle ohne Risiko entfernen",
+          "colId": "T-ID",
           "colThreat": "Bedrohung",
           "colName": "Name",
           "colRisk": "Risiko",
@@ -394,7 +395,8 @@
           "riskWithMitigations_other": "Risiko · {{count}} Massnahmen",
           "keep": "Behalten",
           "remove": "Entfernen",
-          "apply": "Übernehmen"
+          "apply": "Übernehmen",
+          "attack": "Angriff"
         },
         "regenerate": {
           "warning_one": "{{count}} Bedrohung wird von den aktuellen Regeln nicht mehr generiert und wird entfernt ({{withRisk}} mit Risikobewertung).",

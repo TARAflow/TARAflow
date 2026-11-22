@@ -46,6 +46,10 @@ export interface ObsoleteThreat {
   strideCategory: Threat["strideCategory"];
   elementName: string;
   relevance: Threat["relevance"];
+  /** Stored threat text, so the drift dialog can show what is decided on. */
+  threatDescription?: string;
+  /** Stored attack scenario (may be empty). */
+  attackDescription?: string;
   /** For ordering: element kind ("DataFlow" for per-interaction flows). */
   elementType?: string;
   /** For ordering: display id of the element / data flow (DF-3, P-1 …). */
@@ -163,6 +167,8 @@ export function detectGenerationDrift(
         strideCategory: threat.strideCategory,
         elementName: threatElementName(threat),
         relevance: threat.relevance,
+        threatDescription: threat.threatDescription ?? "",
+        attackDescription: threat.attackDescription ?? "",
         elementType: threat.dataFlow
           ? "DataFlow"
           : threat.linkedElement?.elementType,
