@@ -31,7 +31,7 @@ import {
   AssetUpdateResult,
 } from "../models/asset-types";
 import { migrateAssetConfiguration } from "../services/asset-migration";
-import { calculateOverallImpact } from "../services/asset-impact-calculator";
+import { calculateOverallImpact, refreshOverallImpacts } from "../services/asset-impact-calculator";
 import { createDefaultAssetData } from "../services/asset-factory";
 import { assetService } from "../services/asset-service";
 import { AssetsToolbar } from "./asset-toolbar";
@@ -354,28 +354,9 @@ export const AssetsTab: React.FC<AssetTabProps> = ({
   useEffect(() => {
     const { calculationMethod, roundingMethod } = assetData.configuration;
 
-    const updatedAssets = assetData.assets.map((asset) => {
-      const overallImpact = calculateOverallImpact(
-        asset.impactRatings,
-        calculationMethod,
-        roundingMethod,
-      );
-
-      if (overallImpact === asset.overallImpact) {
-        return asset;
-      }
-
-      return {
-        ...asset,
-        overallImpact,
-        lastModified: new Date().toISOString(),
-      };
-    });
-
-    // Only update if something actually changed
-    const changed = updatedAssets.some(
-      (a, i) => a.overallImpact !== assetData.assets[i].overallImpact,
-    );
+    // Only update if something actually changed (a missing value counts as 0)
+    const updatedAssets = refreshOverallImpacts(assetData.assets, calculationMethod, roundingMethod);
+    const changed = updatedAssets !== null;
 
     if (changed) {
       setAssetData((prev) => ({

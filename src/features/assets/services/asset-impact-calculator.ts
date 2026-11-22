@@ -90,3 +90,26 @@ export function recalculateAllImpacts(assetData: AssetData): AssetData {
     lastModified: new Date().toISOString(),
   };
 }
+
+/**
+ * The assets whose stored overallImpact no longer matches their ratings under
+ * the given method, recalculated (with a new lastModified) — or null when none
+ * changed. A missing stored value counts as 0: an asset without ratings (e.g.
+ * one an imported component brings, before the machine rates it) is not
+ * "changed" to 0 just by opening the Assets tab (manual test 0.20,
+ * SmokeDetectorController, 2026-11-22).
+ */
+export function refreshOverallImpacts(
+  assets: Asset[],
+  method: ImpactCalculationMethod,
+  roundingMethod: ImpactRoundingMethod,
+): Asset[] | null {
+  let changed = false;
+  const next = assets.map((asset) => {
+    const overallImpact = calculateOverallImpact(asset.impactRatings, method, roundingMethod);
+    if (overallImpact === (asset.overallImpact ?? 0)) return asset;
+    changed = true;
+    return { ...asset, overallImpact, lastModified: new Date().toISOString() };
+  });
+  return changed ? next : null;
+}

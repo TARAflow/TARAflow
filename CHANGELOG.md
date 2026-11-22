@@ -144,6 +144,10 @@ existing EN 50742 A projects can change (see the upgrade notes).
   recomputed, and the machine file changed although nothing was edited. These assets belong
   to the component: the DFD sync leaves them as the import or the last component update
   set them.
+- **Opening the Assets tab changed a machine with an imported component:** the component's
+  assets carry no overall impact until the machine rates them, and the tab's recalculation
+  turned the missing value into 0 and saved it. A missing value now counts as 0; a real
+  change of the calculation method still recalculates.
 - **Method of an ETSI TVRA + EN 50742 A or B project:** the Methodology view named it
   *ETSI TVRA* only. It now names the base method and the EN 50742 approach: *ETSI TVRA +
   EN 50742 Approach A*, *Standard (TARAflow) + EN 50742 Approach B* and so on.
