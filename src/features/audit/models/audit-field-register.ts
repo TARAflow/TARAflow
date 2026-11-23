@@ -238,6 +238,8 @@ export const AUDIT_FIELD_REGISTER: readonly AuditFieldEntry[] = [
   derived("risks/risks/*/selectedMitigations/*/ticketStatus", "synced from the tracker"),
   derived("risks/risks/*/selectedMitigations/*/ticketSyncedAt", "timestamp"),
   runtime("risks/configuration/pendingSafetySourceRemoval", "pending dialog state"),
+  derived("risks/configuration/likelihoodMethod", "from the regulation preset (method tags)"),
+  derived("settings/regulationPreset", "from the method tags (project info, listed there)"),
   presentation("risks/configuration/showIndividualFactors", "columns shown"),
 
   // ---- attack trees (compareAttackTrees)

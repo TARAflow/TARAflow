@@ -144,6 +144,11 @@ existing EN 50742 A projects can change (see the upgrade notes).
   recomputed, and the machine file changed although nothing was edited. These assets belong
   to the component: the DFD sync leaves them as the import or the last component update
   set them.
+- **"Safety Factor Source Removed" asked although the safety data was there:** the question
+  was stored in the file and outlived its cause (a project saved while its safety data was
+  briefly missing) — and *Remove* would have cleared every safety rating. The Risks tab now
+  asks only while the project really has no safety data, and the open question is no longer
+  written to the file.
 - **Opening the Assets tab changed a machine with an imported component:** the component's
   assets carry no overall impact until the machine rates them, and the tab's recalculation
   turned the missing value into 0 and saved it. A missing value now counts as 0; a real
@@ -163,6 +168,9 @@ existing EN 50742 A projects can change (see the upgrade notes).
   they show "[D-009] (threat text pending translation)" until the text exists.
 
 ### Upgrade notes
+- **Projects saved before 0.20 may write two default values on the next save**
+  (`settings.regulationPreset`, `risks.configuration.likelihoodMethod`, both derived from the
+  method tags) and drop a stored safety-dialog flag; the audit lists them as derived values.
 - **Machines with an imported component saved with 0.19** may have lost the DFD links of
   the component's assets (the asset list shows them without linked elements). The next
   update of the component sets the links again from the component; their impact values

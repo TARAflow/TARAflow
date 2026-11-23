@@ -13,7 +13,7 @@ import { SafetyMarksProvider } from "./safety-marks-context";
 import type { UncreditedResiduals } from "shared";
 import { conceptFindings, conceptWarningsByRisk } from "../services/concept-findings";
 import type { CybersecurityConcept } from "shared";
-import { collectConfiguredImpactCriteria } from "../services/risk-sync-service";
+import { collectConfiguredImpactCriteria, projectHasSafetyData } from "../services/risk-sync-service";
 import React, {
   useState,
   useCallback,
@@ -562,12 +562,24 @@ const RisksTabView: React.FC<RiskTabProps> = ({
 
   // ── Safety removal dialog: check on mount and when project/riskData changes ──
   // pendingSafetySourceRemoval is set by risk-sync-service when safety data
-  // disappears and the Safety factor was autoEnabled.
+  // disappears and the Safety factor was autoEnabled. The flag can be stale —
+  // a file saved before 0.20 kept it (example SmokeDetectorCase, manual test
+  // 2026-11-23: all four assets rated for safety, the dialog still asked, and
+  // "Remove" would have cleared 53 safety ratings). So ask only while the
+  // project really has no safety data; otherwise drop the flag silently — it
+  // is runtime state and never written (prepareForDisk).
   useEffect(() => {
-    if (riskData.configuration.pendingSafetySourceRemoval) {
-      setShowSafetyRemovalDialog(true);
+    if (!riskData.configuration.pendingSafetySourceRemoval) return;
+    if (projectHasSafetyData(project.dfd ?? null, project.assetDataRef)) {
+      setRiskData((prev) =>
+        prev.configuration.pendingSafetySourceRemoval
+          ? { ...prev, configuration: { ...prev.configuration, pendingSafetySourceRemoval: false } }
+          : prev,
+      );
+      return;
     }
-  }, [riskData.configuration.pendingSafetySourceRemoval]);
+    setShowSafetyRemovalDialog(true);
+  }, [riskData.configuration.pendingSafetySourceRemoval, project.dfd, project.assetDataRef]);
 
   // ── Ticket sync (adapters design §3.3) ──────────────────────────────────
   // One batch on opening the tab and on "Sync tickets" — no polling. Applied
