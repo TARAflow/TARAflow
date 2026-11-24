@@ -408,6 +408,21 @@
           "action": "Undo keep",
           "tooltip": "Treat as generated again. If the current rules still do not produce it, it reappears in the drift review; a regeneration would remove it."
         }
+      },
+      "elementInfo": {
+        "button": "Show DFD info of {{id}}",
+        "boundaries": "Inside",
+        "endpoints": "Source → target",
+        "source": "Source",
+        "target": "Target",
+        "endpointDetails": "Details of {{id}}",
+        "description": "Description",
+        "properties": "Properties",
+        "noProperties": "No properties filled in.",
+        "flows": "Data flows",
+        "from": "from",
+        "to": "to",
+        "assets": "Assets"
       }
     }
   }

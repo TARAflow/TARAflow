@@ -71,11 +71,14 @@ import {
 import { CreateThreatDialog } from "../../components/shared/create-threat-dialog";
 import type { InteractionDirection } from "features/threats/models/per-interaction-types";
 import { isThreatRated } from "../../services/threat-phase-status";
+import { ElementInfoButton } from "../shared/element-info-button";
 
 // ==================== TYPES ====================
 
 interface DataFlowGroup {
   dataFlowId: string;
+  /** DFD connection id — the element info looks the flow up by it. */
+  connectionId?: string;
   displayId?: string;
   dataFlowName: string;
   sourceName: string;
@@ -655,6 +658,7 @@ export const InteractionThreatTable = React.memo<InteractionThreatTableProps>(
         if (!groups[df.dataFlowId]) {
           groups[df.dataFlowId] = {
             dataFlowId: df.dataFlowId,
+            connectionId: df.connectionId,
             displayId: df.displayId,
             dataFlowName: df.dataFlowName,
             sourceName: df.sourceName,
@@ -929,6 +933,7 @@ export const InteractionThreatTable = React.memo<InteractionThreatTableProps>(
                           <Typography variant="body2">
                             {group.elementName}
                           </Typography>
+                          <ElementInfoButton target={{ elementId: group.elementId }} />
                           <Typography variant="caption" color="text.secondary">
                             ({group.threats.length}{" "}
                             {t("tabs.threats.threats", {
@@ -1030,6 +1035,9 @@ export const InteractionThreatTable = React.memo<InteractionThreatTableProps>(
                             {endpointLabel ? endpointLabel(group.sourceId, group.sourceName) : group.sourceName} →{" "}
                               {endpointLabel ? endpointLabel(group.targetId, group.targetName) : group.targetName}
                           </Typography>
+                          <ElementInfoButton
+                            target={{ connectionId: group.connectionId, flowDisplayId: group.displayId || group.dataFlowId }}
+                          />
                           {group.dataFlowName &&
                             group.dataFlowName !== group.dataFlowId &&
                             !/^DataFlow\s+\S+$/i.test(group.dataFlowName) && (

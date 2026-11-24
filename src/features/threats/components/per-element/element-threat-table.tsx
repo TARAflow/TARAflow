@@ -69,6 +69,7 @@ import {
   resolveVerificationDrafts,
 } from "../../services/threat-catalog-service";
 import { isThreatRated } from "../../services/threat-phase-status";
+import { ElementInfoButton } from "../shared/element-info-button";
 
 // ==================== TYPES ====================
 
@@ -790,6 +791,7 @@ export const ElementThreatTable = React.memo<ElementThreatTableProps>(
                       <Typography variant="body2">
                         {group.elementName}
                       </Typography>
+                      <ElementInfoButton target={{ elementId: group.elementId }} />
                       <Chip
                         label={group.elementType}
                         size="small"

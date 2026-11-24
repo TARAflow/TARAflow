@@ -96,6 +96,7 @@ import {
 import { computeAllMitigationCoverage } from "shared/utils/mitigation-coverage";
 import { ReviewBadge, SourceBadge, compareThreatsByLabel } from "../../components/shared/threat-table-utils";
 import { releaseRetainedThreat } from "../../services/threat-generation-drift";
+import { ElementInfoButton } from "./element-info-button";
 
 // ==================== PROPS ====================
 
@@ -635,11 +636,15 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
   if (!currentThreat || !local) return null;
 
   const hasInteraction = !!currentThreat.interactionContext;
-  const contextLabel = hasInteraction
-    ? currentThreat.dataFlow
-      ? `${currentThreat.dataFlow.sourceName} → ${currentThreat.dataFlow.targetName}`
-      : currentThreat.displayId
-    : (currentThreat.linkedElement?.elementName ?? currentThreat.displayId);
+  // With the element's / flow's own id ("DS-3 Config Store"), so the analyst
+  // knows which one it is without switching to the DFD (manual test 2026-11-24).
+  const flow = currentThreat.dataFlow;
+  const element = currentThreat.linkedElement;
+  const contextLabel = hasInteraction && flow
+    ? [flow.displayId || flow.dataFlowId, `${flow.sourceName} → ${flow.targetName}`].filter(Boolean).join(" ")
+    : element
+      ? [element.displayId, element.elementName].filter(Boolean).join(" ") || currentThreat.displayId
+      : currentThreat.displayId;
 
   // ==================== RENDER ====================
 
@@ -684,6 +689,15 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
           >
             {contextLabel}
           </Typography>
+          <Box sx={{ flexShrink: 0 }}>
+            <ElementInfoButton
+              target={
+                hasInteraction && flow
+                  ? { connectionId: flow.connectionId, flowDisplayId: flow.displayId || flow.dataFlowId }
+                  : { elementId: element?.elementId }
+              }
+            />
+          </Box>
           {/* Trust Boundary */}
           {currentThreat.trustBoundaryName && (
             <Typography

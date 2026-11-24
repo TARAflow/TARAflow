@@ -407,6 +407,21 @@
           "action": "Behalten rückgängig",
           "tooltip": "Wieder als generiert behandeln. Erzeugen die aktuellen Regeln sie weiterhin nicht, erscheint sie erneut in der Prüfung der Abweichungen; eine Neugenerierung würde sie entfernen."
         }
+      },
+      "elementInfo": {
+        "button": "DFD-Infos zu {{id}} anzeigen",
+        "boundaries": "Innerhalb",
+        "endpoints": "Quelle → Ziel",
+        "source": "Quelle",
+        "target": "Ziel",
+        "endpointDetails": "Details zu {{id}}",
+        "description": "Beschreibung",
+        "properties": "Eigenschaften",
+        "noProperties": "Keine Eigenschaften ausgefüllt.",
+        "flows": "Datenflüsse",
+        "from": "von",
+        "to": "nach",
+        "assets": "Assets"
       }
     }
   }

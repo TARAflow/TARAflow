@@ -60,6 +60,7 @@ import {
   ProjectMitigationsProvider,
   type ProjectMitigationsApi,
 } from "./shared/project-mitigations-context";
+import { ElementInfoProvider } from "./shared/element-info-context";
 import {
   addProjectMitigation,
   removeProjectMitigation,
@@ -758,6 +759,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
 
   return (
     <ProjectMitigationsProvider value={projectMitigationsApi}>
+    <ElementInfoProvider graph={project.dfdGraph}>
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
       {/* Hidden file input */}
       <Box
@@ -1243,6 +1245,7 @@ export const ThreatsTab: React.FC<ThreatTabProps> = ({
         </ConfirmDialog>
       )}
     </Box>
+    </ElementInfoProvider>
     </ProjectMitigationsProvider>
   );
 };;;
