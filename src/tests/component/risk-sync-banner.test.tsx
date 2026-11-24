@@ -13,7 +13,10 @@ import type { RiskSyncStatus } from "features/risks/services/risk-sync-service";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string, options?: { defaultValue?: string }) => options?.defaultValue ?? key,
+    t: (key: string, options?: { defaultValue?: string } & Record<string, unknown>) =>
+      (options?.defaultValue ?? key).replace(/\{\{(\w+)\}\}/g, (m, name: string) =>
+        options && name in options ? String(options[name]) : m,
+      ),
     i18n: { language: "en" },
   }),
 }));
@@ -46,6 +49,19 @@ describe("RiskSyncBanner", () => {
     expect(banner.textContent).toContain("1 new");
     fireEvent.click(within(banner).getByText("Sync Now"));
     expect(onSync).toHaveBeenCalledTimes(1);
+  });
+
+  it("a changed threat relevance is part of the summary (0.20 manual test 2026-11-24)", () => {
+    render(
+      <RiskSyncBanner
+        syncWarnings={[]}
+        needsSync
+        isSyncing={false}
+        syncStatus={status({ changedRelevance: 2 } as Partial<RiskSyncStatus>)}
+        onSync={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId("risk-sync-banner").textContent).toContain("2 threat relevance(s) changed");
   });
 
   it("the results of the last sync are an information, dismissible — no warning", () => {

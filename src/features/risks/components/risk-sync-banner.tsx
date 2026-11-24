@@ -44,17 +44,17 @@ export const RiskSyncBanner: React.FC<Props> = ({
   const syncChangeSummary = useMemo(() => {
     const k = "tabs.risks.syncSummary";
     const parts: string[] = [];
-    const add = (count: number | undefined, key: string) => {
-      if ((count ?? 0) > 0) parts.push(t(`${k}.${key}`, { count }));
+    const add = (count: number | undefined, key: string, defaultValue: string) => {
+      if ((count ?? 0) > 0) parts.push(t(`${k}.${key}`, { count, defaultValue }));
     };
-    add(syncStatus.newThreats, "newThreats");
-    add(syncStatus.orphanedRisks, "orphaned");
-    add(syncStatus.changedDescriptions, "changed");
-    add(syncStatus.changedMitigations, "mitigations");
-    add(syncStatus.changedExposureLevels, "exposureLevels");
-    add(syncStatus.changedLinkedAssets, "assetLinks");
-    add(syncStatus.changedDisplayIds, "renumbered");
-    add(syncStatus.changedRelevance, "relevance");
+    add(syncStatus.newThreats, "newThreats", "{{count}} new");
+    add(syncStatus.orphanedRisks, "orphaned", "{{count}} orphaned");
+    add(syncStatus.changedDescriptions, "changed", "{{count}} changed");
+    add(syncStatus.changedMitigations, "mitigations", "{{count}} mitigations changed");
+    add(syncStatus.changedExposureLevels, "exposureLevels", "{{count}} exposure level(s) changed");
+    add(syncStatus.changedLinkedAssets, "assetLinks", "{{count}} asset link(s) changed");
+    add(syncStatus.changedDisplayIds, "renumbered", "{{count}} threat ID(s) renumbered");
+    add(syncStatus.changedRelevance, "relevance", "{{count}} threat relevance(s) changed");
     return parts.join(", ");
   }, [syncStatus, t]);
 
