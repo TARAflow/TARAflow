@@ -149,6 +149,12 @@ existing EN 50742 A projects can change (see the upgrade notes).
   briefly missing) — and *Remove* would have cleared every safety rating. The Risks tab now
   asks only while the project really has no safety data, and the open question is no longer
   written to the file.
+- **Risks tab kept asking to confirm threats that were confirmed:** a risk keeps a copy of
+  its threat's relevance that only a risk sync updates, and a changed relevance did not ask
+  for a sync — after confirming an uncertain threat in the Threats tab, the banner and the
+  findings still counted it as uncertain. Both now count from the threat's current
+  relevance, and a changed relevance asks for a risk sync (*"1 threat relevance changed"*),
+  which brings the stored copy in step. The sync summary in the banner is now translated.
 - **Opening the Assets tab changed a machine with an imported component:** the component's
   assets carry no overall impact until the machine rates them, and the tab's recalculation
   turned the missing value into 0 and saved it. A missing value now counts as 0; a real

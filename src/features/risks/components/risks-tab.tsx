@@ -431,7 +431,14 @@ const RisksTabView: React.FC<RiskTabProps> = ({
   const ticketLinks = useMemo(() => collectTicketLinks(riskData.risks), [riskData.risks]);
   // With a tracker, a mitigation done by hand needs a ticket or evidence (user 2026-11-10).
   const trackerConnected = !!project.integration?.connection?.projectName;
-  const currentFindings = useMemo(() => riskFindings(riskData, { trackerConnected }), [riskData, trackerConnected]);
+  const currentRelevance = useMemo(
+    () => new Map(allThreats.map((t) => [t.id, t.relevance] as const)),
+    [allThreats],
+  );
+  const currentFindings = useMemo(
+    () => riskFindings(riskData, { trackerConnected, currentRelevance }),
+    [riskData, trackerConnected, currentRelevance],
+  );
   const currentValidation = useMemo(() => riskFindingLines(currentFindings, t), [currentFindings, t]);
 
   // ── Findings panel (manual test 2026-11-15: like the DFD tab's) ──────────

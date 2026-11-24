@@ -82,6 +82,14 @@ export interface RiskSyncStatus {
    * which after a renumber can be the label of a DIFFERENT threat.
    */
   changedDisplayIds: number;
+  /**
+   * Risks whose stored threatRelevance no longer matches the relevance of their
+   * threat — e.g. an uncertain threat confirmed in the Threats tab. Without this
+   * count the sync never lit up, the risk kept "uncertain" and the banner and
+   * findings kept asking to confirm what was confirmed (0.20 manual test,
+   * 2026-11-24).
+   */
+  changedRelevance: number;
   needsSync: boolean;
   /** Safety factor was auto-enabled during this sync check */
   safetyAutoEnabled: boolean;
@@ -510,9 +518,17 @@ export function checkRiskSyncStatus(
     return threat !== undefined && threat.displayId !== risk.threatDisplayId;
   }).length;
 
-  const uncertainRisks = riskData.risks.filter(
-    (r) => r.threatRelevance === "uncertain",
-  ).length;
+  const changedRelevance = riskData.risks.filter((risk) => {
+    const threat = allThreats.find((t) => t.id === risk.threatId);
+    return threat !== undefined && eligibleIds.has(threat.id) && threat.relevance !== risk.threatRelevance;
+  }).length;
+
+  // Counted from the threat's relevance now, not the stored copy: a threat
+  // confirmed in the Threats tab no longer asks for confirmation here.
+  const uncertainRisks = riskData.risks.filter((risk) => {
+    const threat = allThreats.find((t) => t.id === risk.threatId);
+    return (threat?.relevance ?? risk.threatRelevance) === "uncertain";
+  }).length;
 
   const hasSafety = projectHasSafetyData(dfd, assetDataRef);
   const { safetyAutoEnabled, safetySourceRemoved } =
@@ -540,6 +556,7 @@ export function checkRiskSyncStatus(
     changedExposureLevels,
     changedLinkedAssets,
     changedDisplayIds,
+    changedRelevance,
     needsSync:
       newThreats > 0 ||
       orphanedRisks > 0 ||
@@ -547,6 +564,7 @@ export function checkRiskSyncStatus(
       changedExposureLevels > 0 ||
       changedLinkedAssets > 0 ||
       changedDisplayIds > 0 ||
+      changedRelevance > 0 ||
       impactAutoEnabledCount > 0 ||
       impactAutoDisabledCount > 0,
     safetyAutoEnabled,
