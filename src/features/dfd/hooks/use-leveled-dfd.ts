@@ -178,6 +178,7 @@ export function useLeveledDfd(
     exportPageSvgs: editor.exportPageSvgs,
     storeThumbnails: editor.updatePageThumbnails,
     isRenderable,
+    marks: editor.appliedMarks,
   });
 
   // ── 5l: the page draw.io shows (before the first selection event the

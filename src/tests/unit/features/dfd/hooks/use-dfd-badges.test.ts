@@ -98,11 +98,14 @@ describe("useDfdBadges", () => {
     await vi.advanceTimersByTimeAsync(20);
     expect(bridge.loadXML).toHaveBeenCalledTimes(1);
     expect(onApplied).toHaveBeenCalledTimes(1);
-    // the setting switched off: the badges go, onApplied again
+    const first = onApplied.mock.calls[0]![0] as string;
+    expect(first).toContain("on=true");
+    // the setting switched off: the badges go, onApplied with another signature
     rerender({ ...options({ defaultExposureLevel: "EL1" }, { enabled: false }), onApplied });
     await vi.advanceTimersByTimeAsync(20);
     expect(xml).not.toContain('label="EL1"');
     expect(onApplied).toHaveBeenCalledTimes(2);
+    expect(onApplied.mock.calls[1]![0]).toContain("on=false");
   });
 
   it("waits for the editor", async () => {

@@ -35,10 +35,11 @@ export interface UseDfdBadgesOptions {
   /** Delay after load / change, so draw.io holds the diagram (ms). */
   delay?: number;
   /**
-   * After each update, once the editor shows the marks — the editor renders
-   * a missing stored image then, so it carries the marks (report figure).
+   * After each update, once the editor shows the marks, with what they
+   * stand for (badgeSignature) — the stored images are rendered again when
+   * it changes (report figure, manual test en-50742 7.2).
    */
-  onApplied?: () => void;
+  onApplied?: (signature: string) => void;
 }
 
 /** What the badges depend on — a change runs the badge update. */
@@ -81,11 +82,12 @@ export function useDfdBadges(bridge: UseDrawioBridgeReturn, given: UseDfdBadgesO
       const byId = new Map<string, BadgeElement>((elements ?? []).map((e) => [e.id, e]));
       try {
         const next = applyDfdBadges(xml, byId, pages, { enabled, en50742, ...(safetyLabel ? { safetyLabel } : {}) });
+        const applied = () => optionsRef.current.onApplied?.(badgeSignature(optionsRef.current));
         if (next === xml) {
-          optionsRef.current.onApplied?.();
+          applied();
           return;
         }
-        void Promise.resolve(bridge.loadXML(next)).then(() => optionsRef.current.onApplied?.());
+        void Promise.resolve(bridge.loadXML(next)).then(applied);
       } catch (error) {
         console.error("[useDfdBadges] badge update failed:", error);
       }

@@ -103,3 +103,23 @@ describe("usePageThumbnails", () => {
     expect(exportPageSvgs).not.toHaveBeenCalled();
   });
 });
+
+// Manual test en-50742 7.2 (2026-11-25): the EL badges switched off — the
+// images still showed them. The marks are display only; a change of what they
+// stand for exports every page again. The first value counts as current.
+describe("usePageThumbnails — the marks in the images", () => {
+  it("exports every page again when the marks change, not at opening", async () => {
+    const { exportPageSvgs, storeThumbnails, options } = setup();
+    const p = project(mxfile(TOP, SEN), withThumbs);
+    const { rerender } = renderHook(({ marks }: { marks: string | null }) => usePageThumbnails(p, { ...options, marks }), {
+      initialProps: { marks: null as string | null },
+    });
+    rerender({ marks: "on=true" });
+    await new Promise((r) => setTimeout(r, 20));
+    expect(exportPageSvgs).not.toHaveBeenCalled();
+
+    rerender({ marks: "on=false" });
+    await waitFor(() => expect(exportPageSvgs).toHaveBeenCalledWith(["sys", "sen"]));
+    expect(storeThumbnails).toHaveBeenCalledWith({ sys: "data:new-sys", sen: "data:new-sen" });
+  });
+});

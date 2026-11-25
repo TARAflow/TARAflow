@@ -157,8 +157,9 @@ existing EN 50742 A projects can change (see the upgrade notes).
   written to the file.
 - **Report: the DFD figure kept the EL badges after switching them off:** the badges and the
   safety-zone frame are display only, so changing the setting (or the EN 50742 tag) caused no
-  diagram save and the stored image stayed as it was. Such a change now drops the stored
-  images, and the DFD tab renders them again as soon as it is shown, with the marks it shows.
+  diagram save and the stored image stayed as it was. The DFD tab now renders the stored
+  images again when what the marks show changes (the setting, the EN 50742 tag, a level) —
+  as soon as it is shown, with the marks it shows.
 - **EN 50742 7.3.4 (A) / 8.5 (B) stayed a gap with the audit logs kept ≥ 5 years:** the
   store that keeps them often lies outside the EN 50742 scope (no relevant flow reaches it),
   and the row then skipped the supporting measures that 7.3.2 and 7.3.3 already count. A
