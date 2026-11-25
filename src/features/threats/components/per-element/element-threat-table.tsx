@@ -69,7 +69,7 @@ import {
   resolveVerificationDrafts,
 } from "../../services/threat-catalog-service";
 import { isThreatRated } from "../../services/threat-phase-status";
-import { ElementInfoButton } from "../shared/element-info-button";
+import { ElementInfoButton } from "shared/components/element-info-button";
 
 // ==================== TYPES ====================
 

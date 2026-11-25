@@ -1,10 +1,10 @@
-// src/tests/unit/features/threats/services/element-info.test.ts
+// src/tests/unit/shared/utils/element-info.test.ts
 //
 // Element info in the Threats tab (manual test 2026-11-24): what the DFD knows
 // about an element or a data flow, read from the analysis graph.
 
 import { describe, it, expect } from "vitest";
-import { elementInfo, flowInfo, propertyFormKey } from "features/threats/services/element-info";
+import { elementInfo, flowInfo, propertyFormKey } from "shared/utils/element-info";
 import type { DFDGraphReference } from "shared";
 
 function graph(): DFDGraphReference {

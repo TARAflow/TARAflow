@@ -71,7 +71,7 @@ import {
 import { CreateThreatDialog } from "../../components/shared/create-threat-dialog";
 import type { InteractionDirection } from "features/threats/models/per-interaction-types";
 import { isThreatRated } from "../../services/threat-phase-status";
-import { ElementInfoButton } from "../shared/element-info-button";
+import { ElementInfoButton } from "shared/components/element-info-button";
 
 // ==================== TYPES ====================
 

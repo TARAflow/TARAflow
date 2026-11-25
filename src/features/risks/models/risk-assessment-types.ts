@@ -227,6 +227,12 @@ export interface RiskProjectData {
   dfdTableGroups?: import("shared").DfdTableGroups;
   dfd?: DFDReference | null;
   /**
+   * The DFD analysis graph — the risk dialog shows what the DFD knows about
+   * the threat's element or flow (ⓘ after its name, as in the threat dialog;
+   * 0.20 manual test, 2026-11-25). Absent = no info button.
+   */
+  dfdGraph?: import("shared").DFDGraphReference | null;
+  /**
    * Goals, claims and verification records (ISO/SAE 21434 9.4, plan Phase 4,
    * decision 25) — edited in the risk dialog's "Goal / Claim" tab.
    */

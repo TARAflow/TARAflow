@@ -635,6 +635,8 @@ export const WorkspaceLayout: React.FC = () => {
               isoMode,
               assetDataRef: assetData.assetDataRef,
               dfd: dfdData.dfdReference,
+              // the risk dialog's DFD info of the threat's element / flow
+              dfdGraph: dfdData.dfdGraphRef,
               dfdPreviewImage: activeProject.dfd?.thumbnail,
               dfdPreviewPages: dfdPreviewPagesOf(activeProject.dfd),
               dfdTableGroups: dfdData.tableGroups,

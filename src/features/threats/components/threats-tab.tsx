@@ -60,7 +60,7 @@ import {
   ProjectMitigationsProvider,
   type ProjectMitigationsApi,
 } from "./shared/project-mitigations-context";
-import { ElementInfoProvider } from "./shared/element-info-context";
+import { ElementInfoProvider } from "shared/components/element-info-context";
 import {
   addProjectMitigation,
   removeProjectMitigation,

@@ -9,12 +9,13 @@ changes of the file. Project schema stays **14** — no conversion; results of
 existing EN 50742 A projects can change (see the upgrade notes).
 
 ### Added
-- **DFD info while rating threats:** an ⓘ next to each element and data flow in the threat
-  tables and in the threat dialog opens what the DFD knows about it — description, the
+- **DFD info while rating threats and risks:** an ⓘ next to each element and data flow in
+  the threat tables, right after its name in the threat dialog and in the risk dialog
+  (also for a per-element threat on a data flow) opens what the DFD knows about it — description, the
   filled-in properties (with the DFD form's labels), the trust, chip and physical boundaries
   it lies in, the connected data flows and the linked assets; for a data flow, source and
   target, each expandable to its own description and properties. No more switching to the DFD tab to decide whether a threat is relevant. The
-  dialog header now names the element or flow with its id ("DS-3 Config Store").
+  dialog headers now name the element or flow with its id ("DS-3 Config Store").
 - **EN 50742 Approach B** (prEN 50742:2025, component role): the tag *EN 50742 B* opens a
   requirement matrix with the IEC 62443-4-2:2019 requirements of Table 4 for the
   component's safety functions, a fixed SL-T (FR1–FR3, FR7: 2; FR5, FR6: 1), the variants

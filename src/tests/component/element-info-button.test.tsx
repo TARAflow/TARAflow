@@ -9,8 +9,8 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi, beforeAll } from "vitest";
 import { I18nextProvider } from "react-i18next";
 import appI18n from "i18n/services/i18n";
-import { ElementInfoButton } from "features/threats/components/shared/element-info-button";
-import { ElementInfoProvider } from "features/threats/components/shared/element-info-context";
+import { ElementInfoButton } from "shared/components/element-info-button";
+import { ElementInfoProvider } from "shared/components/element-info-context";
 import type { DFDGraphReference } from "shared";
 
 const empty = () => new Map();
@@ -77,6 +77,14 @@ describe("ElementInfoButton", () => {
     expect(
       within(details).getByText(appI18n.t("tabs.dfd.element_description.datastore.fields.encryptionAtRest.label")),
     ).toBeTruthy();
+  });
+
+  // 0.20 manual test, 2026-11-25: a per-element threat on a data flow names
+  // the flow as its element — the button was missing for every such threat.
+  it("a per-element threat on a data flow: the element id is the flow's, the flow's info opens", () => {
+    renderIn(<ElementInfoButton target={{ elementId: "c1" }} />);
+    fireEvent.click(screen.getByRole("button", { name: "Show DFD info of DF-3" }));
+    expect(within(screen.getByTestId("element-info-panel")).getByText("write config")).toBeTruthy();
   });
 
   it("renders nothing without a graph or for an unknown element", () => {

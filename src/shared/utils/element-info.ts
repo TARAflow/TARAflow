@@ -1,11 +1,12 @@
-// features/threats/services/element-info.ts
+// shared/utils/element-info.ts
 //
-// What the Threats tab shows about a DFD element or data flow when the analyst
-// rates a threat (manual test 2026-11-24: "I don't see the element's info, I
-// have to switch to the DFD tab"). Read from the analysis graph the tab
-// already has — no access to the DFD feature.
+// What the Threats tab and the threat and risk dialogs show about a DFD element
+// or data flow when the analyst rates a threat or a risk (manual test
+// 2026-11-24: "I don't see the element's info, I have to switch to the DFD
+// tab"). Read from the analysis graph the tab already has — no access to the
+// DFD feature. In shared since 0.20 (risk dialog, 2026-11-25).
 
-import type { DFDGraphReference } from "shared";
+import type { DFDGraphReference } from "../models/dfd-reference-types";
 
 export type InfoValue = string | number | boolean | readonly string[];
 

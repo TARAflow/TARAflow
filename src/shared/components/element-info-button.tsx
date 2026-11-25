@@ -1,6 +1,6 @@
-// features/threats/components/shared/element-info-button.tsx
+// shared/components/element-info-button.tsx
 //
-// ⓘ next to an element or data flow in the Threats tab: opens a panel with what
+// ⓘ next to an element or data flow (Threats tab, threat and risk dialogs): opens a panel with what
 // the DFD knows about it — description, filled-in properties, boundaries,
 // connected flows, linked assets — so the analyst can rate a threat without
 // switching to the DFD tab (manual test 2026-11-24). Stays open until closed;
@@ -17,7 +17,7 @@ import {
   type ElementInfo,
   type InfoEndpoint,
   type InfoValue,
-} from "../../services/element-info";
+} from "../utils/element-info";
 import { useElementInfoGraph } from "./element-info-context";
 
 export type ElementInfoTarget =
@@ -37,7 +37,8 @@ export const ElementInfoButton: React.FC<{ target: ElementInfoTarget }> = ({ tar
   const info = useMemo(
     () =>
       isElement
-        ? elementInfo(graph, elementId)
+        ? // a per-element threat on a data flow names the flow as its element
+          (elementInfo(graph, elementId) ?? (elementId ? flowInfo(graph, { connectionId: elementId }) : null))
         : flowInfo(graph, {
             ...(connectionId ? { connectionId } : {}),
             ...(flowDisplayId ? { displayId: flowDisplayId } : {}),

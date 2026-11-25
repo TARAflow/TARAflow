@@ -96,7 +96,7 @@ import {
 import { computeAllMitigationCoverage } from "shared/utils/mitigation-coverage";
 import { ReviewBadge, SourceBadge, compareThreatsByLabel } from "../../components/shared/threat-table-utils";
 import { releaseRetainedThreat } from "../../services/threat-generation-drift";
-import { ElementInfoButton } from "./element-info-button";
+import { ElementInfoButton } from "shared/components/element-info-button";
 
 // ==================== PROPS ====================
 
@@ -685,10 +685,11 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
             variant="body2"
             fontWeight="medium"
             noWrap
-            sx={{ flexGrow: 1, overflow: "hidden", textOverflow: "ellipsis" }}
+            sx={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}
           >
             {contextLabel}
           </Typography>
+          {/* the info right after the name ("P-1 MyProcess ⓘ"), the rest pushed right */}
           <Box sx={{ flexShrink: 0 }}>
             <ElementInfoButton
               target={
@@ -698,6 +699,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
               }
             />
           </Box>
+          <Box sx={{ flexGrow: 1 }} />
           {/* Trust Boundary */}
           {currentThreat.trustBoundaryName && (
             <Typography

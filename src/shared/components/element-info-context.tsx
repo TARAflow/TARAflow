@@ -1,10 +1,11 @@
-// features/threats/components/shared/element-info-context.tsx
+// shared/components/element-info-context.tsx
 //
 // The DFD analysis graph for the element info buttons in the threat tables and
-// the threat dialog. Provided by the Threats tab; absent = no buttons.
+// the threat and risk dialogs. Provided by the Threats and Risks tabs; absent =
+// no buttons.
 
 import React, { createContext, useContext } from "react";
-import type { DFDGraphReference } from "shared";
+import type { DFDGraphReference } from "../models/dfd-reference-types";
 
 const ElementInfoContext = createContext<DFDGraphReference | null>(null);
 

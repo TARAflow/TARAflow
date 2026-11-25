@@ -10,6 +10,7 @@ import { GoalsClaimsDialog } from "./goals-claims-dialog";
 import { ConceptFindingsProvider } from "./concept-findings-context";
 import { UncreditedResidualsProvider } from "./credited-residual-context";
 import { SafetyMarksProvider } from "./safety-marks-context";
+import { ElementInfoProvider } from "shared/components/element-info-context";
 import type { UncreditedResiduals } from "shared";
 import { conceptFindings, conceptWarningsByRisk } from "../services/concept-findings";
 import type { CybersecurityConcept } from "shared";
@@ -948,6 +949,7 @@ const RisksTabView: React.FC<RiskTabProps> = ({
   return (
     <ConceptFindingsProvider value={conceptMarkers}>
     <SafetyMarksProvider value={safetyMarks}>
+    <ElementInfoProvider graph={project.dfdGraph}>
     <UncreditedResidualsProvider value={uncreditedResiduals}>
     <Box
       sx={{
@@ -1449,6 +1451,7 @@ const RisksTabView: React.FC<RiskTabProps> = ({
       )}
     </Box>
     </UncreditedResidualsProvider>
+    </ElementInfoProvider>
     </SafetyMarksProvider>
     </ConceptFindingsProvider>
   );
