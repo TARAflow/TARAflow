@@ -57,12 +57,16 @@ existing EN 50742 A projects can change (see the upgrade notes).
   fields in its own words; a commit that listed one of them signed every other change of
   the file with it, unnamed — a threat's relevance, a risk's treatment and justification,
   a measure's evidence note, the project's name and tags, the hazards, the compliance
-  statements, the method settings. These now appear below *Changes the audit diff does
-  not list*, by record (`risks.risks[R-12].treatment: reduce → accept`), sorted, at most 20
-  per commit and the rest counted. Values computed by the app, the DFD layout and the
-  report settings stay out on purpose; tracker credentials are named without their
-  values. The audit diff also compares the threats of both methods (before: only the
-  active one's) and notices a measure replaced by another of the same status.
+  statements, the method settings. A threat's relevance, workflow status, threat actor
+  and evaluation note and a risk's treatment, justifications, rationales and chosen
+  verifications are now lines of the threat or risk itself (*Relevance: unrated →
+  relevant*); every other change appears below *Changes the audit diff does not list*,
+  by record as the analyst knows it (`threats.perElement[DB-E-1].causeDescription: … →
+  …`), sorted, at most 20 per commit and the rest counted. Values computed by the app,
+  the DFD layout and the report settings stay out on purpose; tracker credentials are
+  named without their values. The audit diff also compares the threats of both methods
+  (before: only the active one's) and notices a measure replaced by another of the same
+  status.
 - **EN 50742 relevance:** EN 50742 is about the interfaces to the safety functions and
   the data flows crossing them. A trust boundary marked as *Safety zone (EN 50742)* (new mark,
   next to its type) marks the safety-related (yellow) part of a machine; without one, the interfaces and

@@ -144,9 +144,56 @@ export function fieldChanges(before: unknown, after: unknown, path: string[] = [
   return out;
 }
 
-/** "risks.risks[R-12].treatment" */
-export function formatFieldPath(path: readonly string[]): string {
-  return path.reduce((s, seg) => (seg.startsWith("[") ? `${s}${seg}` : s ? `${s}.${seg}` : seg), "");
+/**
+ * "risks.risks[R-12].treatment". `labels` names a record by what the analyst
+ * sees ("[DB-E-1]" for the threat "[00c8f01d-…]", 0.20 manual test D4) —
+ * the path stays the record's key where there is no label.
+ */
+export function formatFieldPath(path: readonly string[], labels?: ReadonlyMap<string, string>): string {
+  return path.reduce((s, seg) => {
+    if (!seg.startsWith("[")) return s ? `${s}.${seg}` : seg;
+    const label = labels?.get(seg.slice(1, -1));
+    return `${s}${label ? `[${label}]` : seg}`;
+  }, "");
+}
+
+/**
+ * Record id → the label the analyst sees: a display id (threats, assets,
+ * DFD elements), "R-<threat>" for a risk. A hazard keeps its id (its label
+ * is a sentence). Ids that two records share keep no label (the path stays
+ * unambiguous).
+ */
+export function recordLabels(...views: unknown[]): Map<string, string> {
+  const labels = new Map<string, string>();
+  const clash = new Set<string>();
+  const add = (id: string, label: string) => {
+    const known = labels.get(id);
+    if (known !== undefined && known !== label) clash.add(id);
+    else labels.set(id, label);
+  };
+  const walk = (v: unknown) => {
+    if (Array.isArray(v)) {
+      for (const x of v) {
+        if (isObject(x) && typeof x.id === "string") {
+          const label =
+            typeof x.displayId === "string" && x.displayId
+              ? x.displayId
+              : typeof x.threatDisplayId === "string" && x.threatDisplayId
+                ? `R-${x.threatDisplayId}`
+                : undefined;
+          if (label && label !== x.id) add(x.id, label);
+        }
+        walk(x);
+      }
+    } else if (isObject(v)) for (const x of Object.values(v)) walk(x);
+  };
+  for (const view of views) walk(view);
+  for (const id of clash) labels.delete(id);
+  // a label two records carry would hide which one changed
+  const count = new Map<string, number>();
+  for (const l of labels.values()) count.set(l, (count.get(l) ?? 0) + 1);
+  for (const [id, l] of labels) if ((count.get(l) ?? 0) > 1) labels.delete(id);
+  return labels;
 }
 
 // ---------------------------------------------------------------- unlisted
@@ -203,14 +250,17 @@ export function unlistedChanges(
 
 /** unlistedChanges on the parsed files. */
 export function unlistedChangesOf(before: unknown, after: unknown, opts: { listedByDiff?: boolean } = {}): UnlistedChanges {
-  const all = fieldChanges(auditView(before), auditView(after)).map((c) => ({ ...c, entry: auditFieldEntry(c.path) }));
+  const beforeView = auditView(before);
+  const afterView = auditView(after);
+  const all = fieldChanges(beforeView, afterView).map((c) => ({ ...c, entry: auditFieldEntry(c.path) }));
+  const labels = all.length > 0 ? recordLabels(afterView, beforeView) : undefined;
   const audited = all.filter((c) => !c.entry || (c.entry.class === "covered" && !opts.listedByDiff));
   const derivedOnly = all.length > 0 && audited.length === 0;
   const meaningful = all.filter((c) => !isTimestamp(c.path));
   const shown = derivedOnly ? (meaningful.length > 0 ? meaningful : all) : audited;
   const changes = shown
     .map((c) => ({
-      path: formatFieldPath(c.path),
+      path: formatFieldPath(c.path, labels),
       before: c.before,
       after: c.after,
       ...(isSecretPath(c.path) ? { secret: true } : {}),

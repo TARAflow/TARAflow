@@ -84,7 +84,7 @@ exports[`DiffService — commit body for single changes (SmokeDetector golden) >
 exports[`DiffService — commit body for single changes (SmokeDetector golden) > risk: mitigation evidence note 1`] = `
 "- Changes:
   - Changes the audit diff does not list: 1 items
-    ~ risks.risks[R-3858ee2c-f62f-492c-93ab-c483252cdffc].selectedMitigations[M-T-001].evidenceNote: not listed by the audit diff
+    ~ risks.risks[R-P2-T-1].selectedMitigations[M-T-001].evidenceNote: not listed by the audit diff
         value: Design review SD-DR-04, 2026-10-28 → Test report TR-7"
 `;
 
@@ -104,16 +104,16 @@ exports[`DiffService — commit body for single changes (SmokeDetector golden) >
 
 exports[`DiffService — commit body for single changes (SmokeDetector golden) > risk: treatment 1`] = `
 "- Changes:
-  - Changes the audit diff does not list: 1 items
-    ~ risks.risks[R-P3-D-1].treatment: not listed by the audit diff
-        value: reduce → accept"
+  - Risks: 1 items
+    ~ R-P3-D-1: R-P3-D-1 (D)
+        Treatment: reduce → accept"
 `;
 
 exports[`DiffService — commit body for single changes (SmokeDetector golden) > risk: treatment justification 1`] = `
 "- Changes:
-  - Changes the audit diff does not list: 1 items
-    ~ risks.risks[R-P3-D-1].treatmentJustification: not listed by the audit diff
-        value: — → Accepted by the product owner"
+  - Risks: 1 items
+    ~ R-P3-D-1: R-P3-D-1 (D)
+        Treatment justification: — → Accepted by the product owner"
 `;
 
 exports[`DiffService — commit body for single changes (SmokeDetector golden) > risk: verifications chosen 1`] = `
@@ -139,14 +139,14 @@ exports[`DiffService — commit body for single changes (SmokeDetector golden) >
 
 exports[`DiffService — commit body for single changes (SmokeDetector golden) > threat: relevance 1`] = `
 "- Changes:
-  - Changes the audit diff does not list: 1 items
-    ~ threats.perElement[SDC-S-1].relevance: not listed by the audit diff
-        value: unrated → relevant"
+  - Threats: 1 items
+    ~ SDC-S-1: SDC-S-1 (S)
+        Relevance: unrated → relevant"
 `;
 
 exports[`DiffService — commit body for single changes (SmokeDetector golden) > threat: threat actor 1`] = `
 "- Changes:
-  - Changes the audit diff does not list: 1 items
-    ~ threats.perElement[SDC-S-1].threatActor: not listed by the audit diff
-        value: external → insider"
+  - Threats: 1 items
+    ~ SDC-S-1: SDC-S-1 (S)
+        Threat actor: external → insider"
 `;

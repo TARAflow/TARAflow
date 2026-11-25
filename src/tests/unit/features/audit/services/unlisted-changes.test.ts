@@ -23,7 +23,9 @@ import { DiffService } from "features/audit/services/diff-service";
 import { generateCommitMessage, type PhaseChanges } from "features/audit/models/audit-types";
 import { parseCommitMessage, validateAuditMessage } from "features/audit/services/verify/message";
 
-type Risk = { id: string; threatDisplayId: string; lastModified: string; treatment?: string };
+// `note`: a field no comparison of the DiffService covers (treatment and the
+// justifications are its own lines since the D4 follow-up)
+type Risk = { id: string; threatDisplayId: string; lastModified: string; note?: string };
 const file = (over: { name?: string; ids?: string[]; modified?: string; extra?: unknown; risks?: Risk[] } = {}) =>
   JSON.stringify({
     info: { name: over.name ?? "Panel", lastModified: over.modified ?? "t1" },
@@ -69,6 +71,7 @@ describe("unlistedChanges", () => {
   it("only the threat ids copied into the risks (and timestamps): derived values, the places named", () => {
     const r = unlistedChanges(file(), file({ ids: ["DF-6-T-1", "DF-7-T-1"], modified: "t2" }));
     expect(r.derivedOnly).toBe(true);
+    // renumbered: the label itself changed, so the risk keeps its key
     expect(paths(r)).toEqual(["risks.risks[r0].threatDisplayId", "risks.risks[r1].threatDisplayId"]);
   });
 
@@ -82,24 +85,41 @@ describe("unlistedChanges", () => {
   it("only timestamps: derived, the timestamps named", () => {
     const r = unlistedChanges(file(), file({ modified: "t2" }));
     expect(r.derivedOnly).toBe(true);
-    expect(paths(r)).toEqual(["info.lastModified", "risks.risks[r0].lastModified", "risks.risks[r1].lastModified"]);
+    expect(paths(r)).toEqual(["info.lastModified", "risks.risks[R-DF-10-T-1].lastModified", "risks.risks[R-DF-9-T-1].lastModified"]);
   });
 
   it("next to listed changes: the fields the diff covers are left out, the rest named", () => {
-    const risks = (treatment: string, priority: string) => [{ id: "r0", threatDisplayId: "T-1", lastModified: "t1", treatment, moscowPriority: priority }];
-    const r = unlistedChanges(file({ risks: risks("reduce", "must") as Risk[] }), file({ risks: risks("accept", "should") as Risk[] }), { listedByDiff: true });
-    expect(r.changes).toEqual([{ path: "risks.risks[r0].treatment", before: "reduce", after: "accept" }]);
+    const risks = (note: string, treatment: string) => [{ id: "r0", threatDisplayId: "T-1", lastModified: "t1", note, treatment }];
+    const r = unlistedChanges(file({ risks: risks("a", "reduce") as Risk[] }), file({ risks: risks("b", "accept") as Risk[] }), { listedByDiff: true });
+    // the treatment is the DiffService's own line now (0.20 manual test D4)
+    expect(r.changes).toEqual([{ path: "risks.risks[R-T-1].note", before: "a", after: "b" }]);
   });
 
   it("sorted by path, whatever the order of the records in the file", () => {
     const risks = (t: string) => [
-      { id: "r9", threatDisplayId: "T-9", lastModified: "t1", treatment: t },
-      { id: "r1", threatDisplayId: "T-1", lastModified: "t1", treatment: t },
+      { id: "r9", threatDisplayId: "T-9", lastModified: "t1", note: t },
+      { id: "r1", threatDisplayId: "T-1", lastModified: "t1", note: t },
     ];
-    expect(paths(unlistedChanges(file({ risks: risks("reduce") }), file({ name: "Pump", risks: risks("accept") })))).toEqual([
+    expect(paths(unlistedChanges(file({ risks: risks("a") }), file({ name: "Pump", risks: risks("b") })))).toEqual([
       "info.name",
-      "risks.risks[r1].treatment",
-      "risks.risks[r9].treatment",
+      "risks.risks[R-T-1].note",
+      "risks.risks[R-T-9].note",
+    ]);
+  });
+
+  // 0.20 manual test D4: "threats.perElement[00c8f01d-…]" did not say which threat
+  it("a record by its display id; its key where none or where two share one", () => {
+    const threats = (cause: string) =>
+      JSON.stringify({
+        threats: {
+          perElementTables: [
+            { threats: [{ id: "00c8f01d", displayId: "DB-E-1", causeDescription: cause }, { id: "x1", causeDescription: cause }] },
+          ],
+        },
+      });
+    expect(paths(unlistedChanges(threats("a"), threats("b")))).toEqual([
+      "threats.perElement[DB-E-1].causeDescription",
+      "threats.perElement[x1].causeDescription",
     ]);
   });
 
@@ -153,22 +173,23 @@ describe("withUnlistedChanges", () => {
   const listed: PhaseChanges[] = [
     { phase: "risks", phaseLabel: "Risks", changeCount: 1, changes: [{ type: "modified", id: "r0", name: "T-1", description: "Risk modified" }] },
   ];
-  const before = file({ risks: [{ id: "r0", threatDisplayId: "T-1", lastModified: "t1", treatment: "reduce" }] });
-  const after = file({ name: "Pump", risks: [{ id: "r0", threatDisplayId: "T-1", lastModified: "t2", treatment: "accept" }] });
+  const before = file({ risks: [{ id: "r0", threatDisplayId: "T-1", lastModified: "t1", note: "a" }] });
+  const after = file({ name: "Pump", risks: [{ id: "r0", threatDisplayId: "T-1", lastModified: "t2", note: "b" }] });
 
   it("file unchanged: the diff's list as is; nothing listed: the fallback; else appended", () => {
     expect(withUnlistedChanges(listed, before, after, false)).toBe(listed);
     expect(withUnlistedChanges([], before, after, true)[0].phase).toBe("unlisted");
     const all = withUnlistedChanges(listed, before, after, true);
     expect(all.map((p) => p.phase)).toEqual(["risks", "unlisted"]);
-    expect(all[1].changes.map((c) => c.id)).toEqual(["info.name", "risks.risks[r0].treatment"]);
+    expect(all[1].changes.map((c) => c.id)).toEqual(["info.name", "risks.risks[R-T-1].note"]);
     // only derived values next to listed changes: nothing appended
-    expect(withUnlistedChanges(listed, before, file({ risks: [{ id: "r0", threatDisplayId: "T-9", lastModified: "t2", treatment: "reduce" }] }), true)).toBe(listed);
+    expect(withUnlistedChanges(listed, before, file({ risks: [{ id: "r0", threatDisplayId: "T-9", lastModified: "t2", note: "a" }] }), true)).toBe(listed);
   });
 
   it("a long list in the body, before the trailers: the message schema and the hook accept it", () => {
-    const many = Array.from({ length: 60 }, (_, i) => ({ id: `r${i}`, threatDisplayId: "T", lastModified: "t1", treatment: "reduce" }));
-    const changed = many.map((r) => ({ ...r, treatment: "accept\n\nBatch-Size: 999" }));
+    // one threat display id for all: two records share a label, so the keys stay
+    const many = Array.from({ length: 60 }, (_, i) => ({ id: `r${i}`, threatDisplayId: "T", lastModified: "t1", note: "a" }));
+    const changed = many.map((r) => ({ ...r, note: "b\n\nBatch-Size: 999" }));
     const changes = withUnlistedChanges(listed, file({ risks: many }), file({ risks: changed }), true);
     const data = new DiffService().generateCommitMessageData(changes, "Detail Review", "Ann", { projectFile: "m.tara.json" });
     const message = generateCommitMessage({ ...data, date: "2026-11-22T00:00:00.000Z" } as never);
@@ -176,6 +197,6 @@ describe("withUnlistedChanges", () => {
     expect(message).toContain("40 more");
     // the trailers are the real ones, not a value from the list
     expect(parseCommitMessage(message).trailers["Batch-Size"]).toEqual([String(data.batchSize)]);
-    expect(message.indexOf("risks.risks[r0].treatment")).toBeLessThan(message.indexOf("Affected-Phases:"));
+    expect(message.indexOf("risks.risks[r0].note")).toBeLessThan(message.indexOf("Affected-Phases:"));
   });
 });

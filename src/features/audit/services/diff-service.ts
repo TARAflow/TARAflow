@@ -95,6 +95,37 @@ function valueTypeOf(value: unknown): ChangeDetail["valueType"] {
   return "string";
 }
 
+/** Analyst decisions compared as plain values: field → label. */
+const THREAT_DECISIONS = {
+  relevance: "Relevance",
+  workflowStatus: "Workflow",
+  threatActor: "Threat actor",
+  evalNote: "Evaluation note",
+} as const;
+const RISK_DECISIONS = {
+  treatment: "Treatment",
+  treatmentJustification: "Treatment justification",
+  wontJustification: "Won't justification",
+  riskBeforeRationale: "Rationale before mitigation",
+  riskAfterRationale: "Rationale after mitigation",
+} as const;
+
+/** One detail per changed field; absent and empty text count the same. */
+function plainDetails<T extends object>(current: T, previous: T, fields: Readonly<Record<string, string>>): ChangeDetail[] {
+  const value = (x: T, f: string) => {
+    const v = (x as Record<string, unknown>)[f];
+    return v === undefined || v === null || v === "" ? undefined : v;
+  };
+  const out: ChangeDetail[] = [];
+  for (const [field, fieldLabel] of Object.entries(fields)) {
+    const oldValue = value(previous, field);
+    const newValue = value(current, field);
+    if (sameValue(oldValue, newValue)) continue;
+    out.push({ field, fieldLabel, oldValue, newValue, valueType: valueTypeOf(newValue ?? oldValue) });
+  }
+  return out;
+}
+
 // ==================== DIFF SERVICE ====================
 
 export class DiffService {
@@ -836,6 +867,11 @@ export class DiffService {
   ): ChangeDetail[] {
     const details: ChangeDetail[] = [];
 
+    // The analyst's decisions on the threat (0.20 manual test D4, 2026-11-25):
+    // in the threat's own lines, not under "does not list" where the cap of
+    // 20 could hide a relevance decision behind "N more".
+    details.push(...plainDetails(current, previous, THREAT_DECISIONS));
+
     if (current.threatDescription !== previous.threatDescription) {
       details.push({
         field: "threatDescription",
@@ -1001,6 +1037,10 @@ export class DiffService {
         valueType: "string",
       });
     }
+
+    // The analyst's decisions on the risk (0.20 manual test D4, 2026-11-25) —
+    // in the risk's own lines, like the mitigations.
+    details.push(...plainDetails(current, previous, RISK_DECISIONS));
 
     // Verifications chosen for the risk (they come with its mitigations) —
     // next to the mitigations, not under "does not list" (0.20 manual test
