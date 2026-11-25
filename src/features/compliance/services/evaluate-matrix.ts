@@ -379,7 +379,15 @@ function evaluateRule(rule: EvidenceRule<AnyRequirementId>, graph: Graph, input:
         ...because("standIn", { types: targetTypes(rule.targets) }),
       });
     }
-    if (rule.withoutTarget) return outcome(rule.withoutTarget.status, because(rule.withoutTarget.reason));
+    if (rule.withoutTarget) {
+      // Step 7 here too: "kept somewhere" rows (7.3.4) are met by a store
+      // outside the scope that does it — as 7.3.2 / 7.3.3 by DS-1 (0.20 manual
+      // test en-50742 4.4, 2026-11-25: DS-1 kept the audit logs ≥ 5 years,
+      // 7.3.4 stayed a gap because DS-1 lies outside the EN 50742 scope).
+      const supporting = supportingMeasures(rule, graph, inScope, typeA);
+      if (supporting.length > 0) return outcome("met", { source: "supporting-measure", supporting });
+      return outcome(rule.withoutTarget.status, because(rule.withoutTarget.reason));
+    }
     return outcome("n/a", because("noApplicable", { types: targetTypes(rule.targets) }));
   }
 
@@ -461,16 +469,25 @@ function evaluateRule(rule: EvidenceRule<AnyRequirementId>, graph: Graph, input:
   }
 
   // Step 7 — supporting measure, automatically only for "any" rules (D-20).
-  if (rule.type !== "C" && rule.quantifier === "any") {
-    const supporting = rule.targets.flatMap((target) =>
-      candidates(graph, target, inScope, false)
-        .filter((e) => applicable(graph, e, target) === "yes" && satisfied(e, target, typeA) === "yes")
-        .map((e) => e.id),
-    );
-    if (supporting.length > 0) return { ...model, status: "met", source: "supporting-measure", supporting };
-  }
+  const supporting = supportingMeasures(rule, graph, inScope, typeA);
+  if (supporting.length > 0) return { ...model, status: "met", source: "supporting-measure", supporting };
 
   return model;
+}
+
+/** Step 7: elements outside the scope that satisfy an "any" rule (D-20); none for other rules. */
+function supportingMeasures(
+  rule: EvidenceRule<AnyRequirementId>,
+  graph: Graph,
+  inScope: (id: string) => boolean,
+  typeA: boolean,
+): string[] {
+  if (rule.type === "C" || rule.quantifier !== "any") return [];
+  return rule.targets.flatMap((target) =>
+    candidates(graph, target, inScope, false)
+      .filter((e) => applicable(graph, e, target) === "yes" && satisfied(e, target, typeA) === "yes")
+      .map((e) => e.id),
+  );
 }
 
 /** One element's answer to a checklist item: yes, no, or open (unknown). */

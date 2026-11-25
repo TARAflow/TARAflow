@@ -168,3 +168,10 @@ before either, so `done` is unchanged.
 Made from the generator output of 545630c0 (deterministic: the same bytes as the files in
 the examples repository); the header has no `inputCommit` because the files were dumped
 before they were committed there.
+
+**7.3.4 / 8.5 met by a supporting measure (manual test 2026-11-25).** A data store outside
+the EN 50742 scope that keeps the audit logs ≥ 5 years now meets EN 50742 A 7.3.4 and B 8.5
+as a supporting measure, as it already met 7.3.2 and 7.3.3. In both generated examples
+`DS-1` does: the rows go from `gap` (`noAuditRecordStore`) to `met`, source
+`supporting-measure`, `supportingElements: ["11"]`. The references in `0.20/en50742/` are
+updated; nothing else changed.

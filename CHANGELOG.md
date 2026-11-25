@@ -155,6 +155,11 @@ existing EN 50742 A projects can change (see the upgrade notes).
   briefly missing) — and *Remove* would have cleared every safety rating. The Risks tab now
   asks only while the project really has no safety data, and the open question is no longer
   written to the file.
+- **EN 50742 7.3.4 (A) / 8.5 (B) stayed a gap with the audit logs kept ≥ 5 years:** the
+  store that keeps them often lies outside the EN 50742 scope (no relevant flow reaches it),
+  and the row then skipped the supporting measures that 7.3.2 and 7.3.3 already count. A
+  store outside the scope that keeps the audit logs at least 5 years now meets the row as a
+  supporting measure, and the notes name it.
 - **Compliance tab, EN 50742: the scope chip said "the whole machine":** the matrix covers the
   relevant interfaces and flows (of the safety zone, or on a path to a safety function) and
   the elements they reach directly. The chip now names the safety zone (*"Scope: safety zone

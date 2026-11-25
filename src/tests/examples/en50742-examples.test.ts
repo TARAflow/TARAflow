@@ -57,15 +57,17 @@ describe("EN 50742 A example — safety zone, standard method + A", () => {
     expect(d.risks.findings.map((f: Json) => f.code)).not.toContain("reduceUnmitigated");
   });
 
-  it("the EN 50742 A matrix; 7.3.4 names why: DS-1 keeps the audit records, but no relevant flow reaches it", () => {
+  it("the EN 50742 A matrix; 7.3.4 met by DS-1 as a supporting measure", () => {
     // The model rows look at the relevant interfaces and flows and what they
     // reach directly (rule sheet R2): P-1 → DS-1 does not cross the zone's
-    // border, so DS-1 is out of their scope (manual test 4.4, "otherwise the
-    // row names why").
+    // border, so DS-1 is out of their scope. As for 7.3.2 / 7.3.3, a store
+    // outside the scope that keeps the records ≥ 5 years meets 7.3.4 as a
+    // supporting measure (manual test 4.4, decision 2026-11-25).
     const all = Object.values(d.compliance["en-50742-a"].achieved.rows) as Json[];
     expect(all.length).toBeGreaterThan(0);
     const audit = all.find((r) => /7\.3\.4/.test(r.label));
-    expect(audit).toMatchObject({ status: "gap", reason: { code: "noAuditRecordStore" } });
+    const ds1Id = e.project.dfd.elements.find((x: Json) => x.displayId === "DS-1").id;
+    expect(audit).toMatchObject({ status: "met", source: "supporting-measure", supportingElements: [ds1Id] });
     const ds1 = e.project.dfd.elements.find((x: Json) => x.displayId === "DS-1");
     expect(ds1.properties).toMatchObject({ auditRecordRetention: "at_least_5_years" });
     expect(ds1.properties.storedDataTypes).toContain("audit_logs");

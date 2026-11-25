@@ -3,7 +3,7 @@
   "header": {
     "inputFile": "en50742/EN50742-B-SafetyZone.tara.json",
     "inputSha256": "fb373fddffbb269a542913879a22e121adc7199e50dba95e5cf287608e3ea3b1",
-    "taraflowCommit": "545630c0ed262cccb7ecb648257a329d2c896d10",
+    "taraflowCommit": "75e40d9fecf539291ba0bbb2b70388f20af04125+modified",
     "taraflowVersion": "0.20.0-beta",
     "threatCatalogVersion": 1
   },
@@ -696,13 +696,12 @@
             "label": "EN-8.5/487–488",
             "minSl": null,
             "mitigationIds": [],
-            "modelStatus": "gap",
-            "reason": {
-              "code": "noAuditRecordStore"
-            },
-            "reasoning": "no data store in scope keeps the audit logs — keep them for at least 5 years or state where they are kept",
-            "status": "gap",
-            "supportingElements": [],
+            "modelStatus": "met",
+            "source": "supporting-measure",
+            "status": "met",
+            "supportingElements": [
+              "11"
+            ],
             "supportingMeasuresAllowed": false,
             "unknown": []
           },
@@ -1687,13 +1686,12 @@
             "label": "EN-8.5/487–488",
             "minSl": null,
             "mitigationIds": [],
-            "modelStatus": "gap",
-            "reason": {
-              "code": "noAuditRecordStore"
-            },
-            "reasoning": "no data store in scope keeps the audit logs — keep them for at least 5 years or state where they are kept",
-            "status": "gap",
-            "supportingElements": [],
+            "modelStatus": "met",
+            "source": "supporting-measure",
+            "status": "met",
+            "supportingElements": [
+              "11"
+            ],
             "supportingMeasuresAllowed": false,
             "unknown": []
           },

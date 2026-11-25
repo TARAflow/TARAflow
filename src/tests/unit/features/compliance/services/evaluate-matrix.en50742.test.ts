@@ -84,6 +84,27 @@ describe("rows on risk and project evidence (until CM-12)", () => {
   });
 });
 
+// Manual test en-50742 4.4 (2026-11-25): DS-1 kept the audit logs for ≥ 5
+// years, but lies outside the EN 50742 scope (no relevant flow reaches it).
+// 7.3.2 / 7.3.3 counted it as a supporting measure, 7.3.4 stayed a gap.
+describe("7.3.4 — a store outside the scope that keeps the records", () => {
+  const RETENTION = "EN-7.3.4/317–319";
+  const store = (retention: string) =>
+    el("s", "DataStore", { storedDataTypes: ["audit_logs"], auditRecordRetention: retention });
+
+  it("meets the row as a supporting measure", () => {
+    const r = row(run([el("p", "Process"), store("at_least_5_years")], { scope: new Set(["p"]) }), RETENTION);
+    expect(r.status).toBe("met");
+    expect(r.source).toBe("supporting-measure");
+    expect(r.supportingElements).toEqual(["s"]);
+  });
+
+  it("stays a gap when the store outside keeps them too briefly, or no store keeps them", () => {
+    expect(row(run([el("p", "Process"), store("1_to_5_years")], { scope: new Set(["p"]) }), RETENTION).status).toBe("gap");
+    expect(row(run([el("p", "Process")], { scope: new Set(["p"]) }), RETENTION).status).toBe("gap");
+  });
+});
+
 describe("scope: the whole machine", () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const project: any = parseAndRepair(JSON.parse(readFileSync("src/tests/fixtures/SmokeDetector.tara.json", "utf-8")))!;
