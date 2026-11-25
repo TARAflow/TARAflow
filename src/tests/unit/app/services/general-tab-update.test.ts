@@ -133,3 +133,39 @@ describe("buildGeneralTabPatch — source-binding wiring", () => {
     expect(patch).toHaveProperty("phaseStatus");
   });
 });
+
+// Manual test en-50742 7.2 (2026-11-25): switching the EL badges off in the
+// project settings left the stored DFD image (with badges) in the report —
+// the badges are display only, no diagram save followed.
+describe("buildGeneralTabPatch — stored DFD images follow the marks", () => {
+  const dfd = {
+    xml: "<mxfile/>",
+    elements: [],
+    connections: [],
+    thumbnail: "data:image/png;base64,AAA",
+    pages: [{ pageId: "p1", name: "Top", thumbnail: "data:image/svg+xml;base64,BBB" }],
+  };
+  const en50742 = { ...EMPTY_PROJECT_TAGS, regulation: ["EN 50742 A"] };
+  const project = (settings: Record<string, unknown>, tags = en50742) =>
+    makeProject({ dfd: dfd as never, settings: settings as never, info: { ...makeProject().info, tags } as never });
+  const data = (settings: Record<string, unknown>, tags = en50742) =>
+    makeGeneralTabData({ settings: settings as never, info: { ...makeGeneralTabData().info, tags } as never });
+
+  it("drops the images when the badges are switched off", () => {
+    const patch = buildGeneralTabPatch(project({}), data({ dfdBadges: false }));
+    expect(patch.dfd?.thumbnail).toBeUndefined();
+    expect(patch.dfd?.pages?.[0]).toEqual({ pageId: "p1", name: "Top" });
+    expect(patch.dfd?.xml).toBe("<mxfile/>");
+  });
+
+  it("drops them when the EN 50742 tag comes or goes (default of the badges, the zone frame)", () => {
+    const patch = buildGeneralTabPatch(project({}, { ...EMPTY_PROJECT_TAGS }), data({}));
+    expect(patch.dfd?.thumbnail).toBeUndefined();
+  });
+
+  it("keeps them when the marks stay — no dfd in the patch", () => {
+    expect(buildGeneralTabPatch(project({}), data({})).dfd).toBeUndefined();
+    // an explicit "on" in an EN 50742 project is what it showed already
+    expect(buildGeneralTabPatch(project({}), data({ dfdBadges: true })).dfd).toBeUndefined();
+  });
+});

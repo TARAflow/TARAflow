@@ -52,6 +52,10 @@ import { waitForRenderable } from "../utils/wait-for-renderable";
 
 // ==================== TYPES ====================
 
+
+/** How long a thumbnail dropped for changed marks waits for the DFD tab to be shown. */
+const MARKS_THUMBNAIL_WAIT_MS = 60 * 60 * 1000;
+
 export interface UseDFDEditorOptions {
   onDirtyChange?: (isDirty: boolean) => void;
   onUpdate?: (updates: DFDUpdateResult) => void;
@@ -377,22 +381,39 @@ export function useDFDEditor(
   // (onAfterDrawioSave); regenerating it on every OPEN raced draw.io's
   // rendering (hidden tab, fonts not loaded → missing/shifted labels) and
   // rewrote dfd.thumbnail on every open (churn in the .tara.json history).
-  const handlePluginReady = useCallback(async () => {
+  // One export of a missing thumbnail at a time (plugin ready, marks applied).
+  const missingThumbnailBusyRef = useRef(false);
+  const generateMissingThumbnail = useCallback(async (timeoutMs?: number) => {
     if (!generateThumbnailOnSave) return;
     if (projectRef.current.dfd?.thumbnail) return;
     // Leveled DFD: thumbnails per page (D18, usePageThumbnails).
     if ((projectRef.current.dfd?.pages?.length ?? 0) > 1) return;
+    if (missingThumbnailBusyRef.current) return;
+    missingThumbnailBusyRef.current = true;
+    try {
+      await exportMissingThumbnail(timeoutMs);
+    } finally {
+      missingThumbnailBusyRef.current = false;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [generateThumbnailOnSave]);
 
+  const handlePluginReady = useCallback(() => generateMissingThumbnail(), [generateMissingThumbnail]);
+
+  const exportMissingThumbnail = async (timeoutMs?: number) => {
     // Wait until draw.io can export faithfully (visible, fonts loaded, layout
     // settled) instead of a fixed delay. Never visible → skip; the first
     // autosave after an edit produces the thumbnail.
     const renderable = await waitForRenderable(
       () => bridgeRef.current?.iframeRef.current,
+      timeoutMs ? { timeoutMs } : undefined,
     );
     if (!renderable) {
       console.debug("[useDFDEditor] Initial thumbnail skipped — DFD iframe not visible");
       return;
     }
+    // Rendered meanwhile (autosave, the other trigger)?
+    if (projectRef.current.dfd?.thumbnail) return;
 
     console.log("[useDFDEditor] Plugin ready — generating initial thumbnail");
     try {
@@ -400,7 +421,7 @@ export function useDFDEditor(
       if (imageData) {
         // Push thumbnail into the project via a lightweight save so it
         // persists immediately without requiring a full manual save.
-        const result = await persistence.save(imageData);
+        const result = await persistenceSaveRef.current?.(imageData);
         if (result) {
           console.log("[useDFDEditor] Initial thumbnail saved");
         }
@@ -408,8 +429,7 @@ export function useDFDEditor(
     } catch (err) {
       console.warn("[useDFDEditor] Initial thumbnail generation failed:", err);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [generateThumbnailOnSave]);
+  };
 
   // Ref so handlePluginReady can call bridge.exportImage without closing
   // over a stale bridge instance from a previous render.
@@ -525,6 +545,10 @@ export function useDFDEditor(
     pages: project.dfd?.pages,
     enabled: dfdBadgesShown(project.settings?.dfdBadges, project.en50742 === true),
     en50742: project.en50742 === true,
+    // The stored image is dropped when the marks change (setting, tag); render
+    // it again once the editor shows them (manual test en-50742 7.2).
+    // The DFD tab stays mounted while hidden: wait until it is shown.
+    onApplied: () => void generateMissingThumbnail(MARKS_THUMBNAIL_WAIT_MS),
   });
 
   // Export/Import layer

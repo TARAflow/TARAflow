@@ -90,6 +90,21 @@ describe("useDfdBadges", () => {
     expect(bridge.loadXML).not.toHaveBeenCalled();
   });
 
+  it("calls onApplied once the editor shows the marks — after a reload and without one (manual test en-50742 7.2)", async () => {
+    const onApplied = vi.fn();
+    const { rerender } = renderHook((o: UseDfdBadgesOptions) => useDfdBadges(bridge, o), {
+      initialProps: { ...options({ defaultExposureLevel: "EL1" }), onApplied },
+    });
+    await vi.advanceTimersByTimeAsync(20);
+    expect(bridge.loadXML).toHaveBeenCalledTimes(1);
+    expect(onApplied).toHaveBeenCalledTimes(1);
+    // the setting switched off: the badges go, onApplied again
+    rerender({ ...options({ defaultExposureLevel: "EL1" }, { enabled: false }), onApplied });
+    await vi.advanceTimersByTimeAsync(20);
+    expect(xml).not.toContain('label="EL1"');
+    expect(onApplied).toHaveBeenCalledTimes(2);
+  });
+
   it("waits for the editor", async () => {
     (bridge as { isLoading: boolean }).isLoading = true;
     renderHook(() => useDfdBadges(bridge, options({ defaultExposureLevel: "EL1" })));

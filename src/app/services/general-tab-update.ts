@@ -19,6 +19,36 @@
 import type { Project } from "app/models/project-types";
 import type { GeneralTabData } from "features/overview";
 import { applyRegulationFromTags } from "app/services/regulation-preset-orchestrator";
+import { EMPTY_PROJECT_TAGS, dfdBadgesShown, en50742ApproachFromTags } from "shared";
+
+/**
+ * What the stored DFD images show besides the diagram (0.20): the EL badges
+ * (the setting, else the EN 50742 tag) and the safety-zone frame (EN 50742).
+ */
+function dfdMarks(project: Project): string {
+  const en50742 = en50742ApproachFromTags(project.info?.tags ?? EMPTY_PROJECT_TAGS) !== undefined;
+  return `${dfdBadgesShown(project.settings?.dfdBadges, en50742)}/${en50742}`;
+}
+
+/**
+ * The DFD without its stored images, when the marks they show changed — the
+ * badges are display only, so no diagram save follows a change of the
+ * setting or the tag and the report kept the old image (manual test en-50742
+ * 7.2, 2026-11-25). The DFD tab renders the missing images again.
+ */
+function dfdWithStaleImagesDropped(current: Project, next: Project): Pick<Project, "dfd"> | Record<string, never> {
+  const dfd = current.dfd;
+  if (!dfd || dfdMarks(current) === dfdMarks(next)) return {};
+  const hasImage = !!dfd.thumbnail || (dfd.pages ?? []).some((p) => !!p.thumbnail);
+  if (!hasImage) return {};
+  const { thumbnail: _dropped, ...rest } = dfd;
+  return {
+    dfd: {
+      ...rest,
+      ...(dfd.pages ? { pages: dfd.pages.map(({ thumbnail: _t, ...page }) => page) } : {}),
+    },
+  };
+}
 
 /** The shape updateProject expects: a partial project keyed by id. */
 export type GeneralTabPatch = Partial<Project> & { id: string };
@@ -54,5 +84,6 @@ export function buildGeneralTabPatch(
     // caller without it never clears the stored one.
     ...(data.itemDefinition ? { itemDefinition: data.itemDefinition } : {}),
     ...(project.risks ? { risks: project.risks } : {}),
+    ...dfdWithStaleImagesDropped(current, project),
   };
 }
