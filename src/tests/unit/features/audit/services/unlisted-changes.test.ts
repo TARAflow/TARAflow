@@ -103,6 +103,16 @@ describe("unlistedChanges", () => {
     ]);
   });
 
+  // 0.20 manual test D3 (2026-11-25): moving a trust boundary re-derived the
+  // threats' asset links from the DFD — 18 lines under "does not list".
+  it("a threat's asset links are derived from the DFD: not named", () => {
+    const withLinks = (ids: string[]) =>
+      JSON.stringify({ threats: { perInteractionTables: [{ threats: [{ id: "t1", linkedAssetIds: ids }] }] } });
+    const r = unlistedChanges(withLinks(["a1"]), withLinks(["a1", "a2"]), { listedByDiff: true });
+    expect(r.derivedOnly).toBe(true);
+    expect(unlistedChanges(withLinks(["a1"]), withLinks(["a1", "a2"])).changes.map((c) => c.notAudited)).toEqual(["derived"]);
+  });
+
   it("credentials: named, never their values", () => {
     const withToken = (token: string) => JSON.stringify({ integration: { connection: { credentials: { apiToken: token } } } });
     expect(unlistedChanges(withToken("a"), withToken("b")).changes).toEqual([

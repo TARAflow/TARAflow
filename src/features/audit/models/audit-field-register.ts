@@ -179,6 +179,10 @@ export const AUDIT_FIELD_REGISTER: readonly AuditFieldEntry[] = [
   derived("threats/*/*/trustBoundaryName", "from the DFD"),
   derived("threats/*/*/trustBoundaryDisplayId", "from the DFD"),
   derived("threats/*/*/initialImpact", "from the assets"),
+  // re-derived from the DFD's asset relations on every graph sync
+  // (refreshLinkedAssets) — moving a boundary listed 18 threats (0.20 manual
+  // test D3, 2026-11-25)
+  derived("threats/*/*/linkedAssetIds", "from the DFD's asset relations"),
   derived("threats/*/*/relevanceOverridden", "marker (the relevance is listed)"),
   derived("threats/*/*/review", "set when a rule changes"),
   derived("threats/*/*/review/**", "set when a rule changes"),
