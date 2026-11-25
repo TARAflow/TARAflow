@@ -299,6 +299,10 @@ Designs: `doc/Open/Threat/transducer-threat-catalogue-design.md` (phase 0) and
   - a DFD image missing in the file (the report shows no diagram) is rendered once the
     DFD tab is shown, without the 10 s limit at opening, and the Doc tab says why it is
     missing — unless done in 0.20.
+  - Audit tab: **discard the changes** of the project file — restore its committed state
+    (git checkout of the file, after a confirmation naming what is lost; the project is
+    reloaded). For changes one does not want to keep, also when only timestamps differ
+    from the commit (a value set and set back).
 
 ### 3.3 0.22 — EN 18031 and EN 40000-1-4
 
