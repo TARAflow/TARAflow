@@ -1002,6 +1002,20 @@ export class DiffService {
       });
     }
 
+    // Verifications chosen for the risk (they come with its mitigations) —
+    // next to the mitigations, not under "does not list" (0.20 manual test
+    // D4, 2026-11-25).
+    const verifications = (r: Risk) => (r.selectedVerifications ?? []).join(", ");
+    if (verifications(previous) !== verifications(current)) {
+      details.push({
+        field: "selectedVerifications",
+        fieldLabel: "Verifications",
+        oldValue: verifications(previous) || undefined,
+        newValue: verifications(current) || undefined,
+        valueType: "string",
+      });
+    }
+
     // Factor ratings (value, source, override rationale) — a rationale or a
     // value change that leaves the calculated risk unchanged must still open
     // the commit gate (multi-project TARA §7.2, patch 16).

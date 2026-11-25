@@ -116,6 +116,13 @@ exports[`DiffService — commit body for single changes (SmokeDetector golden) >
         value: — → Accepted by the product owner"
 `;
 
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > risk: verifications chosen 1`] = `
+"- Changes:
+  - Risks: 1 items
+    ~ R-3858ee2c-f62f-492c-93ab-c483252cdffc: R-P2-T-1 (T)
+        Verifications: — → V-T-001, V-T-002"
+`;
+
 exports[`DiffService — commit body for single changes (SmokeDetector golden) > settings: strict mode 1`] = `
 "- Changes:
   - Changes the audit diff does not list: 1 items

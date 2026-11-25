@@ -200,6 +200,7 @@ export const AUDIT_FIELD_REGISTER: readonly AuditFieldEntry[] = [
   covered("risks/risks/*/selectedMitigations", "Mitigations"),
   covered("risks/risks/*/selectedMitigations/*", "Mitigations (added / removed)"),
   covered("risks/risks/*/selectedMitigations/*/status", "Mitigations"),
+  covered("risks/risks/*/selectedVerifications", "Verifications"),
   covered("risks/risks/*/factorRatings", "Factor ratings"),
   covered("risks/risks/*/factorRatings/*", "Factor ratings"),
   covered("risks/risks/*/factorRatings/*/value", "Factor ratings"),

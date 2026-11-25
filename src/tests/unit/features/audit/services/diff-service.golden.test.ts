@@ -64,6 +64,8 @@ const CASES: [string, (p: Json) => void][] = [
   ["asset: security goal level", (p) => (asset(p).securityGoals[0].level = asset(p).securityGoals[0].level === "high" ? "low" : "high")],
   ["dfd: element property", (p) => (p.dfd.elements.find((e: Json) => e.type === "Process").properties.notes = "Changed note")],
   ["risk: mitigation status", onCase((p) => (riskWithMitigation(p).selectedMitigations[0].status = "verified"))],
+  // 0.20 manual test D4: listed with the risk, next to its mitigations
+  ["risk: verifications chosen", onCase((p) => (riskWithMitigation(p).selectedVerifications = ["V-T-001", "V-T-002"]))],
   // not listed before 0.20 item 16
   ["threat: relevance", (p) => (threat(p).relevance = threat(p).relevance === "relevant" ? "not_relevant" : "relevant")],
   ["threat: threat actor", (p) => (threat(p).threatActor = "insider")],
