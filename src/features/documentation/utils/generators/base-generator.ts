@@ -1643,7 +1643,11 @@ export abstract class BaseDocumentGenerator {
       return { id: chapterId, title, content: "", hasContent: false };
     }
 
-    const woo = t(config.windowOfOpportunity ?? "-");
+    // Labels, not the stored values: "moderately_restricted" read raw, and in
+    // Markdown the underscores turned into emphasis ("moderatelyrestricted").
+    const label = (key: string, value: string | undefined): string =>
+      value ? t(`${key}.${value}`, value.replace(/_/g, " ")) : "-";
+    const woo = label("tabs.doc.compliance.wooLevel", config.windowOfOpportunity);
     const assetsById = new Map(
       (project.assets?.assets ?? []).map((a) => [a.id, a]),
     );
@@ -1657,8 +1661,10 @@ export abstract class BaseDocumentGenerator {
     // threat, not the risk).
     const threatById = reportThreatsById(project);
 
+    // Won't risks stay in: MoSCoW does not lift the SRSL or its mandated
+    // controls (EN 50742 A, as on the Compliance tab — 0.20 manual test
+    // en-50742 3.6, 2026-11-25).
     const srslRows = (project.risks?.risks ?? [])
-      .filter((r) => r.moscowPriority !== "wont")
       .filter((r) => ratingValue(r, "exposure_level") > 0)
       .map((risk) => {
         const el =
@@ -1700,7 +1706,7 @@ export abstract class BaseDocumentGenerator {
         const values = {
           threatId: risk.threatDisplayId,
           asset: this.escapeTableText(safetyAsset?.name ?? "-"),
-          severity: t(safetyAsset?.physicalImpact ?? "-"),
+          severity: label("safetySeverity", safetyAsset?.physicalImpact),
           el,
           woo,
           ac,
@@ -1824,6 +1830,9 @@ export abstract class BaseDocumentGenerator {
           project.risks?.configuration?.likelihoodMethod === "iso-21434"
             ? isoRiskLabel(risk, this.ctx.t, false)
             : riskScoreText(risk.calculatedRiskBeforeMitigation, project.risks?.configuration, this.ctx.lang);
+        // EN 50742 A: accepting the risk does not lift its SRSL — name it, the
+        // mandated controls stay required (see the SRSL chapter).
+        const srsl = risk.calculatedSrsl ? ` · ${risk.calculatedSrsl}` : "";
 
         const values = {
           id: formatRiskLabel(risk),
@@ -1832,7 +1841,7 @@ export abstract class BaseDocumentGenerator {
           threatDescription: this.escapeTableText(
             risk.threatDescription || "-",
           ),
-          riskBeforeLabel,
+          riskBeforeLabel: riskBeforeLabel + srsl,
           justification: this.escapeTableText(risk.wontJustification || "-"),
         };
         return replacePlaceholders(this.getWontRiskRowTemplate(), values);

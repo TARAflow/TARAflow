@@ -155,6 +155,13 @@ existing EN 50742 A projects can change (see the upgrade notes).
   briefly missing) — and *Remove* would have cleared every safety rating. The Risks tab now
   asks only while the project really has no safety data, and the open question is no longer
   written to the file.
+- **Report: a *won't* risk dropped out of the SRSL chapter:** with EN 50742 A, setting a
+  relevant risk to MoSCoW *won't* removed it from the SRSL chapter, and the Accepted Risks
+  table did not name its SRSL — while the Compliance tab rightly kept its mandated controls
+  required. The SRSL chapter now lists it, and the Accepted Risks table shows the SRSL next
+  to the risk (*"6.5 – High · SRSL2"*). The window of opportunity and the severity in the
+  SRSL chapter are now labels instead of stored values (in Markdown, `moderately_restricted`
+  came out as *moderatelyrestricted*).
 - **Risks tab kept asking to confirm threats that were confirmed:** a risk keeps a copy of
   its threat's relevance that only a risk sync updates, and a changed relevance did not ask
   for a sync — after confirming an uncertain threat in the Threats tab, the banner and the
