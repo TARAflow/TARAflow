@@ -68,6 +68,8 @@ const CASES: [string, (p: Json) => void][] = [
   ["risk: verifications chosen", onCase((p) => (riskWithMitigation(p).selectedVerifications = ["V-T-001", "V-T-002"]))],
   // not listed before 0.20 item 16
   ["threat: relevance", (p) => (threat(p).relevance = threat(p).relevance === "relevant" ? "not_relevant" : "relevant")],
+  // a threat whose id is not its display id: named by the display id (0.20 manual test, 2026-11-25)
+  ["threat: relevance, internal id", onCase((p) => (threat(p).relevance = threat(p).relevance === "relevant" ? "not_relevant" : "relevant"))],
   ["threat: threat actor", (p) => (threat(p).threatActor = "insider")],
   ["risk: treatment", (p) => (risk(p).treatment = risk(p).treatment === "accept" ? "reduce" : "accept")],
   ["risk: mitigation evidence note", onCase((p) => (riskWithMitigation(p).selectedMitigations[0].evidenceNote = "Test report TR-7"))],

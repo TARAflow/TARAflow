@@ -841,7 +841,7 @@ export class DiffService {
         changes.push({
           type: "modified",
           id: currentThreat.id,
-          name: `${currentThreat.id} (${currentThreat.strideCategory})`,
+          name: `${currentThreat.displayId || currentThreat.id} (${currentThreat.strideCategory})`,
           description: `Threat modified: ${details.length} field(s) changed`,
           details,
         });

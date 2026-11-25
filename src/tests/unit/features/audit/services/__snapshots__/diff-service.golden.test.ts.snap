@@ -144,6 +144,13 @@ exports[`DiffService — commit body for single changes (SmokeDetector golden) >
         Relevance: unrated → relevant"
 `;
 
+exports[`DiffService — commit body for single changes (SmokeDetector golden) > threat: relevance, internal id 1`] = `
+"- Changes:
+  - Threats: 1 items
+    ~ 3858ee2c-f62f-492c-93ab-c483252cdffc: P2-T-1 (T)
+        Relevance: relevant → not_relevant"
+`;
+
 exports[`DiffService — commit body for single changes (SmokeDetector golden) > threat: threat actor 1`] = `
 "- Changes:
   - Threats: 1 items
