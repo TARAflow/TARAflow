@@ -757,6 +757,7 @@ export const WorkspaceLayout: React.FC = () => {
               deviceProposal={complianceView.deviceProposal}
               nameOf={complianceView.nameOf}
               typeOf={complianceView.typeOf}
+              en50742Scope={complianceView.en50742Scope}
               today={new Date().toISOString().slice(0, 10)}
               onChange={handlers.handleComplianceChange}
               concept={activeProject.cybersecurityConcept}

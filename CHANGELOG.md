@@ -155,6 +155,11 @@ existing EN 50742 A projects can change (see the upgrade notes).
   briefly missing) — and *Remove* would have cleared every safety rating. The Risks tab now
   asks only while the project really has no safety data, and the open question is no longer
   written to the file.
+- **Compliance tab, EN 50742: the scope chip said "the whole machine":** the matrix covers the
+  relevant interfaces and flows (of the safety zone, or on a path to a safety function) and
+  the elements they reach directly. The chip now names the safety zone (*"Scope: safety zone
+  MTB — its interfaces, flows and what they reach"*), the paths, or that the scope is not
+  known yet; the guide text says the same.
 - **Report: a *won't* risk dropped out of the SRSL chapter:** with EN 50742 A, setting a
   relevant risk to MoSCoW *won't* removed it from the SRSL chapter, and the Accepted Risks
   table did not name its SRSL — while the Compliance tab rightly kept its mandated controls

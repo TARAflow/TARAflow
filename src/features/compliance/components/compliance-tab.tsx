@@ -196,6 +196,12 @@ export interface ComplianceTabProps {
   onShowElement?: (elementId: string) => void;
   /** Element / flow id → type, for the properties of the to-do list. */
   typeOf?: (id: string) => string | undefined;
+  /**
+   * EN 50742 (O17): what the matrix covers — the relevant interfaces and flows
+   * of the safety zone ("zone") or of the paths to a safety function ("path"),
+   * and the elements they reach directly; "none": not known yet.
+   */
+  en50742Scope?: { mode: "zone" | "path" | "none"; zones: readonly string[] };
   /** Goals and claims of the project — the supporting claims cover matrix rows (D-5, IEC-6). */
   concept?: CybersecurityConcept;
   /** Stores claim changes; absent = the info dialog shows no claims. */
@@ -268,6 +274,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
   onShowElement,
   mitigationSuggestions,
   typeOf,
+  en50742Scope,
   concept,
   onConceptChange,
   componentClaims,
@@ -292,6 +299,16 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
   const family = edition.family;
   const familyData = familyCompliance(data, family);
   const hasComponent = familyHasComponent(family);
+  const scopeLabel =
+    family === "en-50742" && en50742Scope
+      ? en50742Scope.mode === "zone"
+        ? t("scopeZone", "Scope: safety zone {{zones}} — its interfaces, flows and what they reach", {
+            zones: en50742Scope.zones.join(", "),
+          })
+        : en50742Scope.mode === "path"
+          ? t("scopePath", "Scope: the interfaces and flows on the paths to the safety functions")
+          : t("scopeUnknown", "Scope not known yet — mark a safety zone or give an asset a physical impact")
+      : t("wholeMachine", "Scope: the whole machine");
   // D-31: one statement per requirement, shared by the editions of the family.
   // EN 50742 B: the IEC 62443-4-2 rows read and write the statements of their own family (K-6).
   const statements = useMemo(
@@ -394,7 +411,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
               {levels ? (
                 <li>{t("guide2", "Set the SL-T per foundational requirement: what the operator, the zone or your customer requires.")}</li>
               ) : (
-                <li>{t("guideSrsl", "There is no target to set: the SRSL comes from the rated risks in the risk tab, and the requirements apply to the whole machine.")}</li>
+                <li>{t("guideSrsl", "There is no target to set: the SRSL comes from the rated risks in the risk tab. The requirements apply to the relevant interfaces and flows — those of the safety zone, or on a path to a safety function — and to the elements they reach directly.")}</li>
               )}
               <li>{t("guide3", "Work through the to-do list: set the missing properties in the DFD, and choose mitigations in the risk treatment where the model shows a requirement not met.")}</li>
               <li>{t("guide4", "Rows the model cannot show need a statement: reasoning and where the evidence is (manual, test report). Click a requirement number for everything about it.")}</li>
@@ -410,7 +427,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
           <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
             <Typography variant="h6">{edition.title}</Typography>
             {edition.draft && <Chip size="small" color="warning" label={t("draft", "draft")} />}
-            {!hasComponent && <Chip size="small" variant="outlined" label={t("wholeMachine", "Scope: the whole machine")} />}
+            {!hasComponent && <Chip size="small" variant="outlined" label={scopeLabel} data-testid="compliance-scope" />}
             {hasComponent && (
               <TextField
                 select

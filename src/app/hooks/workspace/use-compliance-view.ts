@@ -29,9 +29,19 @@ export function useComplianceView(activeProject: Project | undefined, activePhas
     const elements = activeProject.dfd?.elements ?? [];
     const componentId = activeProject.compliance?.componentId;
     const component = elements.find((e) => e.id === componentId);
+    const nameOf = complianceNameOf(activeProject);
+    // EN 50742 (O17): the matrix covers the relevant interfaces and flows, not
+    // the whole machine — the tab names the safety zone (manual test 4.1,
+    // 2026-11-25: "Scope: the whole machine" contradicted the rows).
+    const en50742Relevance = complianceStandards.some((s) => s.edition.family === "en-50742")
+      ? evaluation.en50742Relevance()
+      : undefined;
     return {
       ...evaluation,
-      nameOf: complianceNameOf(activeProject),
+      en50742Scope: en50742Relevance
+        ? { mode: en50742Relevance.mode, zones: en50742Relevance.zoneIds.map(nameOf) }
+        : undefined,
+      nameOf,
       typeOf: complianceTypeOf(activeProject),
       componentOptions: elements
         .filter((e) => e.type === "Multiprocess" || e.type === "Process")

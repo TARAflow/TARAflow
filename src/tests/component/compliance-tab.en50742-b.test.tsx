@@ -34,7 +34,7 @@ const B: Edition = {
   fixedSlTarget: { IAC: 2, UC: 2, SI: 2, DC: 0, RDF: 1, TRE: 1, RA: 2 },
 };
 
-function renderTab(data?: ComplianceData) {
+function renderTab(data?: ComplianceData, extra: Partial<React.ComponentProps<typeof ComplianceTab>> = {}) {
   const input: ComplianceInput = {
     edition: B,
     view: { elements: [{ id: "p1", type: "Process", properties: {} }], flows: [] },
@@ -55,6 +55,7 @@ function renderTab(data?: ComplianceData) {
       nameOf={(id) => id}
       today="2026-11-20"
       onChange={onChange}
+      {...extra}
     />,
   );
   return onChange;
@@ -91,5 +92,24 @@ describe("ComplianceTab — EN 50742 B", () => {
     fireEvent.click(screen.getByTestId("statement-save"));
     const second = onChange.mock.calls.at(-1)![0] as ComplianceData;
     expect(Object.keys(second.families?.["en-50742"]?.statements ?? {})).toEqual(["en-6-257"]);
+  });
+});
+
+// Manual test en-50742 4.1 (2026-11-25): the chip said "Scope: the whole
+// machine" while the rows cover the relevant interfaces and flows (O17).
+describe("EN 50742 — the scope chip names what the matrix covers", () => {
+  it("names the safety zone", () => {
+    renderTab(undefined, { en50742Scope: { mode: "zone", zones: ["MTB My Trust Boundary"] } });
+    const chip = screen.getByTestId("compliance-scope");
+    expect(chip.textContent).toContain("safety zone MTB My Trust Boundary");
+    expect(chip.textContent).not.toContain("whole machine");
+  });
+
+  it("names the paths to the safety functions, and an unknown scope", () => {
+    renderTab(undefined, { en50742Scope: { mode: "path", zones: [] } });
+    expect(screen.getByTestId("compliance-scope").textContent).toContain("paths to the safety functions");
+    cleanup();
+    renderTab(undefined, { en50742Scope: { mode: "none", zones: [] } });
+    expect(screen.getByTestId("compliance-scope").textContent).toContain("not known yet");
   });
 });
