@@ -284,6 +284,21 @@ Designs: `doc/Open/Threat/transducer-threat-catalogue-design.md` (phase 0) and
   retirements, so it falls into the one planned refresh.
 - Release note: threats on physical edges and on "physical world" entities disappear on
   regeneration.
+- **Moved from 0.20** (scope freeze 2026-11-22): the acknowledged audit findings
+  (`.taraflow/audit-acknowledged.json`, §3.1); a component's interfaces on its physical
+  boundary as attached reference copies on the machine's top page; the signing key from
+  the git configuration shown in its field.
+- **From the 0.20 manual test** (2026-11-25):
+  - audit commit: a change item names the record as the analyst knows it
+    (`R-P1-T-1 (T)`), not with its internal id in front (`R-fded5d2a-…: R-P1-T-1 (T)`)
+    — the audit verification reads the message, so with a test of it;
+  - the risk register follows a threat or DFD change in the same save: today a risk
+    removed for a threat set to *not relevant*, or an EL dropped because a flow left the
+    safety zone, reaches the file only with the next risk sync — and the commit of a
+    later, unrelated change;
+  - a DFD image missing in the file (the report shows no diagram) is rendered once the
+    DFD tab is shown, without the 10 s limit at opening, and the Doc tab says why it is
+    missing — unless done in 0.20.
 
 ### 3.3 0.22 — EN 18031 and EN 40000-1-4
 
