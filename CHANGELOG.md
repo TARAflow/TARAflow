@@ -1,4 +1,4 @@
-## [0.20.0-beta] - 2026-11-22
+## [0.20.0-beta] - 2026-11-26
 
 **EN 50742 Approach B and guard rails for stable results:** the tag *EN 50742 B*
 opens the IEC 62443-4-2 requirement set of prEN 50742 for a component's safety
@@ -68,10 +68,10 @@ existing EN 50742 A projects can change (see the upgrade notes).
   relevant*); every other change appears below *Changes the audit diff does not list*,
   by record as the analyst knows it (`threats.perElement[DB-E-1].causeDescription: … →
   …`), sorted, at most 20 per commit and the rest counted. Values computed by the app,
-  the DFD layout and the report settings stay out on purpose; tracker credentials are
-  named without their values. The audit diff also compares the threats of both methods
-  (before: only the active one's) and notices a measure replaced by another of the same
-  status.
+  the DFD layout, the method a tab shows and the report settings stay out on purpose;
+  a token or password is named without its value. The audit diff also compares the
+  threats of both methods (before: only the active one's), names changed threats by their
+  display id and notices a measure replaced by another of the same status.
 - **EN 50742 relevance:** EN 50742 is about the interfaces to the safety functions and
   the data flows crossing them. A trust boundary marked as *Safety zone (EN 50742)* (new mark,
   next to its type) marks the safety-related (yellow) part of a machine; without one, the interfaces and
@@ -154,6 +154,11 @@ existing EN 50742 A projects can change (see the upgrade notes).
   by an earlier push is removed on the next push — **revoke it**).
 
 ### Fixed
+- **Threat dialog — editing a text:** the pen stayed a pen while the threat or attack text
+  was edited, and every keystroke was taken over at once. Now ✓ takes the edited text
+  over and ✗ drops it; while a text is edited the dialog's buttons below are disabled.
+- **Threats no longer generated:** the dialog that asks *Keep* or *Remove* shows the
+  threat's text (and the attack text in its tooltip), not only its id and element.
 - **Issue tracker settings:** the tracker and its address are project settings — saved as
   they are changed and named in the audit commit; e-mail and token stay on this machine.
   *Disconnect* ends the connection on this machine (token, status) and keeps tracker,

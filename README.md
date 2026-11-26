@@ -224,6 +224,7 @@ The audit functionality includes:
 * A repository that signs stays signed: once its history introduced a signer manifest, every commit — for every project in it — is signed, decided on the manifest committed on the target branch as the verification engine does
 * TARA verification (ISO/SAE 21434 RQ-09-07) recorded in the Audit tab, sealed with a hash of the analysis (including the IEC 62443-4-2 matrix data, when present) and committed with a `Reviewed-by` trailer
 * Classified DFD diff in the commit dialog — semantic, graphical, structural and identity changes per page, plus the effect of a change on the analysis (e.g. a flow now resolved below a multiprocess)
+* Every change of the file is named in the commit: the decisions on threats and risks in their own lines, every other field by record (`risks.risks[R-12].treatment: reduce → accept`); values the app computes, the layout and the report settings stay out, tokens and passwords are never shown
 
 This makes it possible to use Git not only for source-code versioning but also as part of the **traceability and integrity model of the security analysis itself**.
 
@@ -269,7 +270,8 @@ A reused component — a sensor, a controller, a supplier's module — is analys
 * **Import** from the DFD tab: the component's committed `.tara.json` is read at a commit or tag (pinned) and inserted as a multiprocess with the component's DFD on read-only pages; its external entities are mapped to elements of the machine. Several instances get their own prefix, identical units a quantity.
 * **Taken over:** threats, attack trees, intrinsic factors, measures, assets and their relations, assumptions of use, supporting claims and the component's overview. **Decided by the machine per instance:** impact, context factors, the window of opportunity of the attack paths, the relevance of threats on the flows across the component's boundary, the assumptions of use as a checklist with evidence.
 * **Component measures count only while they hold:** a measure reduces the machine's risk only while the component implemented it and every assumption it relies on is fulfilled in the instance — otherwise it is *unclear* or *not effective*.
-* **Drift and update:** TARAflow detects a newer state of the component, shows what changed and which of the machine's decisions are affected, and can discard an update until the project is saved.
+* **Drift and update:** TARAflow detects a newer state of the component, shows what changed and which of the machine's decisions are affected, and can discard an update until the project is saved. An instance inserted by an older TARAflow is offered *Refresh stored state…*.
+* **Instance prefix:** each instance carries its prefix in every id, boundaries included (*[SD1:CASE]*; *[C1:SD1:CASE]* for a component that brings its own imports); *Change prefix…* renames it later, the decisions on the instance stay.
 * **Overview tab *Components*:** origin, instances, drift status and the **deviations** from the component (added goals, measures not effective, assumptions not fulfilled, overridden relevances) as one list for the component's team; the report has a chapter *Imported components*.
 
 ## ISO/SAE 21434 Support
@@ -645,7 +647,7 @@ The project format contains the information required to reconstruct and analyze 
 * Documentation configuration
 * Audit and integration settings the team shares (provider, remote, signing policy; tracker, URL, project, mapping)
 
-Personal values — the commit author, the tracker account and its connection state — are kept on the user's machine, not in the file; tokens and signing keys live in the OS keychain or the git configuration.
+Personal values — the commit author, the tracker account and its connection state — are kept on the user's machine, not in the file; tokens and signing keys live in the OS keychain or the git configuration. Disconnecting a tracker ends the connection on this machine only; tracker, URL, project and mapping stay in the project.
 
 Project serialization is designed to provide stable, reproducible project data suitable for version control.
 
@@ -721,7 +723,7 @@ Recent development versions include:
 * `v0.17.2-beta` — fix: switching or closing projects no longer writes risks, hazards, audit settings or Overview data of one project into another; attack-tree changes saved on switch
 * `v0.18.0-beta` — more matrix rows from new model fields (Security sub-tabs, black-box multiprocess), EN 50742 Approach A requirement matrix, secure channels (TLS, mTLS, VPN, SSH, application level), "Information missing" with the empty field, Azure DevOps plus Jira Server / DC, GitHub, GitLab, OpenProject (preview), AND gate = one attack path, asset filter, hazard findings panel (schema 13)
 * `v0.19.0-beta` — component TARAs imported into a machine TARA (pinned to a commit, per-instance decisions, component measures credited only while their assumptions hold, drift check and update, Overview tab *Components* with the deviations, report chapter, AVE v2 check `component-import`); tracker link dialog; asset protection need and criticality removed (schema 14)
-* `v0.20.0-beta` — EN 50742 Approach B; EN 50742 relevance by safety zone or path for A and B, SRSL 0 only for an isolated safety function, exposure levels and the safety zone shown in the diagram (never stored); threat catalogue version stamp; audit commits name every change of the file; prefixed boundaries of imported components; git channel hardening (schema 14, no conversion)
+* `v0.20.0-beta` — EN 50742 Approach B; EN 50742 relevance by safety zone or path for A and B, SRSL 0 only for an isolated safety function, exposure levels and the safety zone shown in the diagram (never stored); threat catalogue version stamp; audit commits name every change of the file; prefixed boundaries of imported components; git channel hardening; DFD info of an element while rating threats and risks; *Change prefix…* for imported instances; tracker settings kept on disconnect (schema 14, no conversion)
 
 The current development state is represented by:
 

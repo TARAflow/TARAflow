@@ -317,9 +317,14 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
   // ── Local edit state for the current threat ───────────────────────────────
   const [local, setLocal] = useState<LocalThreatState | null>(null);
 
-  // ── Edit mode toggles ─────────────────────────────────────────────────────
-  const [editingThreat, setEditingThreat] = useState(false);
-  const [editingAttack, setEditingAttack] = useState(false);
+  // ── Text edit: a draft while editing, taken over with ✓, dropped with ✗ ──
+  // (0.20 manual test F2, 2026-11-26: the pen stayed a pen while editing and
+  // every keystroke was taken over at once — no way to cancel). Only ✓ takes
+  // a draft over; while one is open the footer's buttons are disabled until
+  // ✓ or ✗ ends it (user decision).
+  const [threatDraft, setThreatDraft] = useState<string | null>(null);
+  const [attackDraft, setAttackDraft] = useState<string | null>(null);
+  const editingText = threatDraft !== null || attackDraft !== null;
 
   // ── Add-entry forms ───────────────────────────────────────────────────────
   const [addingVerification, setAddingVerification] = useState(false);
@@ -329,8 +334,8 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
   useEffect(() => {
     if (open && currentThreat) {
       setLocal(toLocalState(currentThreat));
-      setEditingThreat(false);
-      setEditingAttack(false);
+      setThreatDraft(null);
+      setAttackDraft(null);
       setAddingVerification(false);
       setNewVerificationText("");
     }
@@ -1025,40 +1030,32 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                   />
                 )}
                 {!readOnly && (
-                <Tooltip
-                  title={
-                    editingThreat
-                      ? t("tabs.threats.dialog.stopEdit", {
-                          defaultValue: "Stop editing",
-                        })
-                      : t("tabs.threats.dialog.edit", { defaultValue: "Edit" })
-                  }
-                >
-                  <IconButton
-                    size="small"
-                    onClick={() => setEditingThreat((v) => !v)}
-                    color={editingThreat ? "primary" : "default"}
-                  >
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
+                  <TextEditActions
+                    editing={threatDraft !== null}
+                    testId="threat-text"
+                    onEdit={() => setThreatDraft(local.threatDescription ?? "")}
+                    onSave={() => {
+                      if (threatDraft !== null && threatDraft !== local.threatDescription) {
+                        patch({ threatDescription: threatDraft, isTextCustomized: true });
+                      }
+                      setThreatDraft(null);
+                    }}
+                    onCancel={() => setThreatDraft(null)}
+                  />
                 )}
               </Stack>
-              {editingThreat ? (
+              {threatDraft !== null ? (
                 <TextField
                   fullWidth
                   multiline
                   minRows={2}
-                  value={local.threatDescription}
-                  onChange={(e) =>
-                    patch({
-                      threatDescription: e.target.value,
-                      isTextCustomized: true,
-                    })
-                  }
+                  autoFocus
+                  value={threatDraft}
+                  onChange={(e) => setThreatDraft(e.target.value)}
+                  inputProps={{ "data-testid": "threat-text-input" }}
                 />
               ) : (
-                <Typography variant="body2" color="#1e3a5f" fontWeight="medium">
+                <Typography variant="body2" color="#1e3a5f" fontWeight="medium" data-testid="threat-text-value">
                   {local.threatDescription || "—"}
                 </Typography>
               )}
@@ -1094,40 +1091,32 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
                   })}
                 </Typography>
                 {!readOnly && (
-                <Tooltip
-                  title={
-                    editingAttack
-                      ? t("tabs.threats.dialog.stopEdit", {
-                          defaultValue: "Stop editing",
-                        })
-                      : t("tabs.threats.dialog.edit", { defaultValue: "Edit" })
-                  }
-                >
-                  <IconButton
-                    size="small"
-                    onClick={() => setEditingAttack((v) => !v)}
-                    color={editingAttack ? "primary" : "default"}
-                  >
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
+                  <TextEditActions
+                    editing={attackDraft !== null}
+                    testId="attack-text"
+                    onEdit={() => setAttackDraft(local.attackDescription ?? "")}
+                    onSave={() => {
+                      if (attackDraft !== null && attackDraft !== local.attackDescription) {
+                        patch({ attackDescription: attackDraft, isTextCustomized: true });
+                      }
+                      setAttackDraft(null);
+                    }}
+                    onCancel={() => setAttackDraft(null)}
+                  />
                 )}
               </Stack>
-              {editingAttack ? (
+              {attackDraft !== null ? (
                 <TextField
                   fullWidth
                   multiline
                   minRows={2}
-                  value={local.attackDescription}
-                  onChange={(e) =>
-                    patch({
-                      attackDescription: e.target.value,
-                      isTextCustomized: true,
-                    })
-                  }
+                  autoFocus
+                  value={attackDraft}
+                  onChange={(e) => setAttackDraft(e.target.value)}
+                  inputProps={{ "data-testid": "attack-text-input" }}
                 />
               ) : (
-                <Typography variant="body2" color="#334155" fontStyle="italic">
+                <Typography variant="body2" color="#334155" fontStyle="italic" data-testid="attack-text-value">
                   {local.attackDescription || "—"}
                 </Typography>
               )}
@@ -1733,7 +1722,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
               <IconButton
                 size="small"
                 onClick={navigatePrev}
-                disabled={currentIndex === 0}
+                disabled={currentIndex === 0 || editingText}
               >
                 <PrevIcon fontSize="small" />
               </IconButton>
@@ -1775,6 +1764,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
             color="error"
             variant="outlined"
             onClick={handleDismiss}
+            disabled={editingText}
           >
             {t("tabs.threats.eval.dismiss", { defaultValue: "Dismiss" })}
           </Button>
@@ -1784,6 +1774,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
             color="warning"
             variant="outlined"
             onClick={handleMarkUncertain}
+            disabled={editingText}
           >
             {t("tabs.threats.eval.markUncertain", {
               defaultValue: "Uncertain",
@@ -1796,6 +1787,7 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
             variant="outlined"
             endIcon={<NextIcon />}
             onClick={handleConfirm}
+            disabled={editingText}
           >
             {t("tabs.threats.eval.confirmAndNext", { defaultValue: "Confirm" })}
           </Button>
@@ -1807,6 +1799,8 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
               saveCurrentThreat();
               onClose();
             }}
+            disabled={editingText}
+            data-testid="threat-dialog-ok"
           >
             {t("common.ok", { defaultValue: "OK" })}
           </Button>
@@ -1827,3 +1821,39 @@ export const ThreatEvalDialog: React.FC<ThreatEvalDialogProps> = ({
 };
 
 export default ThreatEvalDialog;
+/**
+ * Pen while reading; ✓ (take the text over) and ✗ (drop it) while editing
+ * (0.20 manual test F2, 2026-11-26).
+ */
+const TextEditActions: React.FC<{ editing: boolean; testId: string; onEdit: () => void; onSave: () => void; onCancel: () => void }> = ({
+  editing,
+  testId,
+  onEdit,
+  onSave,
+  onCancel,
+}) => {
+  const { t } = useTranslation();
+  if (!editing) {
+    return (
+      <Tooltip title={t("tabs.threats.dialog.edit", { defaultValue: "Edit" })}>
+        <IconButton size="small" onClick={onEdit} data-testid={`${testId}-edit`}>
+          <EditIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    );
+  }
+  return (
+    <>
+      <Tooltip title={t("tabs.threats.dialog.applyEdit", { defaultValue: "Apply" })}>
+        <IconButton size="small" color="primary" onClick={onSave} data-testid={`${testId}-save`}>
+          <CheckIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      <Tooltip title={t("tabs.threats.dialog.cancelEdit", { defaultValue: "Cancel" })}>
+        <IconButton size="small" onClick={onCancel} data-testid={`${testId}-cancel`}>
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    </>
+  );
+};
