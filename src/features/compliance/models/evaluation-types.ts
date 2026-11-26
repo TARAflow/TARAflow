@@ -119,6 +119,13 @@ export interface ComplianceInput {
   deviceCategories?: DeviceCategoryChoice;
   /** EN 50742 A: risks, safety functions, hazards, WoO (CM-12); absent for other standards. */
   en50742?: En50742View;
+  /**
+   * The scope cannot be determined (EN 50742, O17: no safety zone and no
+   * safety function, or nothing found that crosses the zone / leads to a
+   * safety function) — model rows are unknown with this reason, never met
+   * and never n/a.
+   */
+  scopeUnknown?: "noSafetyScope" | "noRelevantInterface";
 }
 
 // ==================== RESULT ====================
@@ -180,6 +187,11 @@ export interface RowResult {
   statementModelChanged?: boolean;
   /** A statement on a device row that no longer applies is kept, not deleted (K-C1). */
   statementSuperseded?: boolean;
+  /**
+   * Shown and evaluated, not counted — outside the met / open summary and
+   * the SL-C (EN 50742 B, O14), with the reason.
+   */
+  recommended?: string;
   /** The statement names a supporting measure. */
   statementSupportingMeasure?: string;
   supportingMeasuresAllowed: boolean;

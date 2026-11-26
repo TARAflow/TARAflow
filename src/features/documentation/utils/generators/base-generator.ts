@@ -93,6 +93,7 @@ import type { Iso21434Feasibility as Iso21434FeasibilityLevel } from "../../../r
 import { assetImpactResolver } from "../../../assets/services/asset-impact-resolver";
 import { buildSecurityGoalDocRows } from "../security-goal-doc-rows";
 import { dfdStatsTable } from "../dfd-stats-table";
+import { dfdBadgeLegend } from "../dfd-badge-legend";
 import {
   methodologyContent,
   type MethodologySection,
@@ -119,6 +120,7 @@ import {
   getRegulationTags,
 } from "../../../../shared/utils/tag-categories";
 import { flattenProjectTags } from "../../../../shared/models/project-tags";
+import { hasEn50742Overlay } from "../../../../shared/models/regulation-preset";
 import {
   getElementSecurityLevel,
   getElementTrustLevel,
@@ -719,7 +721,7 @@ export abstract class BaseDocumentGenerator {
     const values = {
       dfdFigures: sections ? "" : this.formatDfdFigure(dfd.thumbnail || "dfd.png", alt),
       dfdPages: dfdPages + dfdParentLevel,
-      dfdStatsTable: this.formatStatsTable(dfdStatsTable(dfd, this.ctx.lang, this.ctx.t)),
+      dfdStatsTable: this.formatStatsTable(dfdStatsTable(dfd, this.ctx.lang, this.ctx.t)) + this.dfdLegend(dfd.elements),
     };
 
     const content = replacePlaceholders(this.getDfdTemplate(), values);
@@ -730,6 +732,12 @@ export abstract class BaseDocumentGenerator {
       content,
       hasContent: true,
     };
+  }
+
+  /** Legend of the EL badges and the safety zone in the figure (0.20); empty without marks. */
+  protected dfdLegend(elements: readonly DFDElement[] | undefined): string {
+    const legend = dfdBadgeLegend(elements, this.ctx.project.dfdMarks, this.ctx.lang);
+    return legend ? this.formatStatsTable(legend) : "";
   }
 
   /** One row of an element overview table (classic, or a page section). */
@@ -1631,11 +1639,15 @@ export abstract class BaseDocumentGenerator {
     const config = project.risks?.configuration;
     const tableTemplate = this.getSRSLTableTemplate();
 
-    if (config?.likelihoodMethod !== "en-50742-a" || !tableTemplate) {
+    if (!config || !hasEn50742Overlay(config) || !tableTemplate) {
       return { id: chapterId, title, content: "", hasContent: false };
     }
 
-    const woo = t(config.windowOfOpportunity ?? "-");
+    // Labels, not the stored values: "moderately_restricted" read raw, and in
+    // Markdown the underscores turned into emphasis ("moderatelyrestricted").
+    const label = (key: string, value: string | undefined): string =>
+      value ? t(`${key}.${value}`, value.replace(/_/g, " ")) : "-";
+    const woo = label("tabs.doc.compliance.wooLevel", config.windowOfOpportunity);
     const assetsById = new Map(
       (project.assets?.assets ?? []).map((a) => [a.id, a]),
     );
@@ -1649,8 +1661,10 @@ export abstract class BaseDocumentGenerator {
     // threat, not the risk).
     const threatById = reportThreatsById(project);
 
+    // Won't risks stay in: MoSCoW does not lift the SRSL or its mandated
+    // controls (EN 50742 A, as on the Compliance tab — 0.20 manual test
+    // en-50742 3.6, 2026-11-25).
     const srslRows = (project.risks?.risks ?? [])
-      .filter((r) => r.moscowPriority !== "wont")
       .filter((r) => ratingValue(r, "exposure_level") > 0)
       .map((risk) => {
         const el =
@@ -1692,7 +1706,7 @@ export abstract class BaseDocumentGenerator {
         const values = {
           threatId: risk.threatDisplayId,
           asset: this.escapeTableText(safetyAsset?.name ?? "-"),
-          severity: t(safetyAsset?.physicalImpact ?? "-"),
+          severity: label("safetySeverity", safetyAsset?.physicalImpact),
           el,
           woo,
           ac,
@@ -1816,6 +1830,9 @@ export abstract class BaseDocumentGenerator {
           project.risks?.configuration?.likelihoodMethod === "iso-21434"
             ? isoRiskLabel(risk, this.ctx.t, false)
             : riskScoreText(risk.calculatedRiskBeforeMitigation, project.risks?.configuration, this.ctx.lang);
+        // EN 50742 A: accepting the risk does not lift its SRSL — name it, the
+        // mandated controls stay required (see the SRSL chapter).
+        const srsl = risk.calculatedSrsl ? ` · ${risk.calculatedSrsl}` : "";
 
         const values = {
           id: formatRiskLabel(risk),
@@ -1824,7 +1841,7 @@ export abstract class BaseDocumentGenerator {
           threatDescription: this.escapeTableText(
             risk.threatDescription || "-",
           ),
-          riskBeforeLabel,
+          riskBeforeLabel: riskBeforeLabel + srsl,
           justification: this.escapeTableText(risk.wontJustification || "-"),
         };
         return replacePlaceholders(this.getWontRiskRowTemplate(), values);

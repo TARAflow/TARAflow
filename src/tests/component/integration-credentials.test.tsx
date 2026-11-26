@@ -51,14 +51,16 @@ describe("Integration tab — the token stays out of the project", () => {
     const onUpdate = vi.fn();
     render(<IntegrationTab data={{ integration: null }} onUpdate={onUpdate} />);
     fill();
-    await waitFor(() => expect(onUpdate).toHaveBeenCalled());
+    // the address is saved as typed (a project setting, 0.20); then the connection
+    await waitFor(() => expect(onUpdate.mock.calls.at(-1)?.[0].integration?.connection?.status).toBe("connected"));
     expect(api.saveToken).toHaveBeenCalledWith({
       tool: "jira",
       host: "https://acme.atlassian.net",
       account: "someone@example.com",
       token: "FAKE-api-token",
     });
-    const integration = onUpdate.mock.calls[0][0].integration;
+    const integration = onUpdate.mock.calls.at(-1)![0].integration;
+    for (const [call] of onUpdate.mock.calls) expect(JSON.stringify(call)).not.toContain("FAKE-");
     expect(JSON.stringify(integration)).not.toContain("FAKE-");
     expect(integration.connection).toMatchObject({
       tool: "jira",
@@ -78,7 +80,11 @@ describe("Integration tab — the token stays out of the project", () => {
     fill();
     expect((await screen.findByTestId("integration-result")).textContent).toMatch(/Authentication failed/);
     expect(api.deleteToken).toHaveBeenCalledWith({ tool: "jira", host: "https://acme.atlassian.net", account: "someone@example.com" });
-    expect(onUpdate).not.toHaveBeenCalled();
+    // only the address as typed (a project setting since 0.20) — no connection, no secret
+    for (const [call] of onUpdate.mock.calls) {
+      expect(call.integration.connection.status).toBe("disconnected");
+      expect(JSON.stringify(call)).not.toContain("FAKE-");
+    }
   });
 
   it("a form error is shown with the form's labels (i18n key + label params), no token is stored", async () => {

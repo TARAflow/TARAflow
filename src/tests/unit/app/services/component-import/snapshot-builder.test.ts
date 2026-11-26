@@ -234,6 +234,13 @@ describe("snapshotContentHash", () => {
     expect(canonicalStringify(JSON.parse(text))).toBe(text);
   });
 
+  it("the threat catalogue stamp does not change the hash (rule 5 — a regeneration stamp is no snapshot content)", () => {
+    const p = cnc();
+    const before = snapshotContentHash(buildComponentSnapshot(p));
+    p.threats = { ...p.threats!, catalogStamp: { "per-element": 7, "per-interaction": 7 } };
+    expect(snapshotContentHash(buildComponentSnapshot(p))).toBe(before);
+  });
+
   it("a save (timestamps, thumbnail) or an impact change does not change the hash", () => {
     const p = cnc();
     const before = snapshotContentHash(buildComponentSnapshot(p));

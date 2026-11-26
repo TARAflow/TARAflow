@@ -123,6 +123,22 @@ describe("detectGenerationDrift", () => {
     });
   });
 
+  it("an obsolete threat carries its stored threat and attack text (drift dialog, 0.20)", () => {
+    const stored = generated(["I", "C"]).map((table) => ({
+      ...table,
+      threats: table.threats.map((t) =>
+        t.strideCategory === "I"
+          ? { ...t, threatDescription: "Config read by others", attackDescription: "Attacker copies the store" }
+          : t,
+      ),
+    }));
+    const d = drift(["I"], stored);
+    expect(d.obsolete[0]).toMatchObject({
+      threatDescription: "Config read by others",
+      attackDescription: "Attacker copies the store",
+    });
+  });
+
   it("goal added → counted as to-be-added, nothing obsolete", () => {
     const d = drift(["I", "C"], generated(["I"]));
     expect(d.obsolete).toEqual([]);

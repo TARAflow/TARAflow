@@ -12,6 +12,7 @@
 //   everything else                         → the project's likelihood scale
 
 import type { FactorScaleDefinition } from "shared";
+import { hasEn50742Overlay } from "shared";
 import type { RiskConfiguration } from "../models/risk-config-types";
 import { LIKELIHOOD_SCALES } from "../models/risk-scale-types";
 import { factorClassOf, getFactorDefinition } from "../models/risk-factor-types";
@@ -79,7 +80,7 @@ export function factorScaleDefinition(
   const iso = (ISO21434_FACTOR_LEVELS as Record<string, readonly string[]>)[factorId];
   if (iso) return scoredLevels(iso, ISO_POINTS[factorId]);
 
-  if (configuration.likelihoodMethod === "en-50742-a" && EN50742_FACTOR_LEVELS[factorId]) {
+  if (hasEn50742Overlay(configuration) && EN50742_FACTOR_LEVELS[factorId]) {
     return scoredLevels(EN50742_FACTOR_LEVELS[factorId], EN50742_SCORES[factorId]);
   }
 

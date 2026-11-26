@@ -3,6 +3,7 @@ import path from "path";
 import { setupSingleInstance } from "./single-instance";
 import { buildAppMenu } from "./app-menu";
 import { hardenWindowNavigation, makeIsInternalUrl } from "./window-navigation";
+import { windowTitle } from "./window-title";
 import { configureDrawioRequests } from "./drawio-requests";
 
 import { registerShellHandlers } from "./ipc/shell-handlers";
@@ -117,6 +118,12 @@ function createWindow() {
   });
 
   win.setTitle(`TARAflow ${app.getVersion()}`);
+  // The renderer names the open project in document.title; the version is
+  // appended here (0.20 item 17).
+  win.on("page-title-updated", (event, title) => {
+    event.preventDefault();
+    win.setTitle(windowTitle(title, app.getVersion()));
+  });
 
   mainWindow = win;
 

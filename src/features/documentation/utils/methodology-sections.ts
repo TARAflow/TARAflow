@@ -39,7 +39,7 @@ const FEASIBILITY_FALLBACK: Record<string, string> = {
 };
 
 export function methodologyContent(m: DocMethodology, t: TranslateFn): MethodologyContent {
-  const basis = t(m.presetNameKey, m.presetId);
+  const basis = m.basisNameKeys ? m.basisNameKeys.map((k) => t(k, k)).join(" + ") : t(m.presetNameKey, m.presetId);
 
   // ── Overview ──────────────────────────────────────────────────────────────
   const isoScale = m.impact.scale === "4-level";
@@ -171,6 +171,31 @@ export function methodologyContent(m: DocMethodology, t: TranslateFn): Methodolo
       rows: impacts.map((i) => [
         t(`tabs.assets.impactScaleIso.${IMPACT_INDEX[i]}.label`, ISO_IMPACT_FALLBACK[IMPACT_INDEX[i] - 1]),
         ...cols.map((c) => String(m.riskMatrix![i]?.[c] ?? "")),
+      ]),
+    });
+  }
+
+  // ── Threat catalogue (catalogue divergence phase A) ──────────────────────
+  const catalog = m.threatCatalog;
+  const catalogMethods = catalog
+    ? (["per-element", "per-interaction"] as const).filter((x) => catalog.stored[x] !== undefined)
+    : [];
+  if (catalog && catalogMethods.length > 0) {
+    sections.push({
+      title: t(`${K}.threatCatalog`, "Threat catalogue"),
+      intro: t(
+        `${K}.threatCatalogIntro`,
+        "The catalogue version the generated threats were produced with. Threats from an older version may differ from what the current rules produce; a regeneration re-evaluates them and keeps the analyst's decisions.",
+      ),
+      headers: [
+        t(`${K}.threatMethod`, "STRIDE method"),
+        t(`${K}.catalogGenerated`, "Generated with"),
+        t(`${K}.catalogCurrent`, "Current"),
+      ],
+      rows: catalogMethods.map((x) => [
+        x === "per-element" ? t(`${K}.perElement`, "Per element") : t(`${K}.perInteraction`, "Per interaction"),
+        `v${catalog.stored[x]}`,
+        `v${catalog.current}`,
       ]),
     });
   }

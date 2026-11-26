@@ -247,7 +247,7 @@ export class MarkdownGenerator extends BaseDocumentGenerator {
       row(table.headers),
       `|${table.headers.map(() => "---").join("|")}|`,
       ...table.rows.map(row),
-      row(table.total.map((c) => `**${c}**`)),
+      ...(table.total.length > 0 ? [row(table.total.map((c) => `**${c}**`))] : []),
     ].join("\n") + "\n\n";
   }
 

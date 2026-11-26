@@ -36,6 +36,7 @@
       "prefixHint": "Before the component's ids, e.g. {{example}}",
       "prefixInvalid": "1–12 letters, digits, - or _",
       "prefixTaken": "Already used by another instance",
+      "prefixInner": "The component uses it inside for one of its own imports",
       "mappingTitle": "External entities of the component",
       "noEntities": "The component has no external entities.",
       "entity": "Component entity",
@@ -52,6 +53,7 @@
     "findings": {
       "CMP_NEWER_STATE_AVAILABLE": "Component {{component}}: a newer state is available ({{where}}). Nothing changes until it is taken over explicitly (update).",
       "CMP_NEWER_ON_OTHER_BRANCH": "Component {{component}}: the checked-out branch {{branch}} has a newer state ({{where}}); the import follows {{tracked}}. Overview → Components → \"Follow branch\" to take that branch.",
+      "CMP_INSTANCE_OUTDATED": "Component {{component}}, instance {{prefix}}: inserted by an older TARAflow — boundaries without the instance prefix, or the ids of a nested import in the wrong order. \"Refresh stored state…\" in the multiprocess's tab \"Component\" inserts it again; the component itself is unchanged.",
       "CMP_SNAPSHOT_BUILDER_CHANGED": "Component {{component}}: this TARAflow reads the imported state differently from the version that imported it — the component itself did not change. \"Refresh stored state…\" in the multiprocess's tab \"Component\" takes the new reading over.",
       "CMP_SOURCE_DIVERGED": "Component {{component}}: a state on a separate branch ({{where}}) — neither newer nor older than the imported one (e.g. after a rebase). Check with the component team before taking it over.",
       "CMP_SOURCE_UNREACHABLE": "Component {{component}}: whether a newer state exists cannot be checked here ({{reason}}).",
@@ -86,6 +88,13 @@
       "quantityHint": "Identical units in the same place — one analysis for all of them",
       "copyRatings": "Copy ratings from another instance…",
       "pathUnknown": "Where the component TARA lies on this computer is not known — open it via File → Open."
+    },
+    "prefix": {
+      "change": "Change prefix…",
+      "title": "Change the instance prefix",
+      "text": "The instance is inserted again with the new prefix: every id of it changes ({{current}}:P-1 → <new>:P-1). The decisions of this TARA on it stay.",
+      "confirm": "Change prefix",
+      "failed": "The prefix could not be changed: {{detail}}"
     },
     "update": {
       "open": "Update…",
@@ -225,6 +234,7 @@
       "measuresNone": "none chosen — select one or more",
       "measuresChosen": "Chosen as evidence ({{count}}):",
       "note": "Evidence note",
+      "notFulfilledNote": "Why it is not fulfilled",
       "status": {
         "open": "open",
         "fulfilled": "fulfilled",

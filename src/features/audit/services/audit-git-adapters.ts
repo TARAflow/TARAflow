@@ -12,6 +12,24 @@
 
 import type { GitRunner } from "./audit-repo-locator";
 import type { FileIO } from "./audit-repo-attributes";
+import { HOOKS_PATH_REL } from "./audit-repo-hooks";
+import { HOOK_REL_PATH } from "./audit-repo-ignore";
+
+/**
+ * The renderer's git calls that change a repository, mapped onto the main
+ * process's fixed operations (electron/ipc/git-fixed-ops.ts) — exactly these
+ * argument lists; anything else goes to the read-only git:rawInDir.
+ */
+const FIXED_OPS: readonly [op: "initRepo" | "setHooksPath" | "untrackHookFile" | "fetchTags", args: readonly string[]][] = [
+  ["initRepo", ["init"]],
+  ["setHooksPath", ["config", "core.hooksPath", HOOKS_PATH_REL]],
+  ["untrackHookFile", ["rm", "--cached", "--ignore-unmatch", HOOK_REL_PATH]],
+  ["fetchTags", ["fetch", "--quiet", "--tags"]],
+];
+
+export function fixedOpOf(args: readonly string[]) {
+  return FIXED_OPS.find(([, fixed]) => fixed.length === args.length && fixed.every((a, i) => a === args[i]))?.[0];
+}
 
 /**
  * A GitRunner backed by `window.git.rawInDir`. Structurally compatible with the
@@ -26,7 +44,14 @@ export function createIpcGitRunner(): GitRunner {
     if (!window.git?.rawInDir) {
       return { stdout: "", stderr: "Git API not available", code: 127 };
     }
-    const res = await window.git.rawInDir(cwd, args);
+    // What changes a repository has its own channel with arguments fixed in
+    // the main process (roadmap 0.20) — git:rawInDir only reads.
+    const op = fixedOpOf(args);
+    const res = op
+      ? window.git.fixedOp
+        ? await window.git.fixedOp(op, cwd)
+        : { success: false, error: "Git API not available" }
+      : await window.git.rawInDir(cwd, args);
     if (res.success && res.data) {
       return res.data;
     }

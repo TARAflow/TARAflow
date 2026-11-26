@@ -19,10 +19,51 @@
 > **ISO 21434** rides the same preset rails (see `regulation-presets-design.md`
 > and `iso-21434-conformance-implementation-plan.md`); the shared layers below are built once.
 >
+> **EN 50742 relevance — the safety zone (O17 / O18, user 2026-11-20).** EN 50742 is
+> about the interfaces to the safety functions and the data flows crossing them — for
+> Approach A and B alike. Machines usually separate a grey area from the yellow, safety-
+> related area; a trust boundary marked as the safety zone (`safetyZone`, a mark next to
+> its type — revised 2026-11-21) marks the yellow area. Relevant
+> are the flows crossing its border (either direction) and the interfaces they pass;
+> without a zone, the interfaces and flows on a path to a safety function (CM-12b).
+> One function decides it (`app/utils/en50742-relevance.ts`, with the reason per id).
+> Consequences for Approach A (0.20 patch 11): EL, AC, WoO and the SRSL only for risks
+> whose anchor is relevant — the other risks are rated as usual (L × I), shown as
+> "not EN 50742 relevant"; the model rows of the sub-tab are evaluated on the relevant
+> interfaces, flows and the elements they reach directly. No customer uses EN 50742
+> yet (user 2026-11-20): the change of results needs a release note, no migration.
+>
 > Normative source: prEN 50742:2025 (E), CENELEC CLC/TC 44X (Draft for Enquiry,
 > Dec 2025). Requirement wording below is condensed into implementation form;
 > the authoritative text is the standard itself. Numeric tables are reproduced
 > as data.
+
+---
+
+## 0. Rule sheet — what TARAflow decides in an EN 50742 A project (0.20)
+
+One page on purpose (scope review 2026-11-22): if the rules no longer fit here,
+customers and auditors will not follow them either — then something goes, nothing
+is added. Each rule says whether the standard asks for it (**norm**) or TARAflow
+derives it (**TARAflow**), and why. Clause numbers: prEN 50742:2025.
+
+| # | Rule | Basis | Why |
+|---|---|---|---|
+| R1 | **Method.** A project has one base method for R = L × I (standard or ETSI TVRA). EN 50742 A adds AP (WoO, EL, AC; Annex B) and an SRSL (Table B.6) next to it, for the relevant risks only. AP never stands alone. | norm (Annex B) + TARAflow (overlay) | Keeps the cyber risk of every threat; A rates the safety side. |
+| R2 | **Relevance — zone.** A trust boundary marked as the safety zone marks the yellow area. Relevant: every flow crossing its border (either direction) and every interface such a flow passes. | TARAflow | The standard is about the interfaces to the safety functions; the zone is the machine builder's grey / yellow separation. |
+| R2a | **Imported components.** The threats of an imported component are judged by the elements the import put into the machine: a component interface or flow crossing the machine's safety zone (or on a path to a safety function) is relevant like the machine's own. | TARAflow | A machine of platform components gets no silent gap at the components' interfaces (checked 2026-11-22, `en50742-relevance-imported.test.ts`). |
+| R3 | **Relevance — path.** Without a zone: the interfaces and flows on a path to a safety function (an asset with a physical impact). Neither zone nor safety function: nothing is relevant, the rows stay *unknown*, never *met*. | TARAflow | Same intent without a drawn zone; no silent "met". |
+| R4 | **Relevance — attack paths.** An attack-path risk is relevant when a leaf names a relevant interface / flow, not relevant when every leaf names an element and none is relevant, and relevant (to be safe) when it cannot be told. | TARAflow | Attack trees are not part of A; an optional extra must not let a risk off. |
+| R5 | **EL of an attack-path risk** is prefilled with the lowest EL of its leaves on a relevant anchor (else of all anchored leaves). The analyst can change it. | TARAflow | AND = MIN, the EN 50742 aggregation; a step behind the border says where, not how hard. |
+| R6 | **Isolation.** A safety function is isolated when every interface on a path to it has EL0 (an interface without EL counts as not isolated). | norm (Table 2, strict reading) | SRSL0 is for a completely isolated safety function. |
+| R7 | **SRSL0 gate.** Table B.6 can give SRSL0 for AP0; TARAflow raises it to SRSL1 unless the interface is EL0 **and** the risk's safety functions are isolated. Stored values that no longer fit are corrected with the next risk update. | norm (Table 2 over informative B.6) | Normative table wins over the informative one. |
+| R8 | **SRSL open.** A risk with an SRSL whose mandated controls (7.4.3) are not all done stays open in the progress — whatever its treatment. | norm (7.4.3 is mandatory) | Accepting the cyber risk lifts no safety requirement. |
+| R9 | **"Won't".** A risk prioritised *won't* stays in the SRSL rows of the requirement matrix. | norm (as R8) | Same reason: priority is a cyber decision. |
+| R10 | **7.1 per threat.** An exposed interface is assessed when every one of its threats has a risk with an SRSL or is dismissed with a reason; dismissing a threat on a relevant interface needs the reason. | norm (7.1) | The assessment covers each interface completely, not one threat of it. |
+
+**Strip candidates** (TARAflow rules the standard does not ask for), if a real project
+shows they confuse more than they help: R4 and R5 (attack paths in A), R3's path mode.
+Not before a customer or seminar case (scope review 2026-11-22).
 
 ---
 
@@ -407,9 +448,17 @@ information-for-use.
 
 ### 3.9 SRSL0 special case
 
-- [ ] SRSL0 emerges from AP0 in Table B.6, but Table 2 also describes it as
+- [x] SRSL0 emerges from AP0 in Table B.6, but Table 2 also describes it as
   "completely isolated safety function (no external interfaces)". Decide whether
   SRSL0 is purely AP-driven or also gated on "no external interfaces".
+  **Decided (0.20 patch 21):** gated. Table 2 is normative and B.6 informative. B.6
+  SRSL0 on an interface above EL0 is raised to SRSL1, per risk (= per interface, as
+  SRSL applies per safety function and interface). The result carries `srslRaised`,
+  and the risk dialog explains it. `guardSrslZero` in `en50742-approach-a-core.ts`.
+  **Tightened (patch 22, user 2026-11-21):** per safety function, as Table 2 describes the
+  function. The function must be completely isolated: every interface on its paths has
+  EL0 (`safetyFunctionIsolation` in `app/utils/en50742-relevance.ts`). Otherwise no risk
+  of it gets SRSL0. To check against the final EN.
 
 ### 3.10 7.4.3.4.2 wording quirk (carry faithfully)
 

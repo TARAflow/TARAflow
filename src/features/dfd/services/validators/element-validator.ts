@@ -352,10 +352,12 @@ function validateInterfaceConnectorTypes(
 /**
  * Check for duplicate ID labels.
  *
- * Imported component instances keep the component's boundary names ("Case
- * [CASE]") — two instances of one component bring the same ones on purpose
- * (manual test 2026-11-15). A duplicate among imported elements only is
- * therefore no finding; as soon as one of them is the machine's own, it is.
+ * Imported component instances up to 0.19 kept the component's boundary
+ * names ("Case [CASE]") — two instances of one component brought the same
+ * ones (manual test 2026-11-15). Since 0.20 the boundaries carry the instance
+ * prefix ("Case [SD1:CASE]"); instances from 0.19 keep their labels until the
+ * next update. A duplicate among imported elements only is therefore still
+ * no finding; as soon as one of them is the machine's own, it is.
  */
 export function validateDuplicateIdLabels(
   elements: DFDElement[],

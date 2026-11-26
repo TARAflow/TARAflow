@@ -219,6 +219,19 @@ the field, not on this feature.
 
 ## 10. EN 50742 — Approach A / Approach B Split
 
+> **As built (0.20, patch 14 — supersedes the `complianceProfile` / `machineryRole`
+> sketch below where it differs):** the preset `en-50742-b` keeps the risk method
+> `weighted-mean` and manages the likelihood factors as `standard` **without `motive`**
+> (4.3/242 is common to both approaches, O16): `skill_level`, `opportunity`,
+> `ease_of_exploit`. The compliance side is not a field of the preset: the tag
+> "EN 50742 B" selects the Compliance sub-tab `en-50742-b` through the standard registry
+> (`standard-registry.ts`, edition `edition-en-50742-b.ts`: Table 4 of IEC 62443-4-2:2019
+> with a fixed SL-T, `Edition.fixedSlTarget`). Only the **component role** (8.3) is
+> evaluated; the system role (8.2, Table 3, IEC 62443-3-3) is a statement row (O13).
+> The scope is the EN 50742 relevance of O17 / O18 (safety zone, else the path to a
+> safety function), as for Approach A. Adding the tag brings the tag "IEC 62443" along
+> (user 2026-11-20). Details: `en-50742-rq-coverage.md` §6.
+
 prEN 50742 offers two independent compliance routes (Clause 4.1: "Either
 approach A ... or approach B ... shall be applied"), and — this is the
 correction to an earlier draft of this section — **they do not share a
@@ -359,3 +372,67 @@ step 1) — no compliance-tab seeding occurs.
   `en-50742-a`'s likelihood dimension and `en-50742-b`'s compliance dimension
   are evaluated by entirely separate services (`computeLikelihood` vs.
   `compliance-evaluator`) and never share state.
+
+### 10.9 Tag combinations — one base method, EN 50742 A as an addition (0.20, user 2026-11-21)
+
+R = L × I always comes from one **base method**: the TARAflow standard
+(weighted mean, no tag), ETSI TVRA or ISO/SAE 21434. EN 50742 is not a base
+method:
+
+- **Approach A is an addition.** For the safety-relevant risks (O17 / O18)
+  it gives AP from EL, WoO and AC, and the SRSL from it, *next to*
+  R = L × I. AP never stands alone, because it assesses a different relevance
+  than L × I. A goes with the standard method or ETSI TVRA.
+- **motive (0.20 patch 27, O16 revoked):** the cyber risk L × I keeps the standard
+  factors, `motive` included, in both approaches. 4.3/242 concerns the safety assessment
+  (AP / SRSL, B's requirement set), which has no motive.
+- **Approach B always goes with an IEC 62443-4-2 edition.** Its tag adds the
+  2019 edition (Table 4); the CRA edition may go with it too. B goes with the
+  standard method or ETSI TVRA.
+
+| Combination | Allowed |
+|---|---|
+| standard / ETSI TVRA + EN 50742 A | yes |
+| standard / ETSI TVRA + EN 50742 B + IEC 62443-4-2 | yes |
+| EN 50742 A ↔ EN 50742 B (Clause 4.1) | no |
+| ISO 21434 ↔ EN 50742 A, EN 50742 B, ETSI TVRA | no |
+
+**Tag editor (patch 17):**
+- Adding a tag replaces the tag it cannot go with, and the editor names the
+  replaced tag.
+- Method tags are written in their catalogue spelling.
+- The bare "EN 50742" is refused, with the request to choose A or B.
+
+**Loading:**
+- Stored tags are never rewritten (review 2026-11-21, patch 25 — a rewrite changed the
+  file and a component's snapshot hash). `methodTagOf` reads every alias; the bare
+  "EN 50742" is read as A. Only an EN 50742 tag added in the editor is written in its
+  catalogue spelling; other method tags stay as typed ("ETSI TS 102 165-1").
+- Excluded combinations stay as they are and are shown as conflicts
+  (`getRegulationConflicts`).
+- B without any 62443-4-2 edition is hinted.
+
+**Patch 18 — Approach A as an overlay (done):**
+
+- **Preset:** `regulationPresetFromTags` follows the base method, not the
+  order of the tags: ISO 21434, then ETSI TVRA, then EN 50742 B, then A, else
+  standard.
+- **One test for the overlay:** `hasEn50742Overlay(configuration)` (shared)
+  replaces every check for `likelihoodMethod === "en-50742-a"`. It covers
+  the risk gate, the factor scales, the risk table and dialog, the SRSL
+  report chapter and the PDF table. The overlay is on for the preset
+  `en-50742-a`, or with `RiskConfiguration.en50742Overlay`.
+- **The flag:** the orchestrator sets `en50742Overlay` only for A on another
+  base method (TVRA + A). There `applyRegulationPreset` keeps EL and AC as
+  targets, which the exclusive TVRA pool would otherwise switch off.
+  Standard + A keeps its stored form without the flag. The results dump of
+  all examples is unchanged.
+- **EN 50742 questions follow the A / B tag**, not the preset: the safety
+  zone, the relevance, the WoO selector and the dump use
+  `en50742ApproachFromTags`. TVRA + A therefore asks for the safety zone and
+  the WoO.
+- **The tag removed:** the next risk sync takes a stored SRSL away.
+- **TVRA + B** computes L by TVRA. The B matrix comes from the tag, as
+  before.
+- **Open:** the methodology section of the report names the base method
+  only; mentioning the A overlay there is a follow-up.

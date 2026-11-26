@@ -189,7 +189,12 @@ const AssumptionRow: React.FC<{
           <TextField
             size="small"
             fullWidth
-            label={t("components.assumptions.note", { defaultValue: "Evidence note" })}
+            label={
+              // "not fulfilled": the note says why (0.19 manual test note, 0.20 item 17)
+              status === "not_fulfilled"
+                ? t("components.assumptions.notFulfilledNote", { defaultValue: "Why it is not fulfilled" })
+                : t("components.assumptions.note", { defaultValue: "Evidence note" })
+            }
             value={note}
             onChange={(e) => setNote(e.target.value)}
             onBlur={() => {

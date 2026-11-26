@@ -58,6 +58,15 @@ export interface RiskConfiguration {
    * methods. Undefined until set on an en-50742-a project.
    */
   windowOfOpportunity?: WindowOfOpportunity;
+  /**
+   * EN 50742 Approach A as an addition to another base method (0.20, user
+   * 2026-11-21): ETSI TVRA computes R = L × I, and the safety-relevant risks
+   * get AP and SRSL from EL / AC / WoO next to it. Set by the preset
+   * orchestrator from the tags. Absent for the preset en-50742-a: its method
+   * already means the standard factors plus the overlay. Read only through
+   * hasEn50742Overlay (shared).
+   */
+  en50742Overlay?: boolean;
   showIndividualFactors: boolean;
   customFactors: RiskFactorDefinition[];
   useAssetImpact: boolean;

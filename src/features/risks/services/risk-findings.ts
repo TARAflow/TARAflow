@@ -77,7 +77,18 @@ export const RISK_FINDING_TAB: Record<RiskFindingCode, "before" | "mitigations" 
   residualMissing: "after",
 };
 
-export function riskFindings(riskData: RiskData, options: { trackerConnected?: boolean } = {}): RiskFinding[] {
+export function riskFindings(
+  riskData: RiskData,
+  options: {
+    trackerConnected?: boolean;
+    /**
+     * The relevance of each threat now (threat id → relevance). The stored copy
+     * on the risk changes only with a risk sync; with this map a threat
+     * confirmed in the Threats tab stops counting as uncertain at once.
+     */
+    currentRelevance?: ReadonlyMap<string, string | undefined>;
+  } = {},
+): RiskFinding[] {
   const risks = riskData.risks;
   const out: RiskFinding[] = [];
   const add = (code: RiskFindingCode, severity: RiskFinding["severity"], hits: typeof risks, named = false) => {
@@ -146,7 +157,11 @@ export function riskFindings(riskData: RiskData, options: { trackerConnected?: b
     );
   }
 
-  add("uncertainThreats", "warning", risks.filter((r) => r.threatRelevance === "uncertain"));
+  add(
+    "uncertainThreats",
+    "warning",
+    risks.filter((r) => (options.currentRelevance?.get(r.threatId) ?? r.threatRelevance) === "uncertain"),
+  );
   if (options.trackerConnected) {
     add(
       "doneWithoutEvidence",

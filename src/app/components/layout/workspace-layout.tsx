@@ -26,6 +26,8 @@
 // All project writes go through context.updateProject() — a single,
 // stable, ref-based write channel. No stale-closure risk.
 
+import { projectWindowTitle } from "app/utils/project-window-title";
+import { ratingLossOfTagChange } from "../../services/rating-loss";
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -88,6 +90,7 @@ import { buildAttackTreeLikelihoodReferences } from "app/utils/build-attack-tree
 import { useWorkspaceNavigation } from "app/hooks/workspace/use-workspace-navigation";
 import { usePinnedTabHandlers } from "app/hooks/workspace/use-pinned-tab-handlers";
 import { useLocalProjectSettings } from "app/hooks/workspace/use-local-project-settings";
+import { useEn50742Relevance } from "app/hooks/workspace/use-en50742-relevance";
 import { useDfdDerivedData } from "app/hooks/workspace/use-dfd-derived-data";
 import { useAssetDerivedData } from "app/hooks/workspace/use-asset-derived-data";
 import { useOverviewData } from "app/hooks/workspace/use-overview-data";
@@ -97,7 +100,7 @@ import { useComplianceView } from "app/hooks/workspace/use-compliance-view";
 import { driftView, useComponentImport } from "app/hooks/workspace/use-component-import";
 import { componentOverviewItems } from "app/services/component-import/component-overview";
 import { useComponentDrift } from "app/hooks/workspace/use-component-drift";
-import { componentDriftFindings, updateTargetOf } from "app/services/component-import/component-drift";
+import { componentDriftFindings, outdatedInstanceIds, updateTargetOf } from "app/services/component-import/component-drift";
 import { componentImportAvailable } from "app/services/component-import/component-source-electron";
 import { componentAssetGoals, componentLockedIds, findingOwner } from "app/services/component-import/component-scope";
 import { instanceClaims } from "app/services/component-import/cited-claims";
@@ -176,6 +179,17 @@ export const WorkspaceLayout: React.FC = () => {
   );
 
   const dfdData = useDfdDerivedData(activeProject);
+  // EN 50742 (O18): which risks get EL / AC / WoO / SRSL, with the reason.
+  // The window title names the open project and its file (0.20 item 17).
+  useEffect(() => {
+    document.title = projectWindowTitle(activeProject);
+  }, [activeProject?.info?.name, activeProject?.filePath]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const {
+    withRelevance: withEn50742Relevance,
+    relevantAnchorIds: en50742RelevantAnchorIds,
+    srslOpenRiskIds: en50742SrslOpenRiskIds,
+  } = useEn50742Relevance(activeProject, t);
   // Identical units per instance asset (I5) — the asset dialog's hint.
   const instanceComponents = activeProject?.components;
   const assetUnits = useMemo(() => instanceAssetUnits(instanceComponents), [instanceComponents]);
@@ -257,6 +271,7 @@ export const WorkspaceLayout: React.FC = () => {
     componentFindings: dfdData.componentDfdFindings,
     assetDataRef: assetData.assetDataRef,
     verificationStatus: overview.verificationStatus,
+    ...(en50742SrslOpenRiskIds ? { srslOpenRiskIds: en50742SrslOpenRiskIds } : {}),
     t,
   });
 
@@ -306,7 +321,10 @@ export const WorkspaceLayout: React.FC = () => {
         const status = componentDrift.drift.get(item.importId);
         // the same condition as the DFD's "Update…" (updateActionOf on click)
         const imported = activeProject?.components?.imports.find((i) => i.id === item.importId);
-        const target = imported && componentImportAvailable() ? updateTargetOf(imported, status) : undefined;
+        const target =
+          imported && componentImportAvailable()
+            ? updateTargetOf(imported, status, outdatedInstanceIds(activeProject ?? {}, imported.id).length > 0)
+            : undefined;
         return {
           ...item,
           ...(status ? { drift: driftView(status, t) } : {}),
@@ -393,6 +411,7 @@ export const WorkspaceLayout: React.FC = () => {
             phaseIndicators={phase.indicators ?? undefined}
             onOpenPhase={handlePhaseChange}
             onUpdate={handlers.handleGeneralTabUpdate}
+            ratingLossOf={(tags) => ratingLossOfTagChange(activeProject, tags)}
             projectId={activeProject.id}
             modelItems={overview.itemModelItems}
             assumptionUsage={overview.assumptionUsage}
@@ -411,6 +430,10 @@ export const WorkspaceLayout: React.FC = () => {
               if (action) navigation.runInDfd(action.runner);
             }}
             {...(componentImport.openComponentTara ? { onOpenComponent: componentImport.openComponentTara } : {})}
+            renameComponentPrefixOf={(instanceId) => {
+              const rename = componentImport.renamePrefixOf(instanceId);
+              return { check: rename.check, onConfirm: (prefix) => navigation.runInDfd(rename.runnerFor(prefix)) };
+            }}
             onFollowComponentBranch={(importId, branch) => {
               // the import follows the checked-out branch; the drift check runs again
               const components = activeProject.components;
@@ -545,6 +568,7 @@ export const WorkspaceLayout: React.FC = () => {
               assetDataRef: assetData.assetDataRef,
               dfd: dfdData.dfdReference,
               riskAttachments: assetData.riskAttachments,
+              ...(en50742RelevantAnchorIds ? { en50742RelevantAnchorIds } : {}),
               excludedElementIds: dfdData.componentExcluded,
               importedThreatGroups: dfdData.componentThreatGroups,
               info: {
@@ -574,22 +598,26 @@ export const WorkspaceLayout: React.FC = () => {
               name: activeProject.info?.name || "",
               risks: activeProject.risks ?? null,
               phaseStatus: activeProject.phaseStatus,
-              perElementThreats: extractThreatReferences(
-                activeProject.threats,
-                "per-element",
+              perElementThreats: withEn50742Relevance(
+                extractThreatReferences(activeProject.threats, "per-element"),
               ),
-              perInteractionThreats: extractThreatReferences(
-                activeProject.threats,
-                "per-interaction",
+              perInteractionThreats: withEn50742Relevance(
+                extractThreatReferences(activeProject.threats, "per-interaction"),
               ),
-              perAttackPathThreats: buildAttackPathThreatReferences(
-                activeProject.attackTrees,
-                // ISO 21434: a relevant path reaches the Risk tab without a
-                // mitigation (risk is assessed before treatment is decided).
-                !isoMode,
-                // Controls are proposed only when their context fits the
-                // project (mitigation catalog design D4).
-                activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
+              // EN 50742 A (patch 29): risks whose SRSL controls are open stay open in the progress
+              ...(en50742SrslOpenRiskIds ? { en50742SrslOpenRiskIds } : {}),
+              // EN 50742 (review 2026-11-21): the relevance of an attack path
+              // comes from its leaves' DFD refs, like the STRIDE threats'.
+              perAttackPathThreats: withEn50742Relevance(
+                buildAttackPathThreatReferences(
+                  activeProject.attackTrees,
+                  // ISO 21434: a relevant path reaches the Risk tab without a
+                  // mitigation (risk is assessed before treatment is decided).
+                  !isoMode,
+                  // Controls are proposed only when their context fits the
+                  // project (mitigation catalog design D4).
+                  activeProject.info?.tags ?? EMPTY_PROJECT_TAGS,
+                ),
               ).map((ref): ThreatReference => ({
                 ...ref,
                 // Where the path's controls go, for the coverage badge
@@ -614,6 +642,8 @@ export const WorkspaceLayout: React.FC = () => {
               isoMode,
               assetDataRef: assetData.assetDataRef,
               dfd: dfdData.dfdReference,
+              // the risk dialog's DFD info of the threat's element / flow
+              dfdGraph: dfdData.dfdGraphRef,
               dfdPreviewImage: activeProject.dfd?.thumbnail,
               dfdPreviewPages: dfdPreviewPagesOf(activeProject.dfd),
               dfdTableGroups: dfdData.tableGroups,
@@ -736,6 +766,7 @@ export const WorkspaceLayout: React.FC = () => {
               deviceProposal={complianceView.deviceProposal}
               nameOf={complianceView.nameOf}
               typeOf={complianceView.typeOf}
+              en50742Scope={complianceView.en50742Scope}
               today={new Date().toISOString().slice(0, 10)}
               onChange={handlers.handleComplianceChange}
               concept={activeProject.cybersecurityConcept}

@@ -88,6 +88,7 @@ import type { DocChapterId } from "../../models/doc-types";
 import type { TranslationFn } from "./base-generator";
 import type { PdfOptions } from "./pdf-generator-adaptive";
 import { flattenProjectTags } from "../../../../shared/models/project-tags";
+import { hasEn50742Overlay } from "../../../../shared/models/regulation-preset";
 import {
   resolveMitigationDrafts,
   resolveVerificationDrafts,
@@ -1211,7 +1212,7 @@ export class PdfMakeConverter {
   // anchor (EL > 0); en-50742-a projects only. Mirrors createRisks().
   private createSRSLAssessment(): Content[] {
     const config = this.project.risks?.configuration;
-    if (config?.likelihoodMethod !== "en-50742-a") return [];
+    if (!config || !hasEn50742Overlay(config)) return [];
 
     const woo = (config.windowOfOpportunity ?? "-").replace(/_/g, " ");
     const assetsById = new Map(

@@ -14,6 +14,7 @@ import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Chip
 import { ExpandMore as ExpandMoreIcon } from "@mui/icons-material";
 import type { ComponentOverviewItem } from "../models/overview-types";
 import { deviationGroups, deviationsMarkdown, relianceGroups } from "shared/services/component-deviations";
+import { InstancePrefixDialog } from "shared/components/instance-prefix-dialog";
 
 export interface ComponentsViewProps {
   items: readonly ComponentOverviewItem[];
@@ -31,6 +32,11 @@ export interface ComponentsViewProps {
   onFollowBranch?: (importId: string, branch: string) => void;
   /** Open the import's component TARA as a further project (as in the DFD's tab "Component"). */
   onOpen?: (importId: string) => void;
+  /**
+   * "Change prefix…" of an instance (0.20 manual test E3): its check and the
+   * change (it runs in the DFD tab, like an update); absent = not here.
+   */
+  renamePrefixOf?: (instanceId: string) => { check: (prefix: string) => string | undefined; onConfirm: (prefix: string) => void };
 }
 
 const DRIFT_COLOR: Record<NonNullable<ComponentOverviewItem["drift"]>["kind"], "success" | "warning" | "error" | "default"> = {
@@ -60,12 +66,13 @@ const Heading: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </Typography>
 );
 
-export const ComponentsView: React.FC<ComponentsViewProps> = ({ items, onShowInDfd, onCheck, checking, onUpdate, onFollowBranch, onOpen }) => {
+export const ComponentsView: React.FC<ComponentsViewProps> = ({ items, onShowInDfd, onCheck, checking, onUpdate, onFollowBranch, onOpen, renamePrefixOf }) => {
   const { t } = useTranslation();
   // The texts of the deviation list through the app's i18n (the report's keys, any namespace).
   // Raw texts: the shared formatter fills the {{placeholders}} itself.
   const tr = (key: string, defaultValue?: string) => t(key, { defaultValue: defaultValue ?? key, skipInterpolation: true });
   const [copied, setCopied] = useState<string | null>(null);
+  const [renaming, setRenaming] = useState<{ instanceId: string; prefix: string } | null>(null);
   const copy = async (item: ComponentOverviewItem) => {
     const at = item.origin.tag ?? (item.origin.commit ? item.origin.commit.slice(0, 8) : tr("tabs.doc.imported.unpinned", "not pinned"));
     const text = deviationsMarkdown({ name: item.name, at, ...(item.responsible ? { responsible: item.responsible } : {}) }, item.deviations, tr);
@@ -257,6 +264,11 @@ export const ComponentsView: React.FC<ComponentsViewProps> = ({ items, onShowInD
                             defaultValue: "assumptions of use: {{decided}} of {{total}} decided, {{notFulfilled}} not fulfilled",
                           })}
                     </Typography>
+                    {renamePrefixOf && (
+                      <Button size="small" onClick={() => setRenaming({ instanceId: i.id, prefix: i.prefix })} data-testid={`component-overview-prefix-${i.prefix}`}>
+                        {t("components.prefix.change", { ns: "components", defaultValue: "Change prefix…" })}
+                      </Button>
+                    )}
                     {onShowInDfd && (
                       <Button size="small" onClick={() => onShowInDfd(i.multiprocessTfId)} data-testid={`component-overview-show-${i.prefix}`}>
                         {t("overviewComponents.showInDfd", { defaultValue: "Show in DFD" })}
@@ -367,6 +379,19 @@ export const ComponentsView: React.FC<ComponentsViewProps> = ({ items, onShowInD
           );
         })}
       </Box>
+      {renaming && renamePrefixOf && (
+        <InstancePrefixDialog
+          open
+          current={renaming.prefix}
+          check={renamePrefixOf(renaming.instanceId).check}
+          onClose={() => setRenaming(null)}
+          onConfirm={(prefix) => {
+            const target = renamePrefixOf(renaming.instanceId);
+            setRenaming(null);
+            target.onConfirm(prefix);
+          }}
+        />
+      )}
     </Box>
   );
 };

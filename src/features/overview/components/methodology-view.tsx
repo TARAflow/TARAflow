@@ -17,10 +17,22 @@ interface MethodologyViewProps {
 
 const M = "tabs.doc.methodology";
 
+/** "Per element v1 · Per interaction v1 · Current v2"; "Current v1" without generated threats. */
+function catalogText(
+  catalog: NonNullable<MethodologySummary["threatCatalog"]>,
+  methodLabel: (method: "per-element" | "per-interaction") => string,
+  currentLabel: string,
+): string {
+  const parts = (["per-element", "per-interaction"] as const)
+    .filter((x) => catalog.stored[x] !== undefined)
+    .map((x) => `${methodLabel(x)} v${catalog.stored[x]}`);
+  return [...parts, `${currentLabel} v${catalog.current}`].join(" · ");
+}
+
 export const MethodologyView: React.FC<MethodologyViewProps> = ({ summary, onOpenRiskTab }) => {
   const { t } = useTranslation();
   const rows: [string, React.ReactNode][] = [
-    [t("tabs.doc.methodology.overview", { defaultValue: "Method" }), t(summary.presetNameKey, { defaultValue: summary.presetNameKey })],
+    [t("tabs.doc.methodology.overview", { defaultValue: "Method" }), (summary.basisNameKeys ?? [summary.presetNameKey]).map((k) => t(k, { defaultValue: k })).join(" + ")],
     [
       t(`${M}.impactScale`, { defaultValue: "Impact scale" }),
       <>
@@ -59,6 +71,19 @@ export const MethodologyView: React.FC<MethodologyViewProps> = ({ summary, onOpe
       t(`${M}.properties`, { defaultValue: "Cybersecurity properties" }),
       summary.securityProperties.map((p) => t(`${M}.goalName.${p}`, { defaultValue: p })).join(", "),
     ],
+    ...(summary.threatCatalog
+      ? ([
+          [
+            t(`${M}.threatCatalog`, { defaultValue: "Threat catalogue" }),
+            catalogText(summary.threatCatalog, (x) =>
+              x === "per-element"
+                ? t(`${M}.perElement`, { defaultValue: "Per element" })
+                : t(`${M}.perInteraction`, { defaultValue: "Per interaction" }),
+              t(`${M}.catalogCurrent`, { defaultValue: "Current" }),
+            ),
+          ],
+        ] as [string, React.ReactNode][])
+      : []),
     ...(summary.calcStamps
       ? ([
           [t(`${M}.stampRisk`, { defaultValue: "Calculation (risk)" }), summary.calcStamps.risk],

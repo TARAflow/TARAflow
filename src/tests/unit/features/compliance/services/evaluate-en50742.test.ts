@@ -3,7 +3,7 @@
 // unrated risk is unknown, a clear "no" is a gap and wins over unknown
 // (D-12, step 9); the planned run counts chosen controls.
 import { describe, it, expect } from "vitest";
-import { externalOutcome, srslReached, srslSummary, type En50742Risk, type En50742View } from "features/compliance";
+import { externalOutcome, srslOpenRiskIds, srslReached, srslSummary, type En50742Risk, type En50742View } from "features/compliance";
 
 const risk = (id: string, extra: Partial<En50742Risk> = {}): En50742Risk => ({
   id,
@@ -22,12 +22,23 @@ const risk = (id: string, extra: Partial<En50742Risk> = {}): En50742Risk => ({
 
 const sf = (id: string, name: string, interfaces: string[] = []) => ({ id, name, linked: true, interfaces });
 
+/** By default each risk's threat sits on its anchor: rated with an SRSL, else pending. */
+const threatsOf = (risks: En50742Risk[]) => {
+  const map = new Map<string, { label: string; state: "rated" | "pending" | "dismissed" | "unjustified" | "unrated" }[]>();
+  for (const r of risks) {
+    if (!r.anchorId) continue;
+    map.set(r.anchorId, [...(map.get(r.anchorId) ?? []), { label: `T-${r.id}`, state: typeof r.srsl === "number" ? "rated" : "pending" }]);
+  }
+  return map;
+};
+
 const view = (risks: En50742Risk[], extra: Partial<En50742View> = {}): En50742View => ({
   windowOfOpportunity: "limited",
   systemDefinition: { boundary: true, environment: true },
   hazards: { total: 1, unlinked: [] },
   safetyFunctions: [sf("sf1", "Emergency stop", ["if1"])],
   interfaces: { exposed: ["if1"], unrated: [] },
+  anchorThreats: threatsOf(risks),
   risks,
   ...extra,
 });
@@ -50,9 +61,9 @@ describe("7.4.3 clause rows (risk evidence)", () => {
     expect(externalOutcome(AUTH, view([spoofing([]), risk("2", { srsl: null })]), "achieved").status).toBe("gap");
   });
 
-  it("no risk mandates the clause → n/a; an excluded threat does not count", () => {
+  it("no risk mandates the clause → n/a; \"won't\" lifts no mandated control (patch 28, F4)", () => {
     expect(externalOutcome(AUTH, view([risk("1")]), "achieved").status).toBe("n/a");
-    expect(externalOutcome(AUTH, view([risk("3", { mandated: ["7.4.3.2.1"], excluded: true })]), "achieved").status).toBe("n/a");
+    expect(externalOutcome(AUTH, view([risk("3", { mandated: ["7.4.3.2.1"], excluded: true })]), "achieved").status).toBe("gap");
   });
 
   it("Interface × T: one of the integrity controls done meets every integrity clause (design §11.4)", () => {
@@ -104,11 +115,19 @@ describe("project checks", () => {
     expect(unset.reasoning).toContain("operational environment");
   });
 
-  it("7.1/260: every exposed interface has a risk with SRSL or an excluded threat", () => {
+  it("7.1/260 (patch 28): every threat of an exposed interface has a risk with SRSL or is dismissed with a reason", () => {
     expect(check("interfaces-assessed", view([risk("1")])).status).toBe("met");
     expect(check("interfaces-assessed", view([risk("1", { anchorId: "if9" })]))).toMatchObject({ status: "gap", failing: ["if1"] });
-    expect(check("interfaces-assessed", view([risk("1", { srsl: null })]))).toMatchObject({ status: "unknown", unknown: ["if1"] });
-    expect(check("interfaces-assessed", view([risk("1", { srsl: null, excluded: true })])).status).toBe("met");
+    expect(check("interfaces-assessed", view([risk("1", { srsl: null })]))).toMatchObject({ status: "unknown", unknown: ["if1"], risks: ["T-1"] });
+    // "won't" no longer counts as assessed — the SRSL is still missing
+    expect(check("interfaces-assessed", view([risk("1", { srsl: null, excluded: true })])).status).toBe("unknown");
+    const threats = (states: ("rated" | "pending" | "dismissed" | "unjustified" | "unrated")[]) =>
+      view([], { anchorThreats: new Map([["if1", states.map((state, i) => ({ label: `T-${i}`, state }))]]) });
+    // a rated risk next to an unrated threat: open, the threat named (was: silently met)
+    expect(check("interfaces-assessed", threats(["rated", "unrated"]))).toMatchObject({ status: "unknown", risks: ["T-1"], reason: { code: "threatsOpen" } });
+    // every threat dismissed with a reason: assessed; one without a reason: open
+    expect(check("interfaces-assessed", threats(["dismissed", "dismissed"])).status).toBe("met");
+    expect(check("interfaces-assessed", threats(["dismissed", "unjustified"]))).toMatchObject({ status: "unknown", risks: ["T-1"] });
     expect(check("interfaces-assessed", view([], { interfaces: { exposed: [], unrated: ["if2"] } })).status).toBe("unknown");
     expect(check("interfaces-assessed", view([], { interfaces: { exposed: [], unrated: [] } })).status).toBe("n/a");
     // A safety function without DFD elements: its path is unknown, never n/a.
@@ -130,6 +149,14 @@ describe("project checks", () => {
     expect(check("srsl-consistent", view([risk("1", { srsl: 0, exposed: undefined })])).status).toBe("unknown");
     expect(check("srsl-consistent", view([risk("1", { srsl: undefined })])).status).toBe("n/a");
   });
+
+  it("7.4.2/344 (patch 22): SRSL 0 on an EL0 interface of a safety function reachable elsewhere is a gap", () => {
+    expect(check("srsl-consistent", view([risk("1", { srsl: 0, exposed: false, functionIsolated: false })]))).toMatchObject({
+      status: "gap",
+      risks: ["R-1"],
+    });
+    expect(check("srsl-consistent", view([risk("1", { srsl: 0, exposed: false, functionIsolated: true })])).status).toBe("met");
+  });
 });
 
 describe("SRSL precondition and header", () => {
@@ -140,7 +167,7 @@ describe("SRSL precondition and header", () => {
     expect(srslReached(2, view([]))).toBe("unknown");
   });
 
-  it("the header shows the highest SRSL per safety function, not rated as null", () => {
+  it("the header shows the highest SRSL per safety function, not rated as null — a \"won't\" risk counts (patch 28)", () => {
     const summary = srslSummary(
       view([risk("1", { srsl: 1 }), risk("2", { srsl: 3 }), risk("3", { srsl: 3, excluded: true, safetyFunctionIds: ["sf2"] })], {
         safetyFunctions: [sf("sf1", "Emergency stop", ["if1"]), sf("sf2", "Guard door")],
@@ -150,8 +177,19 @@ describe("SRSL precondition and header", () => {
       windowOfOpportunity: "limited",
       safetyFunctions: [
         { id: "sf1", name: "Emergency stop", srsl: 3, interfaces: ["if1"] },
-        { id: "sf2", name: "Guard door", srsl: null, interfaces: [] },
+        { id: "sf2", name: "Guard door", srsl: 3, interfaces: [] },
       ],
     });
+  });
+});
+
+describe("srslOpenRiskIds (patch 29) — the Risks tab's progress uses the matrix test", () => {
+  it("a risk with an SRSL whose mandated controls are not all done; accepted or won't changes nothing", () => {
+    const done = risk("1", { mandated: ["7.4.3.2.1"], controls: [{ clause: "7.4.3.2.1", done: true, planned: true }] });
+    const open = risk("2", { mandated: ["7.4.3.2.1"], controls: [], accepted: true });
+    const wont = risk("3", { mandated: ["7.4.3.2.1"], controls: [{ clause: "7.4.3.2.1", done: false, planned: true }], excluded: true });
+    const unrated = risk("4", { srsl: null, mandated: [] });
+    const nothingMandated = risk("5", { mandated: [] });
+    expect([...srslOpenRiskIds(view([done, open, wont, unrated, nothingMandated]))].sort()).toEqual(["2", "3"]);
   });
 });

@@ -38,11 +38,13 @@ export const ModelFieldProvider: React.FC<{
   componentId?: string;
   /** Multiprocesses with a child page (leveled DFD) — the others are black boxes (D-30c). */
   decomposed?: ReadonlySet<string>;
+  /** The project follows EN 50742 — the safety zone is asked (O18). */
+  en50742?: boolean;
   children: React.ReactNode;
-}> = ({ elements, connections, componentId, decomposed, children }) => {
+}> = ({ elements, connections, componentId, decomposed, en50742, children }) => {
   const contextOf = useMemo(
-    () => visibilityContexts(elements, connections, { componentId, decomposed }),
-    [elements, connections, componentId, decomposed],
+    () => visibilityContexts(elements, connections, { componentId, decomposed, en50742 }),
+    [elements, connections, componentId, decomposed, en50742],
   );
   return <ModelFieldContext.Provider value={contextOf}>{children}</ModelFieldContext.Provider>;
 };

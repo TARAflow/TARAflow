@@ -1,0 +1,3985 @@
+{
+  "format": 1,
+  "header": {
+    "inputCommit": "70201b564caab195a6caa053d12e59fcf4f89beb",
+    "inputFile": "simple-controller/00-base.tara.json",
+    "inputSha256": "a39cc31df3d328f7367653d9d086c612295b962a8264de760dadf66ad799e8a4",
+    "taraflowCommit": "79b73ca8cc8bbb5ff89ec898be69f6687d05b7b3",
+    "taraflowVersion": "0.19.0-beta"
+  },
+  "project": {
+    "name": "TARAflow Example – Simple Controller",
+    "schemaVersion": 14,
+    "tags": {
+      "custom": [],
+      "domain": [
+        "Industrial"
+      ],
+      "platform": [
+        "Embedded"
+      ],
+      "regulation": []
+    }
+  },
+  "compliance": {
+    "skipped": "no active standard"
+  },
+  "risks": {
+    "skipped": "no risks"
+  },
+  "threats": {
+    "activeMethod": "per-element",
+    "configuration": "default",
+    "methods": {
+      "per-element": {
+        "count": 40,
+        "drift": {
+          "added": 0,
+          "obsolete": []
+        },
+        "stored": {
+          "generated": 0,
+          "manual": 0
+        },
+        "threats": {
+          "Y_GD3hm1UADHv5-dnTFx-10::D": {
+            "attackDescription": "Attacker applies excessive electrical input or flooding signals to the interface causing it to fail",
+            "causeDescription": "Interface has no protection against electrical stress or signal flooding — it can be disabled by physical or signal attack",
+            "dataFlow": null,
+            "displayId": "ENC-IF1-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-1",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-10",
+              "elementName": "USB",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-D-001"
+              },
+              {
+                "id": "M-IF-D-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-D-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[ENC]",
+            "templateId": "D-006",
+            "threatActor": "external",
+            "threatDescription": "Interface denial of service — attacker renders the interface unavailable",
+            "trustBoundaryDisplayId": "ENC",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-1",
+            "trustBoundaryName": "Physical Device Enclosure [ENC]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-10::E": {
+            "attackDescription": "Attacker exploits the interface to run privileged commands and bypass access controls, or uploads unsigned malicious firmware that disables security controls or installs a persistent backdoor",
+            "causeDescription": "Interface exposes privileged functions without sufficient authentication and accepts firmware updates without signature verification",
+            "dataFlow": null,
+            "displayId": "ENC-IF1-E-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-1",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-10",
+              "elementName": "USB",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-E-006"
+              },
+              {
+                "id": "M-IF-E-001"
+              },
+              {
+                "id": "M-IF-E-002"
+              },
+              {
+                "id": "M-IF-E-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-E-004"
+              },
+              {
+                "id": "V-IF-E-001"
+              },
+              {
+                "id": "V-IF-E-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "E",
+            "table": "[ENC]",
+            "templateId": "E-004",
+            "threatActor": "external",
+            "threatDescription": "Interface privilege escalation — attacker uses the interface to gain elevated access or inject unauthorized firmware",
+            "trustBoundaryDisplayId": "ENC",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-1",
+            "trustBoundaryName": "Physical Device Enclosure [ENC]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-10::I": {
+            "attackDescription": "Attacker attaches monitoring equipment to the physical interface and captures transmitted data",
+            "causeDescription": "Physical interface transmits data without encryption — signals are readable with basic test equipment",
+            "dataFlow": null,
+            "displayId": "ENC-IF1-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-1",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-10",
+              "elementName": "USB",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-I-001"
+              },
+              {
+                "id": "M-IF-I-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-I-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[ENC]",
+            "templateId": "I-007",
+            "threatActor": "external",
+            "threatDescription": "Interface eavesdropping — attacker intercepts data on the physical interface",
+            "trustBoundaryDisplayId": "ENC",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-1",
+            "trustBoundaryName": "Physical Device Enclosure [ENC]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-10::R": {
+            "attackDescription": "Attacker connects to the physical interface and denies having accessed it because no log record exists",
+            "causeDescription": "No logging of physical interface connections — who connected and when is unknown",
+            "dataFlow": null,
+            "displayId": "ENC-IF1-R-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-1",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-10",
+              "elementName": "USB",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-R-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-R-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "R",
+            "table": "[ENC]",
+            "templateId": "R-005",
+            "threatActor": "external",
+            "threatDescription": "Interface access repudiation — physical interface access cannot be attributed",
+            "trustBoundaryDisplayId": "ENC",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-1",
+            "trustBoundaryName": "Physical Device Enclosure [ENC]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-10::S": {
+            "attackDescription": "Attacker connects a rogue device to the interface and impersonates a legitimate system, gaining unauthorized access",
+            "causeDescription": "No hardware authentication on the interface — any device connecting is trusted without verification",
+            "dataFlow": null,
+            "displayId": "ENC-IF1-S-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-1",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-10",
+              "elementName": "USB",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-S-001"
+              },
+              {
+                "id": "M-S-008"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-S-001"
+              },
+              {
+                "id": "V-IF-S-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "S",
+            "table": "[ENC]",
+            "templateId": "S-005",
+            "threatActor": "external",
+            "threatDescription": "Interface identity spoofing — attacker impersonates a legitimate device on the interface",
+            "trustBoundaryDisplayId": "ENC",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-1",
+            "trustBoundaryName": "Physical Device Enclosure [ENC]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-10::T": {
+            "attackDescription": "Attacker modifies the interface hardware or firmware to intercept, inject, or block communications",
+            "causeDescription": "Interface lacks tamper detection and physical protection — unauthorized modification is possible without detection",
+            "dataFlow": null,
+            "displayId": "ENC-IF1-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-1",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-10",
+              "elementName": "USB",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-T-001"
+              },
+              {
+                "id": "M-IF-T-002"
+              },
+              {
+                "id": "M-IF-T-003"
+              },
+              {
+                "id": "M-IF-T-004"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[ENC]",
+            "templateId": "T-007",
+            "threatActor": "external",
+            "threatDescription": "Interface tampering — attacker physically or logically tampers with the interface",
+            "trustBoundaryDisplayId": "ENC",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-1",
+            "trustBoundaryName": "Physical Device Enclosure [ENC]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-12::D": {
+            "attackDescription": "Attacker sends high volume of requests consuming all available CPU, memory, or file handles",
+            "causeDescription": "No resource limits or rate limiting — process allocates unbounded resources in response to requests",
+            "dataFlow": null,
+            "displayId": "P1-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "P-1",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "elementName": "Controller",
+              "elementType": "Process"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-002"
+              },
+              {
+                "id": "M-D-005"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-002"
+              },
+              {
+                "id": "V-D-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[CTRL]",
+            "templateId": "D-001",
+            "threatActor": "external",
+            "threatDescription": "Process resource exhaustion — attacker exhausts process resources causing denial of service",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-12::E": {
+            "attackDescription": "Attacker exploits a process vulnerability to execute code or trigger operations with elevated privileges",
+            "causeDescription": "Insufficient input validation or privilege boundary enforcement in the process",
+            "dataFlow": null,
+            "displayId": "P1-E-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "P-1",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "elementName": "Controller",
+              "elementType": "Process"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-E-001"
+              },
+              {
+                "id": "M-E-002"
+              },
+              {
+                "id": "M-E-003"
+              },
+              {
+                "id": "M-E-005"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-E-001"
+              },
+              {
+                "id": "V-E-002"
+              },
+              {
+                "id": "V-E-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "E",
+            "table": "[CTRL]",
+            "templateId": "E-001",
+            "threatActor": "external",
+            "threatDescription": "Privilege escalation via process vulnerability — attacker gains elevated privileges through process flaw",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-12::I": {
+            "attackDescription": "Attacker uses debug interface or firmware extraction to read memory and recover cryptographic keys",
+            "causeDescription": "Authenticator storage is software-only — keys reside in flash or RAM without hardware protection",
+            "dataFlow": null,
+            "displayId": "P1-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "P-1",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "elementName": "Controller",
+              "elementType": "Process"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-I-006"
+              },
+              {
+                "id": "M-CB-I-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-CB-I-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[CTRL]",
+            "templateId": "I-001",
+            "threatActor": "external",
+            "threatDescription": "Cryptographic keys in software-only storage — extractable via memory dump or debug access",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-12::R": {
+            "attackDescription": "Process or its operator denies having executed a command that affected the system",
+            "causeDescription": "Audit log is absent, incomplete, or not tamper-proof",
+            "dataFlow": null,
+            "displayId": "P1-R-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "P-1",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "elementName": "Controller",
+              "elementType": "Process"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-R-001"
+              },
+              {
+                "id": "M-R-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-R-001"
+              },
+              {
+                "id": "V-R-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "R",
+            "table": "[CTRL]",
+            "templateId": "R-002",
+            "threatActor": "external",
+            "threatDescription": "Process action repudiation — process denies having performed an action",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-12::S": {
+            "attackDescription": "Attacker uses credentials of a former employee that still exists locally on the device",
+            "causeDescription": "Account management is local-only — no central directory or IAM system",
+            "dataFlow": null,
+            "displayId": "P1-S-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "P-1",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "elementName": "Controller",
+              "elementType": "Process"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-S-006"
+              },
+              {
+                "id": "M-S-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-S-005"
+              },
+              {
+                "id": "V-S-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "S",
+            "table": "[CTRL]",
+            "templateId": "S-001",
+            "threatActor": "external",
+            "threatDescription": "Local-only account management — stale accounts persist, no central revocation possible",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-12::T": {
+            "attackDescription": "Attacker disrupts communication; without a defined fail-safe state, outputs may drive actuators dangerously",
+            "causeDescription": "No deterministic fail-safe output state defined — actuator outputs are unpredictable under fault",
+            "dataFlow": null,
+            "displayId": "P1-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "P-1",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "elementName": "Controller",
+              "elementType": "Process"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-FSAFE-001"
+              },
+              {
+                "id": "M-T-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-FSAFE-001"
+              },
+              {
+                "id": "V-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[CTRL]",
+            "templateId": "T-001",
+            "threatActor": "external",
+            "threatDescription": "Undefined fail-safe output state — process outputs reach arbitrary values on communication loss",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-14::D": {
+            "attackDescription": "Attacker blocks or corrupts the data flow causing dependent components to lose communication",
+            "causeDescription": "No redundancy or timeout protection — disruption causes loss of communication",
+            "dataFlow": null,
+            "displayId": "DF1-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-1",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-14",
+              "elementName": "push setpoint [cmd]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[DF]",
+            "templateId": "D-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow disruption — attacker blocks or delays the data flow",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Data Flows",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-14::I": {
+            "attackDescription": "Attacker passively monitors the data flow and captures sensitive data",
+            "causeDescription": "Data flow is unencrypted — sensitive payload is transmitted in plaintext",
+            "dataFlow": null,
+            "displayId": "DF1-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-1",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-14",
+              "elementName": "push setpoint [cmd]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-I-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-I-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[DF]",
+            "templateId": "I-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow eavesdropping — attacker intercepts sensitive data on the data flow",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Data Flows",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-14::T": {
+            "attackDescription": "Attacker attaches a hardware probe to the embedded bus and injects or modifies transmitted data",
+            "causeDescription": "Embedded bus communication carries no integrity protection or authentication",
+            "dataFlow": null,
+            "displayId": "DF1-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-1",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-14",
+              "elementName": "push setpoint [cmd]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-T-002"
+              },
+              {
+                "id": "M-T-008"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-T-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[DF]",
+            "templateId": "T-014",
+            "threatActor": "external",
+            "threatDescription": "Embedded bus data tampering — attacker modifies communication on internal bus",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Data Flows",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-16::D": {
+            "attackDescription": "Attacker sends high volume of requests consuming all available CPU, memory, or file handles",
+            "causeDescription": "No resource limits or rate limiting — process allocates unbounded resources in response to requests",
+            "dataFlow": null,
+            "displayId": "P2-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "P-2",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-16",
+              "elementName": "Update Service",
+              "elementType": "Process"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-002"
+              },
+              {
+                "id": "M-D-005"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-002"
+              },
+              {
+                "id": "V-D-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[CTRL]",
+            "templateId": "D-001",
+            "threatActor": "external",
+            "threatDescription": "Process resource exhaustion — attacker exhausts process resources causing denial of service",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-16::E": {
+            "attackDescription": "Attacker exploits a process vulnerability to execute code or trigger operations with elevated privileges",
+            "causeDescription": "Insufficient input validation or privilege boundary enforcement in the process",
+            "dataFlow": null,
+            "displayId": "P2-E-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "P-2",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-16",
+              "elementName": "Update Service",
+              "elementType": "Process"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-E-001"
+              },
+              {
+                "id": "M-E-002"
+              },
+              {
+                "id": "M-E-003"
+              },
+              {
+                "id": "M-E-005"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-E-001"
+              },
+              {
+                "id": "V-E-002"
+              },
+              {
+                "id": "V-E-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "E",
+            "table": "[CTRL]",
+            "templateId": "E-001",
+            "threatActor": "external",
+            "threatDescription": "Privilege escalation via process vulnerability — attacker gains elevated privileges through process flaw",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-16::I": {
+            "attackDescription": "Attacker observes process output and extracts sensitive configuration data, credentials, or business information",
+            "causeDescription": "Process outputs or error messages contain sensitive information — no output filtering applied",
+            "dataFlow": null,
+            "displayId": "P2-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "P-2",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-16",
+              "elementName": "Update Service",
+              "elementType": "Process"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-I-002"
+              },
+              {
+                "id": "M-I-005"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-I-004"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[CTRL]",
+            "templateId": "I-001",
+            "threatActor": "external",
+            "threatDescription": "Process data leakage — sensitive data processed by the process is exposed",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-16::R": {
+            "attackDescription": "Process or its operator denies having executed a command that affected the system",
+            "causeDescription": "Audit log is absent, incomplete, or not tamper-proof",
+            "dataFlow": null,
+            "displayId": "P2-R-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "P-2",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-16",
+              "elementName": "Update Service",
+              "elementType": "Process"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-R-001"
+              },
+              {
+                "id": "M-R-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-R-001"
+              },
+              {
+                "id": "V-R-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "R",
+            "table": "[CTRL]",
+            "templateId": "R-002",
+            "threatActor": "external",
+            "threatDescription": "Process action repudiation — process denies having performed an action",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-16::S": {
+            "attackDescription": "Attacker injects requests pretending to be a legitimate caller",
+            "causeDescription": "Insufficient process authentication — callers are not required to prove their identity",
+            "dataFlow": null,
+            "displayId": "P2-S-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "P-2",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-16",
+              "elementName": "Update Service",
+              "elementType": "Process"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-S-001"
+              },
+              {
+                "id": "M-S-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-S-001"
+              },
+              {
+                "id": "V-S-004"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "S",
+            "table": "[CTRL]",
+            "templateId": "S-002",
+            "threatActor": "external",
+            "threatDescription": "Process identity spoofing — attacker impersonates a legitimate process",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-16::T": {
+            "attackDescription": "Attacker disrupts communication; without a defined fail-safe state, outputs may drive actuators dangerously",
+            "causeDescription": "No deterministic fail-safe output state defined — actuator outputs are unpredictable under fault",
+            "dataFlow": null,
+            "displayId": "P2-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "P-2",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-16",
+              "elementName": "Update Service",
+              "elementType": "Process"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-FSAFE-001"
+              },
+              {
+                "id": "M-T-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-FSAFE-001"
+              },
+              {
+                "id": "V-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[CTRL]",
+            "templateId": "T-001",
+            "threatActor": "external",
+            "threatDescription": "Undefined fail-safe output state — process outputs reach arbitrary values on communication loss",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-18::D": {
+            "attackDescription": "Attacker fills the data store to capacity or corrupts its index causing all operations to fail",
+            "causeDescription": "No redundancy for data store access — single point of failure",
+            "dataFlow": null,
+            "displayId": "DS1-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DS-1",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-18",
+              "elementName": "Config Store",
+              "elementType": "DataStore"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-002"
+              },
+              {
+                "id": "M-D-004"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-004"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[CTRL]",
+            "templateId": "D-004",
+            "threatActor": "external",
+            "threatDescription": "Data store unavailability — attacker makes the data store inaccessible",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-18::I": {
+            "attackDescription": "Attacker reads non-volatile memory to extract firmware, cryptographic keys, or sensitive configuration",
+            "causeDescription": "Flash/EEPROM/NVRAM lacks readback protection — stored keys and credentials are readable",
+            "dataFlow": null,
+            "displayId": "DS1-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DS-1",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-18",
+              "elementName": "Config Store",
+              "elementType": "DataStore"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-CB-I-001"
+              },
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-I-003"
+              },
+              {
+                "id": "M-I-006"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-CB-I-001"
+              },
+              {
+                "id": "V-I-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[CTRL]",
+            "templateId": "I-003",
+            "threatActor": "external",
+            "threatDescription": "Embedded storage information disclosure — attacker reads sensitive data from non-volatile memory",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-18::R": {
+            "attackDescription": "Attacker accesses the data store and denies having done so because no log entry exists",
+            "causeDescription": "No access logging on the data store",
+            "dataFlow": null,
+            "displayId": "DS1-R-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DS-1",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-18",
+              "elementName": "Config Store",
+              "elementType": "DataStore"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-R-001"
+              },
+              {
+                "id": "M-R-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-R-001"
+              },
+              {
+                "id": "V-R-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "R",
+            "table": "[CTRL]",
+            "templateId": "R-004",
+            "threatActor": "external",
+            "threatDescription": "Data store access repudiation — access to the data store cannot be attributed",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-18::T": {
+            "attackDescription": "Attacker uses debug interface to modify firmware, configuration, or calibration data",
+            "causeDescription": "Flash/EEPROM/NVRAM storage lacks access control or integrity protection",
+            "dataFlow": null,
+            "displayId": "DS1-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DS-1",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-18",
+              "elementName": "Config Store",
+              "elementType": "DataStore"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-CB-T-002"
+              },
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-T-003"
+              },
+              {
+                "id": "M-I-008"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-CB-T-002"
+              },
+              {
+                "id": "V-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[CTRL]",
+            "templateId": "T-005",
+            "threatActor": "external",
+            "threatDescription": "Embedded storage tampering — attacker modifies data in non-volatile memory",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-1::D": {
+            "attackDescription": "Attacker physically damages the device or cuts power, causing immediate loss of availability",
+            "causeDescription": "No physical protection or anchoring — device can be damaged, unplugged, or destroyed",
+            "dataFlow": null,
+            "displayId": "ENC-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "ENC",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-1",
+              "elementName": "Physical Device Enclosure [ENC]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-002"
+              },
+              {
+                "id": "M-PB-D-001"
+              },
+              {
+                "id": "M-PB-T-006"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-IF-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[ENC]",
+            "templateId": "D-007",
+            "threatActor": "external",
+            "threatDescription": "Physical destruction or power disruption — device rendered unavailable by physical attack",
+            "trustBoundaryDisplayId": "ENC",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-1",
+            "trustBoundaryName": "Physical Device Enclosure [ENC]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-1::E": {
+            "attackDescription": "Attacker opens the physical boundary and connects to internal debug interface, bypassing all software authentication",
+            "causeDescription": "Physical access to device interior grants debug/hardware access — logical security can be bypassed",
+            "dataFlow": null,
+            "displayId": "ENC-E-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "ENC",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-1",
+              "elementName": "Physical Device Enclosure [ENC]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-E-001"
+              },
+              {
+                "id": "M-CB-E-001"
+              },
+              {
+                "id": "M-PB-T-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-E-001"
+              },
+              {
+                "id": "V-CB-E-001"
+              },
+              {
+                "id": "V-PB-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "E",
+            "table": "[ENC]",
+            "templateId": "E-010",
+            "threatActor": "external",
+            "threatDescription": "Physical privilege escalation — attacker gains elevated system access via physical boundary breach",
+            "trustBoundaryDisplayId": "ENC",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-1",
+            "trustBoundaryName": "Physical Device Enclosure [ENC]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-1::I": {
+            "attackDescription": "Attacker measures power consumption or EM emissions and extracts cryptographic keys",
+            "causeDescription": "Physical boundary provides no electromagnetic shielding — internal operations are observable",
+            "dataFlow": null,
+            "displayId": "ENC-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "ENC",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-1",
+              "elementName": "Physical Device Enclosure [ENC]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-IF-I-001"
+              },
+              {
+                "id": "M-CB-I-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-IF-I-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[ENC]",
+            "templateId": "I-005",
+            "threatActor": "external",
+            "threatDescription": "Side-channel observation — sensitive data extracted via physical measurements",
+            "trustBoundaryDisplayId": "ENC",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-1",
+            "trustBoundaryName": "Physical Device Enclosure [ENC]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-1::T": {
+            "attackDescription": "Attacker opens the enclosure without triggering any alarm, gaining access to internal components",
+            "causeDescription": "No tamper detection mechanism — unauthorized opening is undetected",
+            "dataFlow": null,
+            "displayId": "ENC-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "ENC",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-1",
+              "elementName": "Physical Device Enclosure [ENC]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-IF-T-001"
+              },
+              {
+                "id": "M-IF-T-003"
+              },
+              {
+                "id": "M-PB-T-001"
+              },
+              {
+                "id": "M-PB-T-006"
+              },
+              {
+                "id": "M-PB-T-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-IF-T-001"
+              },
+              {
+                "id": "V-PB-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[ENC]",
+            "templateId": "T-001",
+            "threatActor": "external",
+            "threatDescription": "Physical boundary tampering — unauthorized physical access to boundary interior",
+            "trustBoundaryDisplayId": "ENC",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-1",
+            "trustBoundaryName": "Physical Device Enclosure [ENC]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-20::D": {
+            "attackDescription": "Attacker blocks or corrupts the data flow causing dependent components to lose communication",
+            "causeDescription": "No redundancy or timeout protection — disruption causes loss of communication",
+            "dataFlow": null,
+            "displayId": "DF3-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-3",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-20",
+              "elementName": "read config",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[CTRL]",
+            "templateId": "D-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow disruption — attacker blocks or delays the data flow",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-20::I": {
+            "attackDescription": "Attacker passively monitors the data flow and captures sensitive data",
+            "causeDescription": "Data flow is unencrypted — sensitive payload is transmitted in plaintext",
+            "dataFlow": null,
+            "displayId": "DF3-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-3",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-20",
+              "elementName": "read config",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-I-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-I-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[CTRL]",
+            "templateId": "I-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow eavesdropping — attacker intercepts sensitive data on the data flow",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-20::T": {
+            "attackDescription": "Attacker intercepts and modifies values before they reach the destination",
+            "causeDescription": "Data flow is unprotected — no integrity check or encryption prevents modification",
+            "dataFlow": null,
+            "displayId": "DF3-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-3",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-20",
+              "elementName": "read config",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-T-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-T-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[CTRL]",
+            "templateId": "T-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow tampering — attacker modifies data in transit between components",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-22::D": {
+            "attackDescription": "Attacker blocks or corrupts the data flow causing dependent components to lose communication",
+            "causeDescription": "No redundancy or timeout protection — disruption causes loss of communication",
+            "dataFlow": null,
+            "displayId": "DF2-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-2",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-22",
+              "elementName": "write config",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[CTRL]",
+            "templateId": "D-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow disruption — attacker blocks or delays the data flow",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-22::I": {
+            "attackDescription": "Attacker passively monitors the data flow and captures sensitive data",
+            "causeDescription": "Data flow is unencrypted — sensitive payload is transmitted in plaintext",
+            "dataFlow": null,
+            "displayId": "DF2-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-2",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-22",
+              "elementName": "write config",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-I-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-I-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[CTRL]",
+            "templateId": "I-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow eavesdropping — attacker intercepts sensitive data on the data flow",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-22::T": {
+            "attackDescription": "Attacker intercepts and modifies values before they reach the destination",
+            "causeDescription": "Data flow is unprotected — no integrity check or encryption prevents modification",
+            "dataFlow": null,
+            "displayId": "DF2-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-2",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-22",
+              "elementName": "write config",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-T-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-T-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[CTRL]",
+            "templateId": "T-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow tampering — attacker modifies data in transit between components",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-24::D": {
+            "attackDescription": "Attacker blocks or corrupts the data flow causing dependent components to lose communication",
+            "causeDescription": "No redundancy or timeout protection — disruption causes loss of communication",
+            "dataFlow": null,
+            "displayId": "DF4-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-4",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-24",
+              "elementName": "push firmware [cmd]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[CTRL]",
+            "templateId": "D-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow disruption — attacker blocks or delays the data flow",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-24::I": {
+            "attackDescription": "Attacker passively monitors the data flow and captures sensitive data",
+            "causeDescription": "Data flow is unencrypted — sensitive payload is transmitted in plaintext",
+            "dataFlow": null,
+            "displayId": "DF4-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-4",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-24",
+              "elementName": "push firmware [cmd]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-I-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-I-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[CTRL]",
+            "templateId": "I-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow eavesdropping — attacker intercepts sensitive data on the data flow",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-24::T": {
+            "attackDescription": "Attacker intercepts and modifies values before they reach the destination",
+            "causeDescription": "Data flow is unprotected — no integrity check or encryption prevents modification",
+            "dataFlow": null,
+            "displayId": "DF4-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-4",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-24",
+              "elementName": "push firmware [cmd]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-T-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-T-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[CTRL]",
+            "templateId": "T-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow tampering — attacker modifies data in transit between components",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-5::R": {
+            "attackDescription": "External entity denies having sent a command that the system received and acted upon",
+            "causeDescription": "No non-repudiation mechanism — requests from external entities are not cryptographically bound to the sender",
+            "dataFlow": null,
+            "displayId": "EE1-R-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "EE-1",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-5",
+              "elementName": "Operator",
+              "elementType": "ExternalEntity"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-R-001"
+              },
+              {
+                "id": "M-R-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-R-001"
+              },
+              {
+                "id": "V-R-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "R",
+            "table": "[EE]",
+            "templateId": "R-001",
+            "threatActor": "external",
+            "threatDescription": "External entity repudiation — external entity denies having sent a request",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "External Entities",
+            "workflowStatus": "open"
+          },
+          "Y_GD3hm1UADHv5-dnTFx-5::S": {
+            "attackDescription": "Attacker crafts requests that appear to originate from a legitimate external entity",
+            "causeDescription": "No authentication mechanism enforced for external entities",
+            "dataFlow": null,
+            "displayId": "EE1-S-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "EE-1",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-5",
+              "elementName": "Operator",
+              "elementType": "ExternalEntity"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-S-001"
+              },
+              {
+                "id": "M-S-002"
+              },
+              {
+                "id": "M-S-004"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-S-001"
+              },
+              {
+                "id": "V-S-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "S",
+            "table": "[EE]",
+            "templateId": "S-001",
+            "threatActor": "external",
+            "threatDescription": "External entity identity spoofing — attacker impersonates a legitimate external entity",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "External Entities",
+            "workflowStatus": "open"
+          }
+        }
+      },
+      "per-interaction": {
+        "count": 40,
+        "drift": {
+          "added": 0,
+          "obsolete": []
+        },
+        "stored": {
+          "generated": 0,
+          "manual": 0
+        },
+        "threats": {
+          "df::Y_GD3hm1UADHv5-dnTFx-14::D::incoming": {
+            "attackDescription": "Attacker sends a high volume of requests via the data flow, exhausting the processing capacity of Controller",
+            "causeDescription": "No rate limiting or request throttling protecting Controller from high-volume input via Operator",
+            "dataFlow": {
+              "connectionId": "Y_GD3hm1UADHv5-dnTFx-14",
+              "dataFlowId": "DF-1",
+              "dataFlowName": "push setpoint [cmd]",
+              "sourceId": "Y_GD3hm1UADHv5-dnTFx-5",
+              "sourceName": "Operator",
+              "sourceType": "ExternalEntity",
+              "targetId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "targetName": "Controller",
+              "targetType": "Process"
+            },
+            "displayId": "CTRL-DF1-D-IN-1",
+            "interactionContext": {
+              "attackedRole": "source",
+              "crossesTrustBoundary": true,
+              "direction": "incoming",
+              "victimRole": "target"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[CTRL]",
+            "templateId": "D-001",
+            "threatActor": "external",
+            "threatDescription": "Request flooding: Attacker overwhelms Controller with excessive incoming requests",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "df::Y_GD3hm1UADHv5-dnTFx-14::D::outgoing": {
+            "attackDescription": "Attacker disrupts or delays the response channel from Controller, causing Operator to stall or fail",
+            "causeDescription": "No redundancy or timeout protection — Operator depends on responses from Controller to continue operation",
+            "dataFlow": {
+              "connectionId": "Y_GD3hm1UADHv5-dnTFx-14",
+              "dataFlowId": "DF-1",
+              "dataFlowName": "push setpoint [cmd]",
+              "sourceId": "Y_GD3hm1UADHv5-dnTFx-5",
+              "sourceName": "Operator",
+              "sourceType": "ExternalEntity",
+              "targetId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "targetName": "Controller",
+              "targetType": "Process"
+            },
+            "displayId": "CTRL-DF1-D-OUT-1",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": true,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[CTRL]",
+            "templateId": "D-002",
+            "threatActor": "external",
+            "threatDescription": "Response blocking: Attacker prevents Operator from receiving responses from Controller",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "df::Y_GD3hm1UADHv5-dnTFx-14::E::incoming": {
+            "attackDescription": "Attacker uses the DF-1 interface to halt the processor, reads security keys and modifies execution flow to bypass access controls",
+            "causeDescription": "JTAG or SWD interface provides full processor access — attacker can halt CPU and modify execution flow",
+            "dataFlow": {
+              "connectionId": "Y_GD3hm1UADHv5-dnTFx-14",
+              "dataFlowId": "DF-1",
+              "dataFlowName": "push setpoint [cmd]",
+              "sourceId": "Y_GD3hm1UADHv5-dnTFx-5",
+              "sourceName": "Operator",
+              "sourceType": "ExternalEntity",
+              "targetId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "targetName": "Controller",
+              "targetType": "Process"
+            },
+            "displayId": "CTRL-DF1-E-IN-1",
+            "interactionContext": {
+              "attackedRole": "source",
+              "crossesTrustBoundary": true,
+              "direction": "incoming",
+              "victimRole": "target"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-CB-E-001"
+              },
+              {
+                "id": "M-E-001"
+              },
+              {
+                "id": "M-E-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-CB-E-001"
+              },
+              {
+                "id": "V-E-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "E",
+            "table": "[CTRL]",
+            "templateId": "E-003",
+            "threatActor": "external",
+            "threatDescription": "Privilege escalation via DF-1 debug interface on Controller",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "df::Y_GD3hm1UADHv5-dnTFx-14::E::outgoing": {
+            "attackDescription": "Attacker modifies the response from Controller to include elevated roles or permissions, causing Operator to grant unauthorized access",
+            "causeDescription": "Operator trusts response data from Controller without integrity verification, enabling privilege decisions based on forged responses",
+            "dataFlow": {
+              "connectionId": "Y_GD3hm1UADHv5-dnTFx-14",
+              "dataFlowId": "DF-1",
+              "dataFlowName": "push setpoint [cmd]",
+              "sourceId": "Y_GD3hm1UADHv5-dnTFx-5",
+              "sourceName": "Operator",
+              "sourceType": "ExternalEntity",
+              "targetId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "targetName": "Controller",
+              "targetType": "Process"
+            },
+            "displayId": "CTRL-DF1-E-OUT-1",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": true,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-E-001"
+              },
+              {
+                "id": "M-E-002"
+              },
+              {
+                "id": "M-E-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-E-001"
+              },
+              {
+                "id": "V-E-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "E",
+            "table": "[CTRL]",
+            "templateId": "E-002",
+            "threatActor": "external",
+            "threatDescription": "Response manipulation for privilege escalation: Attacker manipulates response to gain elevated access in Operator",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "df::Y_GD3hm1UADHv5-dnTFx-14::I::incoming": {
+            "attackDescription": "Attacker attaches a logic analyzer to the embedded bus and captures all traffic",
+            "causeDescription": "Embedded bus communication is unencrypted and physically accessible — data can be passively captured",
+            "dataFlow": {
+              "connectionId": "Y_GD3hm1UADHv5-dnTFx-14",
+              "dataFlowId": "DF-1",
+              "dataFlowName": "push setpoint [cmd]",
+              "sourceId": "Y_GD3hm1UADHv5-dnTFx-5",
+              "sourceName": "Operator",
+              "sourceType": "ExternalEntity",
+              "targetId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "targetName": "Controller",
+              "targetType": "Process"
+            },
+            "displayId": "CTRL-DF1-I-IN-1",
+            "interactionContext": {
+              "attackedRole": "source",
+              "crossesTrustBoundary": true,
+              "direction": "incoming",
+              "victimRole": "target"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-I-002"
+              },
+              {
+                "id": "M-IF-I-001"
+              },
+              {
+                "id": "M-IF-I-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-IF-I-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[CTRL]",
+            "templateId": "I-001",
+            "threatActor": "external",
+            "threatDescription": "Eavesdropping on embedded bus DF-1 between Operator and Controller",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "df::Y_GD3hm1UADHv5-dnTFx-14::I::outgoing": {
+            "attackDescription": "Attacker intercepts the response from Controller to Operator and reads sensitive information",
+            "causeDescription": "Unencrypted or weakly protected response channel — response data is readable in transit",
+            "dataFlow": {
+              "connectionId": "Y_GD3hm1UADHv5-dnTFx-14",
+              "dataFlowId": "DF-1",
+              "dataFlowName": "push setpoint [cmd]",
+              "sourceId": "Y_GD3hm1UADHv5-dnTFx-5",
+              "sourceName": "Operator",
+              "sourceType": "ExternalEntity",
+              "targetId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "targetName": "Controller",
+              "targetType": "Process"
+            },
+            "displayId": "CTRL-DF1-I-OUT-1",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": true,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-I-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-I-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[CTRL]",
+            "templateId": "I-002",
+            "threatActor": "external",
+            "threatDescription": "Eavesdropping on response: Attacker intercepts sensitive response data from Controller",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "df::Y_GD3hm1UADHv5-dnTFx-14::R::incoming": {
+            "attackDescription": "Operator claims it never sent the command or data that Controller received and acted upon",
+            "causeDescription": "No non-repudiation mechanism on the data flow — requests from Operator are not signed or cryptographically bound to the sender",
+            "dataFlow": {
+              "connectionId": "Y_GD3hm1UADHv5-dnTFx-14",
+              "dataFlowId": "DF-1",
+              "dataFlowName": "push setpoint [cmd]",
+              "sourceId": "Y_GD3hm1UADHv5-dnTFx-5",
+              "sourceName": "Operator",
+              "sourceType": "ExternalEntity",
+              "targetId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "targetName": "Controller",
+              "targetType": "Process"
+            },
+            "displayId": "CTRL-DF1-R-IN-1",
+            "interactionContext": {
+              "attackedRole": "source",
+              "crossesTrustBoundary": true,
+              "direction": "incoming",
+              "victimRole": "target"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-R-001"
+              },
+              {
+                "id": "M-R-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-R-001"
+              },
+              {
+                "id": "V-R-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "R",
+            "table": "[CTRL]",
+            "templateId": "R-001",
+            "threatActor": "external",
+            "threatDescription": "Sender repudiation: Operator denies sending the request or data",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "df::Y_GD3hm1UADHv5-dnTFx-14::R::outgoing": {
+            "attackDescription": "Controller claims it never received the data from Operator, or denies having processed it",
+            "causeDescription": "No delivery confirmation or cryptographic receipt — Operator has no proof that Controller received its data",
+            "dataFlow": {
+              "connectionId": "Y_GD3hm1UADHv5-dnTFx-14",
+              "dataFlowId": "DF-1",
+              "dataFlowName": "push setpoint [cmd]",
+              "sourceId": "Y_GD3hm1UADHv5-dnTFx-5",
+              "sourceName": "Operator",
+              "sourceType": "ExternalEntity",
+              "targetId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "targetName": "Controller",
+              "targetType": "Process"
+            },
+            "displayId": "CTRL-DF1-R-OUT-1",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": true,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-R-001"
+              },
+              {
+                "id": "M-R-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-R-001"
+              },
+              {
+                "id": "V-R-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "R",
+            "table": "[CTRL]",
+            "templateId": "R-002",
+            "threatActor": "external",
+            "threatDescription": "Receiver repudiation: Controller denies receiving or processing the request",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "df::Y_GD3hm1UADHv5-dnTFx-14::S::incoming": {
+            "attackDescription": "Attacker forges the identity of Operator and sends malicious data to Controller, which processes it as legitimate",
+            "causeDescription": "Missing sender authentication on incoming data flow — Controller cannot verify the true origin of received data",
+            "dataFlow": {
+              "connectionId": "Y_GD3hm1UADHv5-dnTFx-14",
+              "dataFlowId": "DF-1",
+              "dataFlowName": "push setpoint [cmd]",
+              "sourceId": "Y_GD3hm1UADHv5-dnTFx-5",
+              "sourceName": "Operator",
+              "sourceType": "ExternalEntity",
+              "targetId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "targetName": "Controller",
+              "targetType": "Process"
+            },
+            "displayId": "CTRL-DF1-S-IN-1",
+            "interactionContext": {
+              "attackedRole": "source",
+              "crossesTrustBoundary": true,
+              "direction": "incoming",
+              "victimRole": "target"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-S-001"
+              },
+              {
+                "id": "M-S-002"
+              },
+              {
+                "id": "M-S-004"
+              },
+              {
+                "id": "M-S-008"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-S-001"
+              },
+              {
+                "id": "V-S-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "S",
+            "table": "[CTRL]",
+            "templateId": "S-001",
+            "threatActor": "external",
+            "threatDescription": "Sender spoofing: Attacker impersonates Operator to deceive Controller",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "df::Y_GD3hm1UADHv5-dnTFx-14::S::outgoing": {
+            "attackDescription": "Attacker sets up a rogue endpoint pretending to be Controller, causing Operator to send sensitive data to the attacker",
+            "causeDescription": "Missing endpoint validation before data transmission — Operator cannot verify the true identity of the receiving endpoint",
+            "dataFlow": {
+              "connectionId": "Y_GD3hm1UADHv5-dnTFx-14",
+              "dataFlowId": "DF-1",
+              "dataFlowName": "push setpoint [cmd]",
+              "sourceId": "Y_GD3hm1UADHv5-dnTFx-5",
+              "sourceName": "Operator",
+              "sourceType": "ExternalEntity",
+              "targetId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "targetName": "Controller",
+              "targetType": "Process"
+            },
+            "displayId": "CTRL-DF1-S-OUT-1",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": true,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-S-001"
+              },
+              {
+                "id": "M-S-002"
+              },
+              {
+                "id": "M-S-005"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-S-001"
+              },
+              {
+                "id": "V-S-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "S",
+            "table": "[CTRL]",
+            "templateId": "S-002",
+            "threatActor": "external",
+            "threatDescription": "Receiver spoofing: Attacker impersonates Controller to intercept data from Operator",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "df::Y_GD3hm1UADHv5-dnTFx-14::T::incoming": {
+            "attackDescription": "Attacker attaches a hardware probe to the embedded bus and injects or modifies data packets",
+            "causeDescription": "Embedded bus carries no integrity protection or authentication — data is transmitted in plaintext",
+            "dataFlow": {
+              "connectionId": "Y_GD3hm1UADHv5-dnTFx-14",
+              "dataFlowId": "DF-1",
+              "dataFlowName": "push setpoint [cmd]",
+              "sourceId": "Y_GD3hm1UADHv5-dnTFx-5",
+              "sourceName": "Operator",
+              "sourceType": "ExternalEntity",
+              "targetId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "targetName": "Controller",
+              "targetType": "Process"
+            },
+            "displayId": "CTRL-DF1-T-IN-1",
+            "interactionContext": {
+              "attackedRole": "source",
+              "crossesTrustBoundary": true,
+              "direction": "incoming",
+              "victimRole": "target"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-T-002"
+              },
+              {
+                "id": "M-T-008"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-T-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[CTRL]",
+            "templateId": "T-002",
+            "threatActor": "external",
+            "threatDescription": "Data tampering on embedded bus DF-1 between Operator and Controller",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "df::Y_GD3hm1UADHv5-dnTFx-14::T::outgoing": {
+            "attackDescription": "Attacker intercepts the response from Controller and modifies data, causing Operator to process falsified information",
+            "causeDescription": "Missing integrity protection on the response flow from Controller — Operator cannot detect modified responses",
+            "dataFlow": {
+              "connectionId": "Y_GD3hm1UADHv5-dnTFx-14",
+              "dataFlowId": "DF-1",
+              "dataFlowName": "push setpoint [cmd]",
+              "sourceId": "Y_GD3hm1UADHv5-dnTFx-5",
+              "sourceName": "Operator",
+              "sourceType": "ExternalEntity",
+              "targetId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "targetName": "Controller",
+              "targetType": "Process"
+            },
+            "displayId": "CTRL-DF1-T-OUT-1",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": true,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-T-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-T-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[CTRL]",
+            "templateId": "T-002",
+            "threatActor": "external",
+            "threatDescription": "Response tampering: Attacker modifies response data before it reaches Operator",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "df::Y_GD3hm1UADHv5-dnTFx-20::D::outgoing": {
+            "attackDescription": "Attacker disrupts or delays the response channel from Controller, causing Config Store to stall or fail",
+            "causeDescription": "No redundancy or timeout protection — Config Store depends on responses from Controller to continue operation",
+            "dataFlow": {
+              "connectionId": "Y_GD3hm1UADHv5-dnTFx-20",
+              "dataFlowId": "DF-3",
+              "dataFlowName": "read config",
+              "sourceId": "Y_GD3hm1UADHv5-dnTFx-18",
+              "sourceName": "Config Store",
+              "sourceType": "DataStore",
+              "targetId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "targetName": "Controller",
+              "targetType": "Process"
+            },
+            "displayId": "CTRL-DF3-D-OUT-1",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": false,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[CTRL]",
+            "templateId": "D-002",
+            "threatActor": "external",
+            "threatDescription": "Response blocking: Attacker prevents Config Store from receiving responses from Controller",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "df::Y_GD3hm1UADHv5-dnTFx-20::E::outgoing": {
+            "attackDescription": "Attacker modifies the response from Controller to include elevated roles or permissions, causing Config Store to grant unauthorized access",
+            "causeDescription": "Config Store trusts response data from Controller without integrity verification, enabling privilege decisions based on forged responses",
+            "dataFlow": {
+              "connectionId": "Y_GD3hm1UADHv5-dnTFx-20",
+              "dataFlowId": "DF-3",
+              "dataFlowName": "read config",
+              "sourceId": "Y_GD3hm1UADHv5-dnTFx-18",
+              "sourceName": "Config Store",
+              "sourceType": "DataStore",
+              "targetId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "targetName": "Controller",
+              "targetType": "Process"
+            },
+            "displayId": "CTRL-DF3-E-OUT-1",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": false,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-E-001"
+              },
+              {
+                "id": "M-E-002"
+              },
+              {
+                "id": "M-E-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-E-001"
+              },
+              {
+                "id": "V-E-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "E",
+            "table": "[CTRL]",
+            "templateId": "E-002",
+            "threatActor": "external",
+            "threatDescription": "Response manipulation for privilege escalation: Attacker manipulates response to gain elevated access in Config Store",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "df::Y_GD3hm1UADHv5-dnTFx-20::I::outgoing": {
+            "attackDescription": "Attacker intercepts the response from Controller to Config Store and reads sensitive information",
+            "causeDescription": "Unencrypted or weakly protected response channel — response data is readable in transit",
+            "dataFlow": {
+              "connectionId": "Y_GD3hm1UADHv5-dnTFx-20",
+              "dataFlowId": "DF-3",
+              "dataFlowName": "read config",
+              "sourceId": "Y_GD3hm1UADHv5-dnTFx-18",
+              "sourceName": "Config Store",
+              "sourceType": "DataStore",
+              "targetId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "targetName": "Controller",
+              "targetType": "Process"
+            },
+            "displayId": "CTRL-DF3-I-OUT-1",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": false,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-I-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-I-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[CTRL]",
+            "templateId": "I-002",
+            "threatActor": "external",
+            "threatDescription": "Eavesdropping on response: Attacker intercepts sensitive response data from Controller",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "df::Y_GD3hm1UADHv5-dnTFx-20::R::outgoing": {
+            "attackDescription": "Controller claims it never received the data from Config Store, or denies having processed it",
+            "causeDescription": "No delivery confirmation or cryptographic receipt — Config Store has no proof that Controller received its data",
+            "dataFlow": {
+              "connectionId": "Y_GD3hm1UADHv5-dnTFx-20",
+              "dataFlowId": "DF-3",
+              "dataFlowName": "read config",
+              "sourceId": "Y_GD3hm1UADHv5-dnTFx-18",
+              "sourceName": "Config Store",
+              "sourceType": "DataStore",
+              "targetId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "targetName": "Controller",
+              "targetType": "Process"
+            },
+            "displayId": "CTRL-DF3-R-OUT-1",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": false,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-R-001"
+              },
+              {
+                "id": "M-R-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-R-001"
+              },
+              {
+                "id": "V-R-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "R",
+            "table": "[CTRL]",
+            "templateId": "R-002",
+            "threatActor": "external",
+            "threatDescription": "Receiver repudiation: Controller denies receiving or processing the request",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "df::Y_GD3hm1UADHv5-dnTFx-20::S::outgoing": {
+            "attackDescription": "Attacker sets up a rogue endpoint pretending to be Controller, causing Config Store to send sensitive data to the attacker",
+            "causeDescription": "Missing endpoint validation before data transmission — Config Store cannot verify the true identity of the receiving endpoint",
+            "dataFlow": {
+              "connectionId": "Y_GD3hm1UADHv5-dnTFx-20",
+              "dataFlowId": "DF-3",
+              "dataFlowName": "read config",
+              "sourceId": "Y_GD3hm1UADHv5-dnTFx-18",
+              "sourceName": "Config Store",
+              "sourceType": "DataStore",
+              "targetId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "targetName": "Controller",
+              "targetType": "Process"
+            },
+            "displayId": "CTRL-DF3-S-OUT-1",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": false,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-S-001"
+              },
+              {
+                "id": "M-S-002"
+              },
+              {
+                "id": "M-S-005"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-S-001"
+              },
+              {
+                "id": "V-S-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "S",
+            "table": "[CTRL]",
+            "templateId": "S-002",
+            "threatActor": "external",
+            "threatDescription": "Receiver spoofing: Attacker impersonates Controller to intercept data from Config Store",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "df::Y_GD3hm1UADHv5-dnTFx-20::T::outgoing": {
+            "attackDescription": "Attacker intercepts the response from Controller and modifies data, causing Config Store to process falsified information",
+            "causeDescription": "Missing integrity protection on the response flow from Controller — Config Store cannot detect modified responses",
+            "dataFlow": {
+              "connectionId": "Y_GD3hm1UADHv5-dnTFx-20",
+              "dataFlowId": "DF-3",
+              "dataFlowName": "read config",
+              "sourceId": "Y_GD3hm1UADHv5-dnTFx-18",
+              "sourceName": "Config Store",
+              "sourceType": "DataStore",
+              "targetId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "targetName": "Controller",
+              "targetType": "Process"
+            },
+            "displayId": "CTRL-DF3-T-OUT-1",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": false,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-T-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-T-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[CTRL]",
+            "templateId": "T-002",
+            "threatActor": "external",
+            "threatDescription": "Response tampering: Attacker modifies response data before it reaches Config Store",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "df::Y_GD3hm1UADHv5-dnTFx-22::D::outgoing": {
+            "attackDescription": "Attacker disrupts or delays the response channel from Config Store, causing Controller to stall or fail",
+            "causeDescription": "No redundancy or timeout protection — Controller depends on responses from Config Store to continue operation",
+            "dataFlow": {
+              "connectionId": "Y_GD3hm1UADHv5-dnTFx-22",
+              "dataFlowId": "DF-2",
+              "dataFlowName": "write config",
+              "sourceId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "sourceName": "Controller",
+              "sourceType": "Process",
+              "targetId": "Y_GD3hm1UADHv5-dnTFx-18",
+              "targetName": "Config Store",
+              "targetType": "DataStore"
+            },
+            "displayId": "CTRL-DF2-D-OUT-1",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": false,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[CTRL]",
+            "templateId": "D-002",
+            "threatActor": "external",
+            "threatDescription": "Response blocking: Attacker prevents Controller from receiving responses from Config Store",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "df::Y_GD3hm1UADHv5-dnTFx-22::E::outgoing": {
+            "attackDescription": "Attacker modifies the response from Config Store to include elevated roles or permissions, causing Controller to grant unauthorized access",
+            "causeDescription": "Controller trusts response data from Config Store without integrity verification, enabling privilege decisions based on forged responses",
+            "dataFlow": {
+              "connectionId": "Y_GD3hm1UADHv5-dnTFx-22",
+              "dataFlowId": "DF-2",
+              "dataFlowName": "write config",
+              "sourceId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "sourceName": "Controller",
+              "sourceType": "Process",
+              "targetId": "Y_GD3hm1UADHv5-dnTFx-18",
+              "targetName": "Config Store",
+              "targetType": "DataStore"
+            },
+            "displayId": "CTRL-DF2-E-OUT-1",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": false,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-E-001"
+              },
+              {
+                "id": "M-E-002"
+              },
+              {
+                "id": "M-E-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-E-001"
+              },
+              {
+                "id": "V-E-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "E",
+            "table": "[CTRL]",
+            "templateId": "E-002",
+            "threatActor": "external",
+            "threatDescription": "Response manipulation for privilege escalation: Attacker manipulates response to gain elevated access in Controller",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "df::Y_GD3hm1UADHv5-dnTFx-22::I::outgoing": {
+            "attackDescription": "Attacker intercepts the response from Config Store to Controller and reads sensitive information",
+            "causeDescription": "Unencrypted or weakly protected response channel — response data is readable in transit",
+            "dataFlow": {
+              "connectionId": "Y_GD3hm1UADHv5-dnTFx-22",
+              "dataFlowId": "DF-2",
+              "dataFlowName": "write config",
+              "sourceId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "sourceName": "Controller",
+              "sourceType": "Process",
+              "targetId": "Y_GD3hm1UADHv5-dnTFx-18",
+              "targetName": "Config Store",
+              "targetType": "DataStore"
+            },
+            "displayId": "CTRL-DF2-I-OUT-1",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": false,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-I-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-I-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[CTRL]",
+            "templateId": "I-002",
+            "threatActor": "external",
+            "threatDescription": "Eavesdropping on response: Attacker intercepts sensitive response data from Config Store",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "df::Y_GD3hm1UADHv5-dnTFx-22::R::outgoing": {
+            "attackDescription": "Config Store claims it never received the data from Controller, or denies having processed it",
+            "causeDescription": "No delivery confirmation or cryptographic receipt — Controller has no proof that Config Store received its data",
+            "dataFlow": {
+              "connectionId": "Y_GD3hm1UADHv5-dnTFx-22",
+              "dataFlowId": "DF-2",
+              "dataFlowName": "write config",
+              "sourceId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "sourceName": "Controller",
+              "sourceType": "Process",
+              "targetId": "Y_GD3hm1UADHv5-dnTFx-18",
+              "targetName": "Config Store",
+              "targetType": "DataStore"
+            },
+            "displayId": "CTRL-DF2-R-OUT-1",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": false,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-R-001"
+              },
+              {
+                "id": "M-R-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-R-001"
+              },
+              {
+                "id": "V-R-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "R",
+            "table": "[CTRL]",
+            "templateId": "R-002",
+            "threatActor": "external",
+            "threatDescription": "Receiver repudiation: Config Store denies receiving or processing the request",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "df::Y_GD3hm1UADHv5-dnTFx-22::S::outgoing": {
+            "attackDescription": "Attacker sets up a rogue endpoint pretending to be Config Store, causing Controller to send sensitive data to the attacker",
+            "causeDescription": "Missing endpoint validation before data transmission — Controller cannot verify the true identity of the receiving endpoint",
+            "dataFlow": {
+              "connectionId": "Y_GD3hm1UADHv5-dnTFx-22",
+              "dataFlowId": "DF-2",
+              "dataFlowName": "write config",
+              "sourceId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "sourceName": "Controller",
+              "sourceType": "Process",
+              "targetId": "Y_GD3hm1UADHv5-dnTFx-18",
+              "targetName": "Config Store",
+              "targetType": "DataStore"
+            },
+            "displayId": "CTRL-DF2-S-OUT-1",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": false,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-S-001"
+              },
+              {
+                "id": "M-S-002"
+              },
+              {
+                "id": "M-S-005"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-S-001"
+              },
+              {
+                "id": "V-S-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "S",
+            "table": "[CTRL]",
+            "templateId": "S-002",
+            "threatActor": "external",
+            "threatDescription": "Receiver spoofing: Attacker impersonates Config Store to intercept data from Controller",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "df::Y_GD3hm1UADHv5-dnTFx-22::T::outgoing": {
+            "attackDescription": "Attacker intercepts the response from Config Store and modifies data, causing Controller to process falsified information",
+            "causeDescription": "Missing integrity protection on the response flow from Config Store — Controller cannot detect modified responses",
+            "dataFlow": {
+              "connectionId": "Y_GD3hm1UADHv5-dnTFx-22",
+              "dataFlowId": "DF-2",
+              "dataFlowName": "write config",
+              "sourceId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "sourceName": "Controller",
+              "sourceType": "Process",
+              "targetId": "Y_GD3hm1UADHv5-dnTFx-18",
+              "targetName": "Config Store",
+              "targetType": "DataStore"
+            },
+            "displayId": "CTRL-DF2-T-OUT-1",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": false,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-T-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-T-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[CTRL]",
+            "templateId": "T-002",
+            "threatActor": "external",
+            "threatDescription": "Response tampering: Attacker modifies response data before it reaches Controller",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "df::Y_GD3hm1UADHv5-dnTFx-24::D::outgoing": {
+            "attackDescription": "Attacker disrupts or delays the response channel from Controller, causing Update Service to stall or fail",
+            "causeDescription": "No redundancy or timeout protection — Update Service depends on responses from Controller to continue operation",
+            "dataFlow": {
+              "connectionId": "Y_GD3hm1UADHv5-dnTFx-24",
+              "dataFlowId": "DF-4",
+              "dataFlowName": "push firmware [cmd]",
+              "sourceId": "Y_GD3hm1UADHv5-dnTFx-16",
+              "sourceName": "Update Service",
+              "sourceType": "Process",
+              "targetId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "targetName": "Controller",
+              "targetType": "Process"
+            },
+            "displayId": "CTRL-DF4-D-OUT-1",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": false,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[CTRL]",
+            "templateId": "D-002",
+            "threatActor": "external",
+            "threatDescription": "Response blocking: Attacker prevents Update Service from receiving responses from Controller",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "df::Y_GD3hm1UADHv5-dnTFx-24::E::outgoing": {
+            "attackDescription": "Attacker modifies the response from Controller to include elevated roles or permissions, causing Update Service to grant unauthorized access",
+            "causeDescription": "Update Service trusts response data from Controller without integrity verification, enabling privilege decisions based on forged responses",
+            "dataFlow": {
+              "connectionId": "Y_GD3hm1UADHv5-dnTFx-24",
+              "dataFlowId": "DF-4",
+              "dataFlowName": "push firmware [cmd]",
+              "sourceId": "Y_GD3hm1UADHv5-dnTFx-16",
+              "sourceName": "Update Service",
+              "sourceType": "Process",
+              "targetId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "targetName": "Controller",
+              "targetType": "Process"
+            },
+            "displayId": "CTRL-DF4-E-OUT-1",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": false,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-E-001"
+              },
+              {
+                "id": "M-E-002"
+              },
+              {
+                "id": "M-E-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-E-001"
+              },
+              {
+                "id": "V-E-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "E",
+            "table": "[CTRL]",
+            "templateId": "E-002",
+            "threatActor": "external",
+            "threatDescription": "Response manipulation for privilege escalation: Attacker manipulates response to gain elevated access in Update Service",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "df::Y_GD3hm1UADHv5-dnTFx-24::I::outgoing": {
+            "attackDescription": "Attacker intercepts the response from Controller to Update Service and reads sensitive information",
+            "causeDescription": "Unencrypted or weakly protected response channel — response data is readable in transit",
+            "dataFlow": {
+              "connectionId": "Y_GD3hm1UADHv5-dnTFx-24",
+              "dataFlowId": "DF-4",
+              "dataFlowName": "push firmware [cmd]",
+              "sourceId": "Y_GD3hm1UADHv5-dnTFx-16",
+              "sourceName": "Update Service",
+              "sourceType": "Process",
+              "targetId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "targetName": "Controller",
+              "targetType": "Process"
+            },
+            "displayId": "CTRL-DF4-I-OUT-1",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": false,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-I-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-I-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[CTRL]",
+            "templateId": "I-002",
+            "threatActor": "external",
+            "threatDescription": "Eavesdropping on response: Attacker intercepts sensitive response data from Controller",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "df::Y_GD3hm1UADHv5-dnTFx-24::R::outgoing": {
+            "attackDescription": "Controller claims it never received the data from Update Service, or denies having processed it",
+            "causeDescription": "No delivery confirmation or cryptographic receipt — Update Service has no proof that Controller received its data",
+            "dataFlow": {
+              "connectionId": "Y_GD3hm1UADHv5-dnTFx-24",
+              "dataFlowId": "DF-4",
+              "dataFlowName": "push firmware [cmd]",
+              "sourceId": "Y_GD3hm1UADHv5-dnTFx-16",
+              "sourceName": "Update Service",
+              "sourceType": "Process",
+              "targetId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "targetName": "Controller",
+              "targetType": "Process"
+            },
+            "displayId": "CTRL-DF4-R-OUT-1",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": false,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-R-001"
+              },
+              {
+                "id": "M-R-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-R-001"
+              },
+              {
+                "id": "V-R-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "R",
+            "table": "[CTRL]",
+            "templateId": "R-002",
+            "threatActor": "external",
+            "threatDescription": "Receiver repudiation: Controller denies receiving or processing the request",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "df::Y_GD3hm1UADHv5-dnTFx-24::S::outgoing": {
+            "attackDescription": "Attacker sets up a rogue endpoint pretending to be Controller, causing Update Service to send sensitive data to the attacker",
+            "causeDescription": "Missing endpoint validation before data transmission — Update Service cannot verify the true identity of the receiving endpoint",
+            "dataFlow": {
+              "connectionId": "Y_GD3hm1UADHv5-dnTFx-24",
+              "dataFlowId": "DF-4",
+              "dataFlowName": "push firmware [cmd]",
+              "sourceId": "Y_GD3hm1UADHv5-dnTFx-16",
+              "sourceName": "Update Service",
+              "sourceType": "Process",
+              "targetId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "targetName": "Controller",
+              "targetType": "Process"
+            },
+            "displayId": "CTRL-DF4-S-OUT-1",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": false,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-S-001"
+              },
+              {
+                "id": "M-S-002"
+              },
+              {
+                "id": "M-S-005"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-S-001"
+              },
+              {
+                "id": "V-S-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "S",
+            "table": "[CTRL]",
+            "templateId": "S-002",
+            "threatActor": "external",
+            "threatDescription": "Receiver spoofing: Attacker impersonates Controller to intercept data from Update Service",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "df::Y_GD3hm1UADHv5-dnTFx-24::T::outgoing": {
+            "attackDescription": "Attacker intercepts the response from Controller and modifies data, causing Update Service to process falsified information",
+            "causeDescription": "Missing integrity protection on the response flow from Controller — Update Service cannot detect modified responses",
+            "dataFlow": {
+              "connectionId": "Y_GD3hm1UADHv5-dnTFx-24",
+              "dataFlowId": "DF-4",
+              "dataFlowName": "push firmware [cmd]",
+              "sourceId": "Y_GD3hm1UADHv5-dnTFx-16",
+              "sourceName": "Update Service",
+              "sourceType": "Process",
+              "targetId": "Y_GD3hm1UADHv5-dnTFx-12",
+              "targetName": "Controller",
+              "targetType": "Process"
+            },
+            "displayId": "CTRL-DF4-T-OUT-1",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": false,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-T-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-T-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[CTRL]",
+            "templateId": "T-002",
+            "threatActor": "external",
+            "threatDescription": "Response tampering: Attacker modifies response data before it reaches Update Service",
+            "trustBoundaryDisplayId": "CTRL",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-2",
+            "trustBoundaryName": "Device Controller [CTRL]",
+            "workflowStatus": "open"
+          },
+          "el::Y_GD3hm1UADHv5-dnTFx-10::D": {
+            "attackDescription": "Attacker applies excessive electrical input or flooding signals to the interface causing it to fail",
+            "causeDescription": "Interface has no protection against electrical stress or signal flooding — it can be disabled by physical or signal attack",
+            "dataFlow": null,
+            "displayId": "ENC-IF1-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-1",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-10",
+              "elementName": "USB",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-D-001"
+              },
+              {
+                "id": "M-IF-D-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-D-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[ENC]",
+            "templateId": "D-006",
+            "threatActor": "external",
+            "threatDescription": "Interface denial of service — attacker renders the interface unavailable",
+            "trustBoundaryDisplayId": "ENC",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Physical Device Enclosure [ENC]",
+            "workflowStatus": "open"
+          },
+          "el::Y_GD3hm1UADHv5-dnTFx-10::E": {
+            "attackDescription": "Attacker exploits the interface to run privileged commands and bypass access controls, or uploads unsigned malicious firmware that disables security controls or installs a persistent backdoor",
+            "causeDescription": "Interface exposes privileged functions without sufficient authentication and accepts firmware updates without signature verification",
+            "dataFlow": null,
+            "displayId": "ENC-IF1-E-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-1",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-10",
+              "elementName": "USB",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-E-006"
+              },
+              {
+                "id": "M-IF-E-001"
+              },
+              {
+                "id": "M-IF-E-002"
+              },
+              {
+                "id": "M-IF-E-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-E-004"
+              },
+              {
+                "id": "V-IF-E-001"
+              },
+              {
+                "id": "V-IF-E-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "E",
+            "table": "[ENC]",
+            "templateId": "E-004",
+            "threatActor": "external",
+            "threatDescription": "Interface privilege escalation — attacker uses the interface to gain elevated access or inject unauthorized firmware",
+            "trustBoundaryDisplayId": "ENC",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Physical Device Enclosure [ENC]",
+            "workflowStatus": "open"
+          },
+          "el::Y_GD3hm1UADHv5-dnTFx-10::I": {
+            "attackDescription": "Attacker attaches monitoring equipment to the physical interface and captures transmitted data",
+            "causeDescription": "Physical interface transmits data without encryption — signals are readable with basic test equipment",
+            "dataFlow": null,
+            "displayId": "ENC-IF1-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-1",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-10",
+              "elementName": "USB",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-I-001"
+              },
+              {
+                "id": "M-IF-I-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-I-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[ENC]",
+            "templateId": "I-007",
+            "threatActor": "external",
+            "threatDescription": "Interface eavesdropping — attacker intercepts data on the physical interface",
+            "trustBoundaryDisplayId": "ENC",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Physical Device Enclosure [ENC]",
+            "workflowStatus": "open"
+          },
+          "el::Y_GD3hm1UADHv5-dnTFx-10::R": {
+            "attackDescription": "Attacker connects to the physical interface and denies having accessed it because no log record exists",
+            "causeDescription": "No logging of physical interface connections — who connected and when is unknown",
+            "dataFlow": null,
+            "displayId": "ENC-IF1-R-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-1",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-10",
+              "elementName": "USB",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-R-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-R-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "R",
+            "table": "[ENC]",
+            "templateId": "R-005",
+            "threatActor": "external",
+            "threatDescription": "Interface access repudiation — physical interface access cannot be attributed",
+            "trustBoundaryDisplayId": "ENC",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Physical Device Enclosure [ENC]",
+            "workflowStatus": "open"
+          },
+          "el::Y_GD3hm1UADHv5-dnTFx-10::S": {
+            "attackDescription": "Attacker connects a rogue device to the interface and impersonates a legitimate system, gaining unauthorized access",
+            "causeDescription": "No hardware authentication on the interface — any device connecting is trusted without verification",
+            "dataFlow": null,
+            "displayId": "ENC-IF1-S-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-1",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-10",
+              "elementName": "USB",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-S-001"
+              },
+              {
+                "id": "M-S-008"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-S-001"
+              },
+              {
+                "id": "V-IF-S-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "S",
+            "table": "[ENC]",
+            "templateId": "S-005",
+            "threatActor": "external",
+            "threatDescription": "Interface identity spoofing — attacker impersonates a legitimate device on the interface",
+            "trustBoundaryDisplayId": "ENC",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Physical Device Enclosure [ENC]",
+            "workflowStatus": "open"
+          },
+          "el::Y_GD3hm1UADHv5-dnTFx-10::T": {
+            "attackDescription": "Attacker modifies the interface hardware or firmware to intercept, inject, or block communications",
+            "causeDescription": "Interface lacks tamper detection and physical protection — unauthorized modification is possible without detection",
+            "dataFlow": null,
+            "displayId": "ENC-IF1-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-1",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-10",
+              "elementName": "USB",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-T-001"
+              },
+              {
+                "id": "M-IF-T-002"
+              },
+              {
+                "id": "M-IF-T-003"
+              },
+              {
+                "id": "M-IF-T-004"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[ENC]",
+            "templateId": "T-007",
+            "threatActor": "external",
+            "threatDescription": "Interface tampering — attacker physically or logically tampers with the interface",
+            "trustBoundaryDisplayId": "ENC",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Physical Device Enclosure [ENC]",
+            "workflowStatus": "open"
+          },
+          "el::Y_GD3hm1UADHv5-dnTFx-1::D": {
+            "attackDescription": "Attacker physically damages the device or cuts power, causing immediate loss of availability",
+            "causeDescription": "No physical protection or anchoring — device can be damaged, unplugged, or destroyed",
+            "dataFlow": null,
+            "displayId": "ENC-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "ENC",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-1",
+              "elementName": "Physical Device Enclosure [ENC]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-002"
+              },
+              {
+                "id": "M-PB-D-001"
+              },
+              {
+                "id": "M-PB-T-006"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-IF-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[ENC]",
+            "templateId": "D-007",
+            "threatActor": "external",
+            "threatDescription": "Physical destruction or power disruption — device rendered unavailable by physical attack",
+            "trustBoundaryDisplayId": "ENC",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-1",
+            "trustBoundaryName": "Physical Device Enclosure [ENC]",
+            "workflowStatus": "open"
+          },
+          "el::Y_GD3hm1UADHv5-dnTFx-1::E": {
+            "attackDescription": "Attacker opens the physical boundary and connects to internal debug interface, bypassing all software authentication",
+            "causeDescription": "Physical access to device interior grants debug/hardware access — logical security can be bypassed",
+            "dataFlow": null,
+            "displayId": "ENC-E-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "ENC",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-1",
+              "elementName": "Physical Device Enclosure [ENC]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-E-001"
+              },
+              {
+                "id": "M-CB-E-001"
+              },
+              {
+                "id": "M-PB-T-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-E-001"
+              },
+              {
+                "id": "V-CB-E-001"
+              },
+              {
+                "id": "V-PB-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "E",
+            "table": "[ENC]",
+            "templateId": "E-010",
+            "threatActor": "external",
+            "threatDescription": "Physical privilege escalation — attacker gains elevated system access via physical boundary breach",
+            "trustBoundaryDisplayId": "ENC",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-1",
+            "trustBoundaryName": "Physical Device Enclosure [ENC]",
+            "workflowStatus": "open"
+          },
+          "el::Y_GD3hm1UADHv5-dnTFx-1::I": {
+            "attackDescription": "Attacker measures power consumption or EM emissions and extracts cryptographic keys",
+            "causeDescription": "Physical boundary provides no electromagnetic shielding — internal operations are observable",
+            "dataFlow": null,
+            "displayId": "ENC-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "ENC",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-1",
+              "elementName": "Physical Device Enclosure [ENC]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-IF-I-001"
+              },
+              {
+                "id": "M-CB-I-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-IF-I-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[ENC]",
+            "templateId": "I-005",
+            "threatActor": "external",
+            "threatDescription": "Side-channel observation — sensitive data extracted via physical measurements",
+            "trustBoundaryDisplayId": "ENC",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-1",
+            "trustBoundaryName": "Physical Device Enclosure [ENC]",
+            "workflowStatus": "open"
+          },
+          "el::Y_GD3hm1UADHv5-dnTFx-1::T": {
+            "attackDescription": "Attacker opens the enclosure without triggering any alarm, gaining access to internal components",
+            "causeDescription": "No tamper detection mechanism — unauthorized opening is undetected",
+            "dataFlow": null,
+            "displayId": "ENC-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "ENC",
+              "elementId": "Y_GD3hm1UADHv5-dnTFx-1",
+              "elementName": "Physical Device Enclosure [ENC]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-IF-T-001"
+              },
+              {
+                "id": "M-IF-T-003"
+              },
+              {
+                "id": "M-PB-T-001"
+              },
+              {
+                "id": "M-PB-T-006"
+              },
+              {
+                "id": "M-PB-T-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-IF-T-001"
+              },
+              {
+                "id": "V-PB-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[ENC]",
+            "templateId": "T-001",
+            "threatActor": "external",
+            "threatDescription": "Physical boundary tampering — unauthorized physical access to boundary interior",
+            "trustBoundaryDisplayId": "ENC",
+            "trustBoundaryId": "Y_GD3hm1UADHv5-dnTFx-1",
+            "trustBoundaryName": "Physical Device Enclosure [ENC]",
+            "workflowStatus": "open"
+          }
+        }
+      }
+    }
+  }
+}

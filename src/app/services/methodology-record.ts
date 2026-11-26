@@ -14,6 +14,8 @@ import {
   EMPTY_PROJECT_TAGS,
   getRegulationPreset,
   regulationPresetFromTags,
+  hasEn50742Overlay,
+  en50742ApproachFromTags,
   type ImpactAggregation,
   type LikelihoodMethod,
   type RegulationPresetId,
@@ -38,11 +40,21 @@ import {
 } from "features/risks/models/risk-treatment-vocabulary";
 import type { RiskTreatment } from "features/risks/models/risk-scale-types";
 import { ISO_RISK_MATRIX_H8 } from "features/risks/models/iso-risk-matrix";
+import { THREAT_CATALOG_VERSION } from "features/threats/services/threat-catalog-version";
+import { storedCatalogVersion } from "shared/models/threat-catalog-stamp";
 
 export interface MethodologyRecord {
   /** Regulation preset (from the project tags) and its i18n name key. */
   presetId: RegulationPresetId;
   presetNameKey: string;
+  /**
+   * The method as a whole, as i18n name keys joined with " + ": the base
+   * method for R = L × I, then the EN 50742 approach the project adds — A
+   * (AP and SRSL, rule sheet R1) or B (the requirement set): "ETSI TVRA +
+   * EN 50742 Approach A", "Standard (TARAflow) + EN 50742 Approach B".
+   * Before, TVRA + A / B was named "ETSI TVRA" only.
+   */
+  basisNameKeys: string[];
   impact: {
     scale: ImpactScaleType;
     /** Scale the preset prescribes (iso-21434 → 4-level); undefined = free. */
@@ -78,6 +90,29 @@ export interface MethodologyRecord {
   calcStamps?: { risk: CalcStamp; path: CalcStamp };
   /** Risk value method (iso-21434): the matrix of Annex H.8 (3a). */
   riskMatrix?: typeof ISO_RISK_MATRIX_H8;
+  /**
+   * Threat catalogue (catalogue divergence phase A): the version the stored
+   * generated threats of each method were generated with (only methods with
+   * generated threats; files before 0.20 count as 1) and the current one.
+   */
+  threatCatalog: ThreatCatalogRecord;
+}
+
+export interface ThreatCatalogRecord {
+  current: number;
+  stored: Partial<Record<"per-element" | "per-interaction", number>>;
+}
+
+function threatCatalogOf(project: Project): ThreatCatalogRecord {
+  const threats = project.threats;
+  const stored: ThreatCatalogRecord["stored"] = {};
+  const tables = { "per-element": threats?.perElementTables, "per-interaction": threats?.perInteractionTables };
+  for (const method of ["per-element", "per-interaction"] as const) {
+    if ((tables[method] ?? []).some((t) => t.threats.some((x) => x.source !== "manual"))) {
+      stored[method] = storedCatalogVersion(threats, method);
+    }
+  }
+  return { current: THREAT_CATALOG_VERSION, stored };
 }
 
 export function buildMethodologyRecord(project: Project): MethodologyRecord {
@@ -94,9 +129,20 @@ export function buildMethodologyRecord(project: Project): MethodologyRecord {
   const vocabulary = treatmentVocabulary(riskConfig);
   const requiredScale = preset.requiredImpactScale;
 
+  // The base method (an EN 50742 preset rates R = L × I with the standard
+  // method), then the EN 50742 approach the project adds: A (AP and SRSL)
+  // or B (the requirement set) — review 2026-11-22: B was not named either.
+  const tags = project.info?.tags ?? EMPTY_PROJECT_TAGS;
+  const approach = presetId === "en-50742-a" || hasEn50742Overlay(riskConfig) ? "A" : en50742ApproachFromTags(tags) === "B" ? "B" : undefined;
+  const baseKey = presetId === "en-50742-a" || presetId === "en-50742-b" ? getRegulationPreset("standard").nameKey : preset.nameKey;
+  const basisNameKeys = approach
+    ? [baseKey, getRegulationPreset(approach === "A" ? "en-50742-a" : "en-50742-b").nameKey]
+    : [preset.nameKey];
+
   return {
     presetId,
     presetNameKey: preset.nameKey,
+    basisNameKeys,
     impact: {
       scale: assetConfig.impactScale,
       requiredScale,
@@ -120,6 +166,7 @@ export function buildMethodologyRecord(project: Project): MethodologyRecord {
     },
     // Same set and order as the threat generator's CIANAAA_TO_STRIDE.
     securityProperties: Object.keys(CIANAAA_TO_STRIDE) as SecurityGoalType[],
+    threatCatalog: threatCatalogOf(project),
     ...(presetId === "iso-21434"
       ? {
           riskMatrix: ISO_RISK_MATRIX_H8,

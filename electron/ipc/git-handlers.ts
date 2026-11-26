@@ -5,6 +5,8 @@ import { ipcMain } from "electron";
 import { simpleGit } from "simple-git";
 import { GitService } from "../services/git-service-main";
 import { rawGitInDir } from "./git-raw-in-dir";
+import { refuseGitArgs } from "./git-arg-policy";
+import { isFixedGitOp, runFixedGitOp } from "./git-fixed-ops";
 import { resolveRemoteRef } from "./remote-ref";
 
 let gitService: GitService;
@@ -96,7 +98,11 @@ export function registerGitHandlers() {
   });
 
   // Raw
+  // Read-only git calls on the bound repo (git-arg-policy.ts, roadmap 0.20):
+  // the arguments come from the renderer.
   ipcMain.handle("git:raw", async (_, command) => {
+    const refused = refuseGitArgs(command);
+    if (refused) return { success: false, error: `refused: ${refused}` };
     return await gitService.raw(command);
   });
 
@@ -107,8 +113,18 @@ export function registerGitHandlers() {
   // (no git in the renderer) still holds. Never throws to the renderer: a
   // non-zero exit is returned as { code }.
   // The real exit code — also for a "no" without stderr (rawGitInDir).
+  // Read-only calls only (git-arg-policy.ts); a refused call comes back as a
+  // git failure (code 128) and never runs.
   ipcMain.handle("git:rawInDir", async (_, dir: string, args: string[]) => {
     return { success: true, data: await rawGitInDir(dir, args) };
+  });
+
+  // What changes a repository (init, hooks path, untrack the hook file, the
+  // component fetch): an operation name and a directory, the arguments are
+  // fixed in the main process (git-fixed-ops.ts, roadmap 0.20).
+  ipcMain.handle("git:fixedOp", async (_, op: unknown, dir: string) => {
+    if (!isFixedGitOp(op)) return { success: false, error: `unknown git operation ${String(op)}` };
+    return { success: true, data: await runFixedGitOp(op, dir) };
   });
 
   // Rebind the bound GitService to the discovered audit repo root. Called on

@@ -13,6 +13,7 @@ export type {
   MitigationPropertyEffect,
   ProjectMitigation,
   ThreatRiskAttachment,
+  ThreatCatalogStamp,
 } from "./models/threat-types";
 
 export type {
@@ -109,5 +110,10 @@ export {
   NO_DRIFT,
 } from "./services/threat-generation-drift";
 export type { GenerationDrift } from "./services/threat-generation-drift";
+export {
+  THREAT_CATALOG_VERSION,
+  isCatalogOutdated,
+  outdatedCatalog,
+} from "./services/threat-catalog-version";
 
 export { formatDataFlowDisplay } from "./models/per-interaction-types";

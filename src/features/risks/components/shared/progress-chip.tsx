@@ -7,6 +7,7 @@ import {
   getProgressColor,
   getProgressVariant,
 } from "../../utils/risk-progress";
+import { useSafetyMarks } from "../safety-marks-context";
 
 interface ProgressChipProps {
   risks: Risk[];
@@ -14,7 +15,8 @@ interface ProgressChipProps {
 
 export const ProgressChip: React.FC<ProgressChipProps> = ({ risks }) => {
   const { t } = useTranslation();
-  const progress = calculateProgress(risks);
+  const { srslOpen } = useSafetyMarks();
+  const progress = calculateProgress(risks, srslOpen);
   const chipColor = getProgressColor(progress.percent);
   const progressColor = getProgressVariant(progress.percent);
 
@@ -22,12 +24,21 @@ export const ProgressChip: React.FC<ProgressChipProps> = ({ risks }) => {
     <Stack direction="row" spacing={1} alignItems="center">
       {/* What "done" means (user 2026-10-30: "6/17" said nothing) */}
       <Tooltip
-        title={t("tabs.risks.progressTooltip", {
-          done: progress.done,
-          total: progress.total,
-          defaultValue:
-            "{{done}} of {{total}} risks done: a treatment without implementation of its own (accept, transfer / share, won't) or every selected mitigation implemented, verified or rejected.",
-        })}
+        title={
+          t("tabs.risks.progressTooltip", {
+            done: progress.done,
+            total: progress.total,
+            defaultValue:
+              "{{done}} of {{total}} risks done: a treatment without implementation of its own (accept, transfer / share, won't) or every selected mitigation implemented, verified or rejected.",
+          }) +
+          (progress.srslOpen > 0
+            ? " " +
+              t("tabs.risks.progressSrslOpen", {
+                count: progress.srslOpen,
+                defaultValue: "{{count}} stay open: their SRSL controls are missing (EN 50742).",
+              })
+            : "")
+        }
       >
         <Chip
           label={`${progress.done}/${progress.total}`}

@@ -565,6 +565,8 @@ export interface DocVerification {
 export interface DocMethodology {
   presetId: string;
   presetNameKey: string;
+  /** The base method, then EN 50742 A if it adds AP and SRSL (joined with " + "). */
+  basisNameKeys?: string[];
   impact: {
     scale: string;
     requiredScale?: string;
@@ -587,6 +589,11 @@ export interface DocMethodology {
   calcStamps?: { risk: CalcStamp; path: CalcStamp };
   /** iso-21434: risk matrix (impact → feasibility → value 1–5), Annex H.8. */
   riskMatrix?: Readonly<Record<string, Readonly<Record<string, number>>>>;
+  /** Threat catalogue version per method with generated threats, and the current one. */
+  threatCatalog?: {
+    current: number;
+    stored: Partial<Record<"per-element" | "per-interaction", number>>;
+  };
 }
 
 // ==================== COMPLETE PROJECT DATA ====================
@@ -615,6 +622,12 @@ export interface DocProjectData {
   cybersecurityConcept?: CybersecurityConcept;
   /** Component under evaluation of the Compliance tab — model fields of the whole component are listed on it (CM-6). */
   complianceComponentId?: string;
+  /**
+   * What the page images show besides the model (0.20, patch 23): the EL
+   * badges (project setting) and the safety-zone frame (EN 50742 project).
+   * The legend below the DFD statistics follows it. Absent = neither.
+   */
+  dfdMarks?: { badges: boolean; en50742: boolean };
 
   // Computed values (performance optimization)
   computed: DocComputedValues;

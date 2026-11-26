@@ -4,6 +4,7 @@
 // Imported by ProjectRepository; never by UI components directly.
 
 import { repairHazardAssetRefs } from "./repair-hazard-asset-refs";
+import { repairStoredThreatTexts } from "./repair-threat-texts";
 import { repairElementRelationGroups } from "./repair-element-relation-groups";
 import {
   migrateProjectTags,
@@ -142,6 +143,8 @@ export function repairProject(raw: any): Project | null {
         raw.settings?.autoSaveInterval ?? DEFAULT_SETTINGS.autoSaveInterval,
       regulationPreset:
         raw.settings?.regulationPreset ?? DEFAULT_SETTINGS.regulationPreset,
+      // the analyst's explicit choice is kept; absent = by the EN 50742 tag
+      ...(typeof raw.settings?.dfdBadges === "boolean" ? { dfdBadges: raw.settings.dfdBadges } : {}),
     },
     status: raw.status ?? "draft",
     hazards: raw.hazards ?? null,
@@ -341,6 +344,10 @@ export function applyLegacyMigrations(raw: any): any {
     };
   }
 
+  // Tags are never rewritten on load (review 2026-11-21): a stored alias
+  // ("EN50742_A", the bare "EN 50742") is read by methodTagOf; rewriting it
+  // would change the file and a component's snapshot hash (about.tags).
+
   // Migrate risk data schema
   if (data.risks) {
     data = { ...data, risks: migrateRiskData(data.risks) };
@@ -365,6 +372,11 @@ export function applyLegacyMigrations(raw: any): any {
       };
     }
   }
+
+  // Threat / risk text stored as an unresolved i18n key (0.20 patch 30,
+  // persisted-threat-text-fix.md): resolved again from the catalog.
+  // Idempotent; no-op on clean files.
+  data = repairStoredThreatTexts(data);
 
   // Repair hazard edges orphaned by the 5 → 6 asset identity split (they
   // still point at the old readable label, now the displayId). Idempotent;

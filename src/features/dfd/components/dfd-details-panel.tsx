@@ -7,6 +7,7 @@
 //   • Element selected  → both "Element" and "Assets" tabs shown
 //   • Nothing selected  → only "Assets" tab shown (Element tab hidden)
 
+import { InstancePrefixDialog } from "shared/components/instance-prefix-dialog";
 import React, { useEffect, useState } from "react";
 import {
   Accordion,
@@ -439,11 +440,31 @@ const ComponentSection: React.FC<{ info: ComponentMultiprocessInfo; onRun?: (run
   const { t } = useTranslation();
   const [copying, setCopying] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [renaming, setRenaming] = useState(false);
   return (
     <Box sx={{ px: 1, pb: 1 }} data-testid="component-section">
-      <Typography variant="caption" color="text.secondary" display="block">
-        {t("components.details.title", { ns: "components", defaultValue: "Imported component ({{prefix}}) — read-only", prefix: info.prefix })}
-      </Typography>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+        <Typography variant="caption" color="text.secondary" display="block">
+          {t("components.details.title", { ns: "components", defaultValue: "Imported component ({{prefix}}) — read-only", prefix: info.prefix })}
+        </Typography>
+        {onRun && info.renamePrefix && (
+          <Button size="small" sx={{ px: 0.5, minWidth: 0 }} onClick={() => setRenaming(true)} data-testid="component-prefix-change">
+            {t("components.prefix.change", { ns: "components", defaultValue: "Change prefix…" })}
+          </Button>
+        )}
+      </Box>
+      {renaming && onRun && info.renamePrefix && (
+        <InstancePrefixDialog
+          open
+          current={info.prefix}
+          check={info.renamePrefix.check}
+          onClose={() => setRenaming(false)}
+          onConfirm={(prefix) => {
+            setRenaming(false);
+            onRun(info.renamePrefix!.runnerFor(prefix));
+          }}
+        />
+      )}
       <Typography variant="body2" fontWeight="medium">
         {info.name}
       </Typography>

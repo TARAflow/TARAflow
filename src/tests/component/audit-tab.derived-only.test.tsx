@@ -111,7 +111,7 @@ describe("AuditTab — derived values only", () => {
     render(<AuditTab project={project} onUpdate={vi.fn()} />);
     await waitFor(() => expect(lastToolbar()?.hasChanges).toBe(true));
     expect(lastChanges()![0].phaseLabel).toBe("Derived values");
-    expect(lastChanges()![0].changes.map((c) => c.id)).toEqual(["/risks/risks/0/threatDisplayId"]);
+    expect(lastChanges()![0].changes.map((c) => c.id)).toEqual(["risks.risks[r1].threatDisplayId"]);
   });
 
   // review 2026-11-20: a change the diff does not cover is no "derived value"
@@ -121,7 +121,7 @@ describe("AuditTab — derived values only", () => {
     render(<AuditTab project={project} onUpdate={vi.fn()} />);
     await waitFor(() => expect(lastToolbar()?.hasChanges).toBe(true));
     expect(lastChanges()![0].phaseLabel).toBe("Changes the audit diff does not list");
-    expect(lastChanges()![0].changes.map((c) => c.id)).toEqual(["/notListed"]);
+    expect(lastChanges()![0].changes.map((c) => c.id)).toEqual(["notListed"]);
   });
 
   it("the file is clean: no change", async () => {

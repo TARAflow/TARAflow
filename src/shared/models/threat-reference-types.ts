@@ -85,6 +85,40 @@ export interface ThreatReference {
   /** Threat of an imported component: the multiprocess of its instance (its table group). */
   componentMultiprocessId?: string;
   /**
+   * EN 50742 (O17 / O18): whether the threat's anchor — an interface or a
+   * data flow crossing into the safety zone / on a path to a safety
+   * function — is EN 50742 relevant, with the reason as display text. Only
+   * a relevant risk gets EL, attacker capability, WoO and an SRSL. Set by the
+   * app layer (en50742-relevance.ts) for EN 50742 projects; absent = no
+   * decision (other projects, imported component threats): the risk is
+   * calculated as before.
+   *
+   * functionIsolated (0.20 patch 22): whether every safety function the
+   * threat is linked to is completely isolated (all interfaces on its paths
+   * EL0) — only then may its SRSL be SRSL0 (Table 2). isolationReason names
+   * what makes it reachable. Absent = no linked safety function: the SRSL0
+   * guard falls back to the risk's own interface.
+   */
+  en50742?: {
+    relevant: boolean;
+    reason?: string;
+    functionIsolated?: boolean;
+    isolationReason?: string;
+    /**
+     * An attack-path threat has no DFD anchor of its own: the EL its risk is
+     * prefilled with — the MIN over the ELs of the path's anchored leaves
+     * (AND = MIN, as the EN 50742 aggregation; 0.20, review 2026-11-21).
+     * Absent = no leaf with an EL: no prefill.
+     */
+    exposureLevel?: string;
+  };
+  /**
+   * Attack-path threat: the leaves of its path and the DFD element each names
+   * (DSL [IF-1], a display id) — the anchors its EN 50742 relevance is read
+   * from (app layer). Absent on STRIDE threats.
+   */
+  attackPathLeaves?: { name: string; dfdRef?: string }[];
+  /**
    * Derived CIANAAA impact level from UnifiedStrategy.getInitialImpact().
    * Phase 3b: used to pre-fill matching Risk impact factor.
    */

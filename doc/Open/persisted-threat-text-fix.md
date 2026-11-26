@@ -1,8 +1,26 @@
 # Fixing Persisted Unresolved i18n Keys in Threat & Risk Text
 
-**Status:** Proposed
+**Status:** Done in 0.20 (patch 30), as follows. The phases below are the original
+proposal; the schema numbers are stale (the schema is at 14).
 **Area:** Threats / Risks / Project schema
-**Schema impact:** bump 6 → 7 (repair migration)
+**Schema impact:** none. The repair runs on load (`applyLegacyMigrations`) and is a no-op
+on clean files, so it needs no schema bump and leaves the component snapshot hash alone.
+
+**What was done (0.20 patch 30):**
+- **Phase 1 — resolver guard:** `threat-catalog-service.ts` returns
+  `pendingTranslationText(id, kind)` = "[D-009] (threat text pending translation)" instead
+  of the raw key. Before, it also returned i18next's "__MISSING__" for the domain "general".
+- **Phases 2 and 3 — repair on load,** instead of a sync pass and a schema migration:
+  - `features/threats/services/threat-text-repair.ts`: `isUnresolvedThreatText`
+    recognises a raw key, "__MISSING__" or the placeholder. `repairThreatTexts`
+    resolves the text again from the template's current domain and gets the
+    interaction placeholders from the flow and the table.
+  - `app/services/repair-threat-texts.ts`: risks take the repaired text of their threat.
+  - Text the analyst wrote is never touched.
+- **Phase 4 — guards:** the catalog / i18n completeness test already existed
+  (`src/tests/unit/i18n/threat-template-texts.test.ts`). New: no project fixture holds
+  unresolved threat or risk text.
+- **Phase 5:** not planned.
 
 ---
 

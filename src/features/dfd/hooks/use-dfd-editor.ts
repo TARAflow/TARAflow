@@ -3,7 +3,7 @@
 // Follows Facade Pattern - simple interface, complex implementation
 
 import type { A2AOp, PhaseStatusMap } from "shared";
-import { PHASE_STATUS_KEY } from "shared";
+import { PHASE_STATUS_KEY, dfdBadgesShown } from "shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   DFDPage,
@@ -33,6 +33,7 @@ import { useDFDValidation } from "./use-dfd-validation";
 import { useDFDPersistence } from "./use-dfd-persistence";
 import { useDFDThumbnail } from "./use-dfd-thumbnail";
 import { useDFDAutoNumbering } from "./use-dfd-auto-numbering";
+import { useDfdBadges } from "./use-dfd-badges";
 import { useDFDExportImport } from "./use-dfd-export-import";
 import { useCellIdentity } from "./use-cell-identity";
 import { withPageThumbnails } from "../services/leveled/page-thumbnails";
@@ -50,6 +51,10 @@ import { DFDGraphAnalysisContext } from "../adapters/dfd-graph-analysis-context"
 import { waitForRenderable } from "../utils/wait-for-renderable";
 
 // ==================== TYPES ====================
+
+
+/** How long a thumbnail to render again for changed marks waits for the DFD tab to be shown. */
+const MARKS_THUMBNAIL_WAIT_MS = 60 * 60 * 1000;
 
 export interface UseDFDEditorOptions {
   onDirtyChange?: (isDirty: boolean) => void;
@@ -128,6 +133,12 @@ export interface UseDFDEditorReturn {
   insertComponent: (runner: ComponentImportRunner) => Promise<boolean>;
   /** One SVG thumbnail per page (leveled DFD 5i, D18). */
   exportPageSvgs: (pageIds: string[]) => Promise<PageSvgExport>;
+  /**
+   * What the EL badges and the safety-zone frame in the editor stand for
+   * (badgeSignature), once applied; null before. The page thumbnails of a
+   * leveled DFD are exported again when it changes.
+   */
+  appliedMarks: string | null;
   /**
    * Store page thumbnails (debounced, JSON only): dfd.pages[].thumbnail,
    * dfd.thumbnail mirrors the root page.
@@ -369,6 +380,7 @@ export function useDFDEditor(
   // callback without re-subscribing the bridge.
   const projectRef = useRef(project);
   projectRef.current = project;
+  const [appliedMarks, setAppliedMarks] = useState<string | null>(null);
 
   // Called once after the draw.io plugin is fully injected (~3 s after mount).
   // Only projects WITHOUT a thumbnail get one here. The thumbnail is a
@@ -517,6 +529,55 @@ export function useDFDEditor(
     getPages: getProjectPages,
     getLockedPageIds: options.getLockedPageIds,
   });
+
+  // EL badges and the safety-zone style (0.20) — written by the app, read-only in draw.io
+  useDfdBadges(bridge, {
+    elements: project.dfd?.elements,
+    pages: project.dfd?.pages,
+    enabled: dfdBadgesShown(project.settings?.dfdBadges, project.en50742 === true),
+    en50742: project.en50742 === true,
+    onApplied: setAppliedMarks,
+  });
+
+  // The stored image shows the marks too, but they are display only: a change
+  // of the setting, the EN 50742 tag or a level saves no diagram, and the
+  // report kept the old image (manual test en-50742 7.2, 2026-11-25). Render
+  // it again once the editor shows the new marks — the DFD tab stays mounted
+  // while hidden, so wait until it is shown. At open the stored image counts
+  // as current. Leveled DFD: usePageThumbnails (appliedMarks).
+  const renderedMarksRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (appliedMarks === null) return;
+    if (renderedMarksRef.current === null || !generateThumbnailOnSave) {
+      renderedMarksRef.current = appliedMarks;
+      return;
+    }
+    if (renderedMarksRef.current === appliedMarks) return;
+    if ((projectRef.current.dfd?.pages?.length ?? 0) > 1) {
+      renderedMarksRef.current = appliedMarks;
+      return;
+    }
+    const marks = appliedMarks;
+    let cancelled = false;
+    void (async () => {
+      const renderable = await waitForRenderable(
+        () => (cancelled ? null : bridgeRef.current?.iframeRef.current),
+        { timeoutMs: MARKS_THUMBNAIL_WAIT_MS },
+      );
+      if (!renderable || cancelled) return;
+      try {
+        const imageData = (await bridgeRef.current?.exportImage()) ?? null;
+        if (!imageData || cancelled) return;
+        if (await persistenceSaveRef.current?.(imageData)) renderedMarksRef.current = marks;
+      } catch (err) {
+        console.warn("[useDFDEditor] Thumbnail update after a change of the marks failed:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appliedMarks]);
 
   // Export/Import layer
   const exportImport = useDFDExportImport(project, bridge, persistence);
@@ -698,6 +759,7 @@ export function useDFDEditor(
     getCurrentPageId,
     insertComponent,
     exportPageSvgs: bridge.exportPageSvgs,
+    appliedMarks,
     updatePageThumbnails,
     getCurrentXML: async () => bridge.getCurrentXML(),
     exportXML: bridge.exportXML,

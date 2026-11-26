@@ -36,6 +36,7 @@
       "prefixHint": "Vor den IDs der Komponente, z. B. {{example}}",
       "prefixInvalid": "1–12 Buchstaben, Ziffern, - oder _",
       "prefixTaken": "Bereits von einer anderen Instanz verwendet",
+      "prefixInner": "Die Komponente verwendet ihn intern für einen eigenen Import",
       "mappingTitle": "Externe Entitäten der Komponente",
       "noEntities": "Die Komponente hat keine externen Entitäten.",
       "entity": "Entität der Komponente",
@@ -52,6 +53,7 @@
     "findings": {
       "CMP_NEWER_STATE_AVAILABLE": "Komponente {{component}}: ein neuerer Stand ist verfügbar ({{where}}). Nichts ändert sich, bis er explizit übernommen wird (Update).",
       "CMP_NEWER_ON_OTHER_BRANCH": "Komponente {{component}}: der ausgecheckte Branch {{branch}} hat einen neueren Stand ({{where}}); der Import folgt {{tracked}}. Übersicht → Komponenten → „Branch folgen“, um diesen Branch zu nehmen.",
+      "CMP_INSTANCE_OUTDATED": "Komponente {{component}}, Instanz {{prefix}}: von einer älteren TARAflow-Version eingefügt — Grenzen ohne den Instanz-Präfix oder die IDs eines verschachtelten Imports in falscher Reihenfolge. „Gespeicherten Stand auffrischen…“ im Tab „Komponente“ des Multiprozesses fügt sie neu ein; die Komponente selbst ist unverändert.",
       "CMP_SNAPSHOT_BUILDER_CHANGED": "Komponente {{component}}: dieses TARAflow liest den importierten Stand anders als die Version, die ihn importiert hat — die Komponente selbst hat sich nicht geändert. „Gespeicherten Stand auffrischen…“ im Tab „Komponente“ des Multiprozesses übernimmt ihn neu.",
       "CMP_SOURCE_DIVERGED": "Komponente {{component}}: ein Stand auf getrenntem Ast ({{where}}) — weder neuer noch älter als der importierte (z.B. nach einem Rebase). Vor einer Übernahme mit dem Komponenten-Team klären.",
       "CMP_SOURCE_UNREACHABLE": "Komponente {{component}}: ob es einen neueren Stand gibt, lässt sich hier nicht prüfen ({{reason}}).",
@@ -86,6 +88,13 @@
       "quantityHint": "Gleiche Einheiten am gleichen Ort — eine Analyse für alle",
       "copyRatings": "Bewertung von anderer Instanz übernehmen…",
       "pathUnknown": "Wo die Komponenten-TARA auf diesem Rechner liegt, ist nicht bekannt — über Datei → Öffnen öffnen."
+    },
+    "prefix": {
+      "change": "Präfix ändern…",
+      "title": "Präfix der Instanz ändern",
+      "text": "Die Instanz wird mit dem neuen Präfix neu eingefügt: Alle ihre IDs ändern sich ({{current}}:P-1 → <neu>:P-1). Die Entscheide dieser TARA dazu bleiben.",
+      "confirm": "Präfix ändern",
+      "failed": "Der Präfix konnte nicht geändert werden: {{detail}}"
     },
     "update": {
       "open": "Update…",
@@ -225,6 +234,7 @@
       "measuresNone": "keine gewählt — eine oder mehrere auswählen",
       "measuresChosen": "Als Nachweis gewählt ({{count}}):",
       "note": "Nachweis-Notiz",
+      "notFulfilledNote": "Warum sie nicht erfüllt ist",
       "status": {
         "open": "offen",
         "fulfilled": "erfüllt",

@@ -16,6 +16,7 @@ export function buildMethodologySummary(project: Project): MethodologySummary {
   const r = buildMethodologyRecord(project);
   return {
     presetNameKey: r.presetNameKey,
+    basisNameKeys: r.basisNameKeys,
     impactScale: r.impact.scale,
     ...(r.impact.requiredScale ? { requiredImpactScale: r.impact.requiredScale } : {}),
     impactScaleConforms: r.impact.scaleConforms,
@@ -27,6 +28,7 @@ export function buildMethodologySummary(project: Project): MethodologySummary {
     treatmentOptions: r.treatment.options.map((o) => o.label),
     securityProperties: [...r.securityProperties],
     riskMatrix: !!r.riskMatrix,
+    threatCatalog: r.threatCatalog,
     ...(r.calcStamps
       ? { calcStamps: { risk: stampText(r.calcStamps.risk), path: stampText(r.calcStamps.path) } }
       : {}),

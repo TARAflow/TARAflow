@@ -204,6 +204,12 @@ export interface RiskProjectData {
    */
   perAttackPathThreats?: ThreatReference[];
   /**
+   * EN 50742 A (0.20 patch 29): risks whose SRSL controls are not all done —
+   * the same test as the Compliance matrix, built at the app layer. The
+   * progress keeps them open whatever their treatment. Absent = none.
+   */
+  en50742SrslOpenRiskIds?: ReadonlySet<string>;
+  /**
    * Attack-tree likelihood contributions (5b-2). One entry per risk an attack
    * tree feeds (asset-anchored: per emitted path; threat-anchored: aggregated).
    * mappedValue is already on the risk scale. Optional: absent without trees.
@@ -220,6 +226,12 @@ export interface RiskProjectData {
    */
   dfdTableGroups?: import("shared").DfdTableGroups;
   dfd?: DFDReference | null;
+  /**
+   * The DFD analysis graph — the risk dialog shows what the DFD knows about
+   * the threat's element or flow (ⓘ after its name, as in the threat dialog;
+   * 0.20 manual test, 2026-11-25). Absent = no info button.
+   */
+  dfdGraph?: import("shared").DFDGraphReference | null;
   /**
    * Goals, claims and verification records (ISO/SAE 21434 9.4, plan Phase 4,
    * decision 25) — edited in the risk dialog's "Goal / Claim" tab.

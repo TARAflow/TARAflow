@@ -93,6 +93,7 @@
 // signing fields from the credential-service (credentials.getSSHKeyPath), or
 // signing settings won't survive a reload. Ship both halves together.
 
+import { stripDfdBadges } from "features/dfd/services/dfd-badges";
 import type { Project } from "../models/project-types";
 import type { SourceBinding } from "shared";
 import { sortA2ARelations } from "shared";
@@ -258,6 +259,7 @@ export function prepareForDisk(project: Project): ProjectOnDisk {
   return {
     ...rest,
     assets: assetsForDisk(project.assets),
+    risks: risksForDisk(project.risks),
     dfd: project.dfd
       ? (() => {
           // dfd.assets is NOT persisted with data. It is a runtime projection
@@ -269,6 +271,11 @@ export function prepareForDisk(project: Project): ProjectOnDisk {
           const { assets: _dfdAssets, ...dfdRest } = project.dfd;
           return {
             ...dfdRest,
+            // The EL badges and the safety-zone frame are display only (0.20
+            // patch 23); every save strips them already. This is the one way
+            // to disk, so no future write path can store them (review
+            // 2026-11-21). Same string when there is nothing to strip.
+            ...(typeof dfdRest.xml === "string" ? { xml: stripDfdBadges(dfdRest.xml) } : {}),
             assets: [],
             graph: undefined,
             thumbnail: normalizeThumbnail(project.dfd.thumbnail),
@@ -297,6 +304,19 @@ export function prepareForDisk(project: Project): ProjectOnDisk {
  * An empty list is not written: absent and empty mean the same, and leaving it
  * out keeps files without relations byte-identical to before.
  */
+/**
+ * pendingSafetySourceRemoval is a question the Risks tab still has to ask —
+ * runtime state, not data. Stored, it outlived its cause (0.20 manual test,
+ * SmokeDetectorCase: the dialog asked although every asset was rated for
+ * safety). A sync sets it again when the safety data really is gone.
+ * Same object when there is nothing to strip.
+ */
+function risksForDisk(risks: Project["risks"]): Project["risks"] {
+  if (!risks?.configuration || !("pendingSafetySourceRemoval" in risks.configuration)) return risks;
+  const { pendingSafetySourceRemoval: _pending, ...configuration } = risks.configuration;
+  return { ...risks, configuration };
+}
+
 function assetsForDisk(assets: Project["assets"]): Project["assets"] {
   if (!assets || !("relations" in assets)) return assets;
   const { relations, ...rest } = assets;

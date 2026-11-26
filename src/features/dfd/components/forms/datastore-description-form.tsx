@@ -33,6 +33,8 @@ import { SecurityControlOwnershipDisplay } from "./security-control-ownership-di
 import { type AvailableAsset } from "./asset-relation-selector";
 import { ElementFormShell } from "./element-form-shell";
 import { useElementForm } from "../../hooks/use-element-form";
+import { useModelFieldEntries } from "./model-field-inputs";
+import type { VisibilityElement } from "shared";
 import {
   DATASTORE_TECH_DEFAULTS,
   DATASTORE_TECH_DRIVEN_FIELDS,
@@ -71,6 +73,9 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
 }) => {
   const { t } = useTranslation();
   const form = useElementForm<DataStoreProperties>(element, onChange);
+  const modelFieldEntries = useModelFieldEntries(element as unknown as VisibilityElement, (property, value) =>
+    form.handlePropertyChange(property as keyof DataStoreProperties, value as never),
+  );
   const { props } = form;
 
   // ── Cascade: technology driver ───────────────────────────────────────────
@@ -718,6 +723,17 @@ const DataStoreGeneralTab: React.FC<DataStoreGeneralTabProps> = ({
             )}
           />
         </Grid>
+
+        {/* Model coverage fields of the data store (property-visibility.ts),
+            shown where their predicate holds — e.g. the retention of the
+            audit records on a store that holds audit logs (EN 50742, B-F6). */}
+        {modelFieldEntries
+          .filter((entry) => entry.visible)
+          .map((entry) => (
+            <Grid item xs={12} sm={6} key={entry.key}>
+              {entry.node}
+            </Grid>
+          ))}
 
         {/* Safety integrity warning — shown when safety flag is set but integrity protection is off */}
         {showSafetyIntegrityWarning && (

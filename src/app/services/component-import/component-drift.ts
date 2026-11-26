@@ -45,6 +45,7 @@ import {
   type ComponentSourceResult,
 } from "./component-source";
 import { projectMethodologyFingerprint } from "./snapshot-builder";
+import { componentInstanceTfId } from "features/dfd";
 
 export type ComponentDriftReason =
   /** Where the component lies on this machine is not known (open it once via File → Open, or import again). */
@@ -309,11 +310,29 @@ const KEY = (code: string) => `components.findings.${code}`;
  * component's checkout.
  */
 export function componentDriftFindings(
-  project: { components?: { imports: readonly ComponentImport[]; instances: readonly { importId: string; multiprocessTfId: string }[] } | null; dfd?: { elements?: readonly { id: string; displayId?: string }[] } | null },
+  project: {
+    components?: { imports: readonly ComponentImport[]; instances: readonly { id?: string; importId: string; prefix?: string; multiprocessTfId: string }[] } | null;
+    dfd?: { elements?: readonly { id: string; displayId?: string }[]; connections?: readonly { id: string; displayId?: string }[] } | null;
+  },
   drift: ReadonlyMap<string, ComponentDriftStatus>,
 ): Finding[] {
   const components = project.components;
   if (!components || drift.size === 0) return [];
+  // inserted by an older TARAflow: refreshed with the same commit (0.20 manual test E1 / E2)
+  const instances = components.instances.filter((i): i is typeof i & { id: string; prefix: string } => !!i.id && !!i.prefix);
+  const outdated = instances.flatMap((instance): Finding[] => {
+    const imported = components.imports.find((i) => i.id === instance.importId);
+    if (!imported || !outdatedInstanceIds({ ...project, components: { ...components, instances } }, imported.id).includes(instance.id)) return [];
+    if (!updateTargetOf(imported, drift.get(imported.id), true)) return [];
+    const mp = (project.dfd?.elements ?? []).find((e) => e.id === instance.multiprocessTfId);
+    return [
+      {
+        key: KEY("CMP_INSTANCE_OUTDATED"),
+        ...(mp ? { elementId: mp.id, ...(mp.displayId ? { displayId: mp.displayId } : {}) } : {}),
+        params: { component: imported.name, prefix: instance.prefix },
+      },
+    ];
+  });
   const elements = new Map((project.dfd?.elements ?? []).map((e) => [e.id, e]));
   return components.imports.flatMap((imported): Finding[] => {
     const status = drift.get(imported.id);
@@ -337,7 +356,53 @@ export function componentDriftFindings(
       return [...builder, { key: KEY(code), ...at, params: { component: imported.name, where } }];
     }
     return [{ key: KEY("CMP_SOURCE_UNREACHABLE"), ...at, params: { component: imported.name, reason: status.reason } }];
-  });
+  }).concat(outdated);
+}
+
+// ==================== INSTANCES OF AN OLDER INSERT ====================
+
+type OutdatedProject = {
+  components?: {
+    imports: readonly { id: string; snapshot?: unknown }[];
+    instances: readonly { id: string; importId: string; prefix: string }[];
+  } | null;
+  dfd?: { elements?: readonly { id: string; displayId?: string }[]; connections?: readonly { id: string; displayId?: string }[] } | null;
+};
+
+/**
+ * The instances of an import that an older TARAflow inserted (0.20 manual
+ * test E1 / E2, 2026-11-26): an element or flow of the component whose
+ * display id in the machine is not "<prefix>:<the component's id>" — the
+ * boundaries without the prefix (before 0.20), or the ids of a nested import
+ * in the wrong order (0.19). The component itself is unchanged, so no update
+ * is offered; "Refresh stored state…" inserts the instance again (upgrade
+ * notes). Elements the machine renumbers (multiprocess, boundary flows) and
+ * the component's external entities are not compared.
+ */
+export function outdatedInstanceIds(project: OutdatedProject, importId: string): string[] {
+  const imported = project.components?.imports.find((i) => i.id === importId);
+  const snapshot = imported?.snapshot as
+    | { dfd?: { elements?: readonly { id: string; type?: string; displayId?: string }[]; connections?: readonly { id: string; from: string; to: string; displayId?: string }[] } }
+    | undefined;
+  if (!snapshot?.dfd) return [];
+  const ees = new Set((snapshot.dfd.elements ?? []).filter((e) => e.type === "ExternalEntity").map((e) => e.id));
+  const own = [
+    ...(snapshot.dfd.elements ?? []).filter((e) => !ees.has(e.id)),
+    // flows with an external entity at one end are the machine's boundary flows
+    ...(snapshot.dfd.connections ?? []).filter((c) => !ees.has(c.from) && !ees.has(c.to)),
+  ].filter((x): x is { id: string; displayId: string } => typeof x.displayId === "string" && x.displayId !== "");
+  const machine = new Map(
+    [...(project.dfd?.elements ?? []), ...(project.dfd?.connections ?? [])].map((x) => [x.id, x.displayId] as const),
+  );
+  return (project.components?.instances ?? [])
+    .filter((instance) => instance.importId === importId)
+    .filter((instance) =>
+      own.some((x) => {
+        const id = componentInstanceTfId(instance.id, x.id);
+        return machine.has(id) && machine.get(id) !== `${instance.prefix}:${x.displayId}`;
+      }),
+    )
+    .map((instance) => instance.id);
 }
 
 // ==================== WHAT AN UPDATE READS ====================
@@ -354,6 +419,8 @@ export function componentDriftFindings(
 export function updateTargetOf(
   imported: Pick<ComponentImport, "source" | "contentHash"> & { snapshot?: unknown },
   status: ComponentDriftStatus | undefined,
+  /** An instance of it was inserted by an older TARAflow (outdatedInstanceIds): refresh it. */
+  instanceOutdated = false,
 ): { status: Extract<ComponentDriftStatus, { kind: "newer_available" }>; refresh: boolean } | undefined {
   if (status?.kind === "newer_available") return { status, refresh: false };
   // An unpinned import committed by now with the same content: refreshing pins it.
@@ -373,7 +440,7 @@ export function updateTargetOf(
   // refresh writes the imported commit's state again.
   const damaged =
     imported.snapshot !== undefined && fnv1aHex12(canonicalStringify(imported.snapshot)) !== imported.contentHash;
-  if (status?.kind === "up_to_date" && (status.builderChanged || damaged) && imported.source.commitSha && !imported.source.unpinned) {
+  if (status?.kind === "up_to_date" && (status.builderChanged || damaged || instanceOutdated) && imported.source.commitSha && !imported.source.unpinned) {
     return {
       status: {
         kind: "newer_available",

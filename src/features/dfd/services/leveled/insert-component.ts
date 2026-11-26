@@ -47,6 +47,7 @@ import { fnv1aHex12 } from "shared/utils/fnv1a";
 import type { DFDCellLink, DFDConnection, DFDElement, DFDPage } from "../../models/dfd-types";
 import type { DFDAsset } from "../../models/dfd-asset-types";
 import { collectCellIdentities, identityOf, type CellIdentity } from "../parsers/identity-reader";
+import { isDfdDecorationType } from "../parsers/xml-parser";
 import { pageLink, ROOT_PAGE_NAME } from "./child-pages";
 import { buildDfdGraph } from "../build-dfd-graph";
 
@@ -260,7 +261,7 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
   const parentIdentities = collectCellIdentities(parentPage.links);
   /** Machine tfId → its cell on the parent page (definition or copy). */
   const parentCellOf = (tfId: string): Element | undefined =>
-    cellsOf(parentRoot).find((c) => identityOf(parentIdentities, c.getAttribute("id") ?? "").tfId === tfId && typeOf(c) !== "idlabel");
+    cellsOf(parentRoot).find((c) => identityOf(parentIdentities, c.getAttribute("id") ?? "").tfId === tfId && typeOf(c) !== "idlabel" && !isDfdDecorationType(typeOf(c)));
 
   // ---- component pages
   const componentDoc = asMxfile(parseXml(component.xml), "component-top");
@@ -365,7 +366,7 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
       const identity = identityOf(identities, id);
       cellIdentity.set(id, identity);
       const type = typeOf(cell);
-      if (type === "idlabel") {
+      if (type === "idlabel" || isDfdDecorationType(type)) {
         newCellId.set(id, ns(`label|${cPage.pageId}|${id}`));
         continue;
       }
@@ -435,7 +436,7 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
       const id = originalIdOf.get(nid)!;
       const mx = mxCellOf(cell);
       const type = typeOf(cell);
-      if (type === "idlabel") continue;
+      if (type === "idlabel" || isDfdDecorationType(type)) continue;
       const identity = cellIdentity.get(id)!;
       const tf = identity.tfId;
 
@@ -467,12 +468,16 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
         const target = componentPages.find((p) => `data:page/id,${p.pageId}` === cell.getAttribute("link"));
         if (target) cell.setAttribute("link", pageLink(ns(`page|${target.pageId}`)));
       }
-      // the instance prefix on the display id (E9)
+      // boundaries carry their display id in their own label: "Case [SD1:CASE]"
+      if (BOUNDARY_CELL_TYPES.has(type)) cell.setAttribute("label", prefixBoundaryLabel(cell.getAttribute("label") ?? "", prefix));
+      // the instance prefix on the display id (E9). The page is a fresh copy of
+      // the component's, so it is prefixed exactly once — no "already
+      // prefixed?" check: an inner instance may carry the same prefix
+      // ("C1:P-1" in a component imported as C1 again → "C1:C1:P-1",
+      // review 2026-11-22)
       const label = idlabelOf(root, nid);
       const text = label?.getAttribute("label");
-      if (label && text && !text.includes(`${prefix}:`)) {
-        label.setAttribute("label", prefixDisplayLabel(text, prefix));
-      }
+      if (label && text) label.setAttribute("label", prefixDisplayLabel(text, prefix));
     }
 
     machineDoc.documentElement.appendChild(copy);
@@ -521,6 +526,7 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
     cell.setAttribute("id", cellId);
     shellLinks.push({ cellId, tfId: mapTf(tf), role: "ref", attached: true });
     cell.removeAttribute("link");
+    cell.setAttribute("label", prefixBoundaryLabel(cell.getAttribute("label") ?? "", input.prefix));
     const mx = mxCellOf(cell);
     mx.setAttribute("parent", "1");
     const old = mx.getElementsByTagName("mxGeometry")[0];
@@ -540,15 +546,28 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
   /** Asset relations of a record, pointing to the instance assets. */
   const remapRelations = <T extends { assetId: string }>(relations: readonly T[] | undefined): T[] =>
     (relations ?? []).filter((r) => assetIds.has(r.assetId)).map((r) => ({ ...r, assetId: mapAsset(r.assetId) }));
-  // Boundaries carry their display id in their label ("… [SHE]"), not in an
-  // idlabel — it stays as the component named it.
-  const LABEL_IDS = BOUNDARY_TYPES;
+  // Boundaries carry their display id in their label ("Case [SD1:CASE]"),
+  // not in an idlabel — the record follows the label (0.20 item 17: two
+  // instances of one component would otherwise bring the same boundary ids).
   for (const e of component.elements) {
     if (eeIds.has(e.id)) continue;
+    if (BOUNDARY_TYPES.has(e.type)) {
+      const name = prefixBoundaryLabel(e.name, prefix);
+      const props = e.properties as { boundaryId?: string } | undefined;
+      newElements.push({
+        ...e,
+        id: mapTf(e.id),
+        name,
+        displayId: prefixed(e.displayId),
+        ...(props?.boundaryId ? { properties: { ...props, boundaryId: prefixed(props.boundaryId) } as DFDElement["properties"] } : {}),
+        assetRelations: remapRelations(e.assetRelations),
+      });
+      continue;
+    }
     newElements.push({
       ...e,
       id: mapTf(e.id),
-      displayId: LABEL_IDS.has(e.type) ? e.displayId : prefixed(e.displayId),
+      displayId: prefixed(e.displayId),
       assetRelations: remapRelations(e.assetRelations),
     });
   }
@@ -618,11 +637,30 @@ export function insertComponentInstance(input: InsertComponentInput): InsertComp
  * label may be wrapped in a <font> / <span> (shape library).
  */
 export function prefixDisplayLabel(text: string, prefix: string): string {
-  if (/[A-Z]{1,3}-[0-9x.]+[a-z]?/.test(text)) {
-    return text.replace(/([A-Z]{1,3}-[0-9x.]+[a-z]?)/, `${prefix}:$1`);
+  // in front of the whole chain of an inner instance's prefixes:
+  // "SD1:P-1" → "C1:SD1:P-1" (review 2026-11-22: was "SD1:C1:P-1")
+  const ID = /((?:[A-Za-z0-9_-]+:)*[A-Z]{1,3}-[0-9x.]+[a-z]?)/;
+  if (ID.test(text)) {
+    return text.replace(ID, `${prefix}:$1`);
   }
   // A free display id (e.g. a boundary's "SDC"): before the first text.
   return text.replace(/(^|>)(\s*)([^<\s][^<]*)/, `$1$2${prefix}:$3`);
+}
+
+const BOUNDARY_CELL_TYPES = new Set(["trustboundary", "chipboundary", "physicalboundary"]);
+
+/**
+ * A boundary's label gets the instance prefix inside its id bracket — the
+ * last one: "Case [CASE]" → "Case [SD1:CASE]". A component that brings its
+ * own imports (design §6.5, E8) has prefixed boundaries already; they get the
+ * outer prefix in front, like the inner elements ("Case [C1:SD1:CASE]",
+ * review 2026-11-22). Always — the label comes fresh from the component at
+ * the insert and at an update, and an inner instance may carry the same
+ * prefix ("[C1:CASE]" imported as C1 → "[C1:C1:CASE]"). Without a bracket:
+ * unchanged.
+ */
+export function prefixBoundaryLabel(text: string, prefix: string): string {
+  return text.replace(/\[([a-zA-Z0-9_-]+(?::[a-zA-Z0-9_-]+)*)\](?!.*\[)/s, `[${prefix}:$1]`);
 }
 
 const CONTAINER_TYPES = new Set(["trustboundary", "chipboundary", "physicalboundary", "legend"]);
@@ -785,7 +823,7 @@ export function replaceComponentInstance(input: ReplaceComponentInput): ReplaceC
   for (const cell of cellsOf(parentRoot)) {
     const id = cell.getAttribute("id") ?? "";
     const parent = mxCellOf(cell).getAttribute("parent") ?? "";
-    if (removeIds.has(id) || (typeOf(cell) === "idlabel" && removeIds.has(parent))) parentRoot.removeChild(cell);
+    if (removeIds.has(id) || ((typeOf(cell) === "idlabel" || isDfdDecorationType(typeOf(cell))) && removeIds.has(parent))) parentRoot.removeChild(cell);
   }
   // remove the instance's child pages
   const oldPageIds = new Set(

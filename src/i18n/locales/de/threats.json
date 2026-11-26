@@ -31,6 +31,8 @@
         "review": "{{id}}: nach einer Änderung des DFD oder einer Komponente zu prüfen — {{description}}",
         "noDescription": "{{id}}: keine Bedrohungsbeschreibung",
         "orphaned": "{{id}}: sein Element oder Datenfluss ist nicht mehr im DFD — als manuelle Bedrohung behalten oder löschen — {{description}}",
+        "en50742Unjustified": "{{id}}: ohne Begründung verworfen, liegt aber auf einem EN-50742-relevanten Interface oder Datenfluss — begründe, warum sie nicht zutrifft — {{description}}",
+        "catalog": "Bedrohungskatalog geändert (v{{stored}} → v{{current}}): neu generieren, um die Bedrohungen neu zu bewerten — Relevanz und Notizen bleiben erhalten",
         "drift": "Generierungsregeln geändert: {{obsolete}} gespeicherte Bedrohung(en) würden nicht mehr erzeugt, {{added}} kämen hinzu"
       },
       "groups": {
@@ -269,7 +271,8 @@
         "threat": "Bedrohung",
         "attack": "Angriffsszenario",
         "edit": "Bearbeiten",
-        "stopEdit": "Bearbeitung beenden",
+        "applyEdit": "Übernehmen",
+        "cancelEdit": "Abbrechen",
         "customized": "angepasst",
         "proposedMitigations": "Vorgeschlagene Gegenmassnahmen",
         "proposedVerifications": "Vorgeschlagene Verifizierungen",
@@ -290,6 +293,7 @@
         "importedReadOnly": "Importiert aus {{source}} — schreibgeschützt. Text, STRIDE und Relevanz entscheidet die Komponenten-TARA; die Relevanz eines Threats auf einem Grenz-Flow kann in der Liste überstimmt werden.",
         "noteLabel": "Notiz",
         "overrideNeedsNote": "Für eine Abweichung von der asset-abgeleiteten Relevanz ist eine Begründung erforderlich.",
+        "en50742DismissNeedsNote": "Diese Bedrohung liegt auf einem EN-50742-relevanten Interface oder Datenfluss — begründe vor dem Verwerfen, warum sie nicht zutrifft.",
         "relevanceAutoDerived": "Die Relevanz wird aus dem Asset-Bezug abgeleitet; ein Override braucht eine Begründung.",
         "advancedSection": "Bedrohungsakteur",
         "mitigations": "Gegenmaßnahmen",
@@ -374,6 +378,7 @@
           "withRisk_other": "davon {{count}} mit Risikobewertung",
           "added_one": "{{count}} Bedrohung käme hinzu",
           "added_other": "{{count}} Bedrohungen kämen hinzu",
+          "catalog": "mit Bedrohungskatalog v{{stored}} erzeugt, aktuell ist v{{current}} — neu generieren, um sie neu zu bewerten; Relevanz und Notizen bleiben erhalten",
           "review": "Prüfen"
         },
         "dialog": {
@@ -381,6 +386,7 @@
           "intro": "Die aktuellen Generierungsregeln oder Schutzziele erzeugen diese Bedrohungen nicht mehr. Behalten macht eine Bedrohung zur manuellen Bedrohung: Sie behält ID und Risiko und übersteht jede Neugenerierung. Entfernen löscht sie; ein verknüpftes Risiko wird beim nächsten Risiko-Sync entfernt.",
           "keepAll": "Alle behalten",
           "removeWithoutRisk": "Alle ohne Risiko entfernen",
+          "colId": "T-ID",
           "colThreat": "Bedrohung",
           "colName": "Name",
           "colRisk": "Risiko",
@@ -390,7 +396,8 @@
           "riskWithMitigations_other": "Risiko · {{count}} Massnahmen",
           "keep": "Behalten",
           "remove": "Entfernen",
-          "apply": "Übernehmen"
+          "apply": "Übernehmen",
+          "attack": "Angriff"
         },
         "regenerate": {
           "warning_one": "{{count}} Bedrohung wird von den aktuellen Regeln nicht mehr generiert und wird entfernt ({{withRisk}} mit Risikobewertung).",
@@ -401,6 +408,21 @@
           "action": "Behalten rückgängig",
           "tooltip": "Wieder als generiert behandeln. Erzeugen die aktuellen Regeln sie weiterhin nicht, erscheint sie erneut in der Prüfung der Abweichungen; eine Neugenerierung würde sie entfernen."
         }
+      },
+      "elementInfo": {
+        "button": "DFD-Infos zu {{id}} anzeigen",
+        "boundaries": "Innerhalb",
+        "endpoints": "Quelle → Ziel",
+        "source": "Quelle",
+        "target": "Ziel",
+        "endpointDetails": "Details zu {{id}}",
+        "description": "Beschreibung",
+        "properties": "Eigenschaften",
+        "noProperties": "Keine Eigenschaften ausgefüllt.",
+        "flows": "Datenflüsse",
+        "from": "von",
+        "to": "nach",
+        "assets": "Assets"
       }
     }
   }

@@ -50,8 +50,10 @@
 import type {
   AttackPath,
   AttackTree,
+  AttackTreeNode,
   PathAnalysis,
 } from "../models/attacktree-types";
+import { findNodeById } from "./attacktree-parser";
 import { ATTACK_GOAL_TO_STRIDE, getAnchorDisplayName } from "../models/attacktree-types";
 import { buildAttackPathThreatId } from "./attacktree-path-identity";
 import type {
@@ -199,6 +201,33 @@ function toMitigationDrafts(mitigationIds: string[]): MitigationDraftRef[] {
   return mitigationIds.map((id) => ({ id }));
 }
 
+/**
+ * The leaves of a path and the DFD element each names (EN 50742 relevance of
+ * attack-path risks, 0.20). A plain path ends in one leaf; a combined path
+ * (FX-6) has one leaf per step of the AND gate — its legs, found by name
+ * below the gate.
+ */
+function pathLeaves(tree: AttackTree, path: AttackPath): { name: string; dfdRef?: string }[] {
+  const root = tree.ast;
+  if (!root) return [];
+  const byNames = (from: AttackTreeNode, names: readonly string[]): AttackTreeNode | undefined => {
+    let node: AttackTreeNode | undefined = from;
+    for (const name of names) {
+      node = node?.children.find((c) => c.name === name);
+      if (!node) return undefined;
+    }
+    return node;
+  };
+  const leaf = (n: AttackTreeNode | undefined) => (n ? [{ name: n.name, ...(n.dfdRef ? { dfdRef: n.dfdRef } : {}) }] : []);
+  if (path.combination) {
+    // gate names run ROOT → gate; the root is `root` itself
+    const gate = byNames(root, path.combination.gate.slice(1));
+    return gate ? path.combination.legs.flatMap((leg) => leaf(byNames(gate, leg))) : [];
+  }
+  const last = path.nodeIds[path.nodeIds.length - 1];
+  return last ? leaf(findNodeById(root, last) ?? undefined) : [];
+}
+
 function createThreatForPath(
   tree: AttackTree,
   path: AttackPath,
@@ -225,6 +254,7 @@ function createThreatForPath(
     relevance: "unrated",
 
     linkedAssetIds: [assetId],
+    attackPathLeaves: pathLeaves(tree, path),
     proposedMitigations: toMitigationDrafts(path.mitigations),
     ...(path.attackVector ? { attackVector: path.attackVector } : {}),
     // Verifications are resolved from the catalog by the threat/app layer, as for
@@ -421,6 +451,7 @@ function createSecondaryThreatForPath(
     // The app layer can enrich this at sync time if that turns out to matter
     // for the register's per-asset views (mirrors how proposedVerifications
     // are resolved from the catalog at sync time, not here).
+    attackPathLeaves: pathLeaves(tree, path),
     proposedMitigations: toMitigationDrafts(path.mitigations),
     ...(path.attackVector ? { attackVector: path.attackVector } : {}),
     proposedVerifications: [],

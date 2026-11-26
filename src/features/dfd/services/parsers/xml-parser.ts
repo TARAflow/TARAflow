@@ -109,6 +109,20 @@ export function isRootCell(id: string): boolean {
 }
 
 /**
+ * The type of an EL badge — a text cell the app writes on boundaries and
+ * interfaces (dfd-badges.ts). Not a DFD element: every parser skips it.
+ */
+export const DFD_BADGE_TYPE = "elbadge";
+
+/** The type of the safety-zone frame the app draws over a trust boundary (dfd-badges.ts). */
+export const DFD_ZONE_TYPE = "elzone";
+
+/** App-drawn cells that are no DFD element and never stored. */
+export function isDfdDecorationType(type: string | null | undefined): boolean {
+  return type === DFD_BADGE_TYPE || type === DFD_ZONE_TYPE;
+}
+
+/**
  * Get element type from DrawIO cell
  * Checks both 'type' (lowercase) and 'Type' (uppercase) attributes
  */

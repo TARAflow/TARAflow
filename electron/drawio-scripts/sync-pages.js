@@ -64,7 +64,7 @@
     // child page with their geometry. cloneCells needs the source page
     // shown: a flow whose MP end is not cloned then keeps a free end
     // at the old position. Nested DFD elements are not copied (labels
-    // are). A loose flow end is connected to the copy of its element
+    // and EL badges are). A loose flow end is connected to the copy of its element
     // that is already on the child page (ctx.existing).
     (spec.context || []).forEach(function(ctx) {
       var from = find(ctx.fromPageId);
@@ -90,7 +90,7 @@
         if (!clone) continue;
         for (var j = clone.getChildCount() - 1; j >= 0; j--) {
           var childType = typeOf(clone.getChildAt(j));
-          if (childType && childType !== 'idlabel') clone.remove(j);
+          if (childType && childType !== 'idlabel' && childType !== 'elbadge' && childType !== 'elzone') clone.remove(j);
         }
         kept.push(clone);
         originalOf.push(originals[i]);

@@ -113,8 +113,8 @@ Clean up at the end (section 17).
 
 1. **Expected on the top page:**
    - A new multiprocess **Smoke Detector Case**. It may lie on top of other elements.
-   - Around it, nested: **Smoke Detector Case [CASE]** (outer) and **Sensor
-     Boundary [SB]** (inner). They are references to the component's boundaries.
+   - Around it, nested: **Smoke Detector Case [SD1:CASE]** (outer) and **Sensor
+     Boundary [SD1:SB]** (inner). They are references to the component's boundaries.
    - To move it, select the multiprocess **and** both boundaries together. The
      boundaries can be resized.
    - **No** "Adopt pages…" notice above the diagram. If it appears: do **not**
@@ -143,7 +143,9 @@ Clean up at the end (section 17).
        SD1:DS-2, SD1:IF-1 RS485, SD1:IF-2 JTAG.
      - The 8 internal flows carry the prefix too (SD1:DF-1 … SD1:DF-11,
        without DF-7, DF-8, DF-9).
-     - The boundaries CASE, SDS and SB carry **no** prefix.
+     - The boundaries carry the prefix in their id bracket too:
+       Smoke Detector Case [SD1:CASE], Smoke Detector Sensor [SD1:SDS],
+       Sensor Boundary [SD1:SB] (0.20; up to 0.19 they had none).
      - Context copies of *Debugger* and *Alarm Processing Controller* stand
        where the component's external entities were.
 4. Read-only check on the child page:
@@ -277,9 +279,9 @@ Clean up at the end (section 17).
        also those on boundary flows. The top level has no SD card.
      - **Override** acts on its own instance only.
      - The filter bar filters the cards too.
-     - Check the DFD panel for "ID label "CASE" is used multiple times" (also
-       SB, SDS). The boundaries keep their unprefixed id, so a second instance
-       brings them twice. If the warning appears, report it as a deviation.
+     - The boundaries of the two instances differ: [SD1:CASE] and [SD2:CASE]
+       (also SB, SDS). The DFD panel shows **no** "ID label … is used
+       multiple times" warning. If it appears, report it as a deviation.
 6. Set the assumptions of use differently (multiprocess → **Component** tab):
    - SD1: both assumptions **fulfilled**, with evidence.
    - SD2: ASM-01 **not fulfilled**, with a rationale.

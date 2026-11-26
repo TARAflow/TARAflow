@@ -24,15 +24,41 @@ import { RiskMitigationsTab } from "./risk-dialog/risk-mitigations-tab";
 import { RiskAfterTab } from "./risk-dialog/risk-after-tab";
 import { STRIDE_COLORS } from "./risk-dialog/local-risk-state";
 import { RiskGoalClaimTab } from "./risk-goal-claim-tab";
+import { ElementInfoButton, type ElementInfoTarget } from "shared/components/element-info-button";
+import type { ThreatReference } from "shared";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography, Chip, Stack, IconButton, Tabs, Tab, Alert } from "@mui/material";
 import { NavigateBefore as PrevIcon, NavigateNext as NextIcon, Warning as WarningIcon } from "@mui/icons-material";
 
 export type { RiskDialogProps } from "./risk-dialog/types";
 
+/**
+ * The element or data flow a risk's threat is on, for the dialog's title:
+ * "DF-3 Operator → Controller" or "P-1 Controller", with the target of its
+ * DFD info. Undefined for a threat without one (an attack path).
+ */
+function riskAnchor(threat: ThreatReference | undefined): { label: string; target: ElementInfoTarget } | undefined {
+  if (!threat) return undefined;
+  const flow = threat.dataFlow;
+  if (threat.interactionContext && flow) {
+    const id = (flow as { displayId?: string }).displayId || flow.dataFlowId;
+    return {
+      label: [id, `${flow.sourceName} → ${flow.targetName}`].filter(Boolean).join(" "),
+      target: { connectionId: flow.connectionId, flowDisplayId: id },
+    };
+  }
+  const element = threat.linkedElement;
+  if (!element?.elementId) return undefined;
+  return {
+    label: [element.displayId, element.elementName].filter(Boolean).join(" ") || element.elementId,
+    target: { elementId: element.elementId },
+  };
+}
+
 export const RiskDialog: React.FC<RiskDialogProps> = (props) => {
   const m = useRiskDialogModel(props);
   if (!m) return null;
   const { t, open, risks, assetDataRef, onClose, concept, onConceptChange, allRisks, assumptions, isoMode, sortedRisks, currentRisk, currentIndex, tabValue, setTabValue, local, handlePrev, handleNext, isUncertain } = m;
+  const anchor = riskAnchor(props.threats?.find((th) => th.id === currentRisk.threatId));
 
   // ==================== RENDER ====================
 
@@ -69,13 +95,27 @@ export const RiskDialog: React.FC<RiskDialogProps> = (props) => {
             variant="body2"
             fontFamily="monospace"
             color="text.secondary"
+            sx={{ flexShrink: 0 }}
           >
             {currentRisk.threatDisplayId}
           </Typography>
+          {/* the element / flow with its DFD info right after its name, as in
+              the threat dialog (0.20 manual test, 2026-11-25) */}
+          {anchor && (
+            <>
+              <Typography variant="body2" fontWeight="medium" noWrap sx={{ minWidth: 0, flexShrink: 0, maxWidth: "40%" }}>
+                {anchor.label}
+              </Typography>
+              <Box sx={{ flexShrink: 0 }}>
+                <ElementInfoButton target={anchor.target} />
+              </Box>
+            </>
+          )}
           <Typography
             variant="subtitle1"
             fontWeight="medium"
-            sx={{ flexGrow: 1 }}
+            color={anchor ? "text.secondary" : undefined}
+            sx={{ flexGrow: 1, minWidth: 0 }}
             noWrap
           >
             {currentRisk.threatDescription}

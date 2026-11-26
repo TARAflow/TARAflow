@@ -52,6 +52,20 @@ export interface PhaseValidationInfo {
 
 // ==================== PROJECT SETTINGS ====================
 
+/**
+ * What a tag change would delete (app layer, rating-loss.ts): the ratings of
+ * the risk factors the change switches off. The Overview asks before it
+ * saves such a change (user 2026-11-21).
+ */
+export interface RatingLoss {
+  /** The factors switched off that hold ratings (id, English name for the default). */
+  factors: { id: string; name: string }[];
+  /** Ratings deleted (before and after mitigation counted on their own). */
+  ratings: number;
+  /** Risks that lose a rating. */
+  risks: number;
+}
+
 export interface ProjectSettingsData {
   strictMode: boolean;
   autoSave: boolean;
@@ -62,6 +76,12 @@ export interface ProjectSettingsData {
    * see regulation-preset-service.applyRegulationPreset.
    */
   regulationPreset?: RegulationPresetId;
+  /**
+   * EL badges at the top right of boundaries and interfaces in the diagram
+   * (0.20). Absent → on in EN 50742 projects, off otherwise (dfdBadgesShown);
+   * the analyst's choice is stored as true / false.
+   */
+  dfdBadges?: boolean;
 }
 
 // ==================== PROJECT PROGRESS ====================
@@ -126,6 +146,8 @@ export interface ItemModelItem {
  */
 export interface MethodologySummary {
   presetNameKey: string;
+  /** The base method, then EN 50742 A if it adds AP and SRSL (shown joined with " + "). */
+  basisNameKeys?: string[];
   impactScale: string;
   requiredImpactScale?: string;
   impactScaleConforms: boolean;
@@ -140,6 +162,11 @@ export interface MethodologySummary {
   riskMatrix: boolean;
   /** "iso-21434 · risk-1+feasibility-1 · 3f2a…" (iso-21434) */
   calcStamps?: { risk: string; path: string };
+  /** Threat catalogue version per method with generated threats, and the current one. */
+  threatCatalog?: {
+    current: number;
+    stored: Partial<Record<"per-element" | "per-interaction", number>>;
+  };
 }
 
 // ==================== VERIFICATION STATUS ====================

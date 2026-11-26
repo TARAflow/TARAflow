@@ -10,8 +10,8 @@ import { EMPTY_PROJECT_TAGS, type AssetDataReference, type DFDReference } from "
 import { verificationStatusText } from "features/overview";
 import { hazardValidator, hazardFindingLines } from "features/hazards";
 import { dfdService, type DFDGraphAnalysisContext, type ValidationFinding } from "features/dfd";
-import { projectGenerationDrift, NO_DRIFT, type ThreatProjectData } from "features/threats";
-import { riskFindingLines, riskFindings } from "features/risks";
+import { outdatedCatalog, projectGenerationDrift, NO_DRIFT, type ThreatProjectData } from "features/threats";
+import { openRiskReasonLines, openRiskReasons, riskFindingLines, riskFindings } from "features/risks";
 import { useAuditHints } from "features/audit";
 import type { Project } from "../../models/project-types";
 import { phaseIndicators } from "../../utils/phase-indicators";
@@ -36,6 +36,8 @@ export interface PhaseIndicatorsInput {
   } | null;
   assetDataRef: AssetDataReference | undefined;
   verificationStatus: ReturnType<typeof verificationStatus> | undefined;
+  /** EN 50742 A (patch 29): risks whose SRSL controls are open — not done. */
+  srslOpenRiskIds?: ReadonlySet<string>;
   t: TFunction;
 }
 
@@ -50,6 +52,7 @@ export function usePhaseIndicators({
   componentFindings,
   assetDataRef,
   verificationStatus: verification,
+  srslOpenRiskIds,
   t,
 }: PhaseIndicatorsInput) {
   // ── Threat generation drift (phase tab badge) ────────────────────────────
@@ -88,6 +91,9 @@ export function usePhaseIndicators({
     // id, name and phaseStatus only label the call.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threats, dfdElements, dfdConnections, tags, dfdContext, dfdGraphRef, assetDataRef, dfdReference, excludedElementIds]);
+
+  // ── Threat catalogue: generated with an older catalogue (phase A) ───────
+  const threatCatalog = useMemo(() => outdatedCatalog(threats) ?? undefined, [threats]);
 
   // ── DFD validated now, not the validation stored in the file ─────────────
   const dfdSavedValidation = useMemo(
@@ -150,7 +156,10 @@ export function usePhaseIndicators({
                   return { errors: lines.errors, warnings: [...lines.warnings, ...fromComponents] };
                 })()
               : null,
+            // Why risks are not done (0.20 item 14): the phase says it too.
+            openRisks: openRiskReasonLines(openRiskReasons(activeProject.risks?.risks ?? [], srslOpenRiskIds), (k, o) => t(k, o)),
             threatDrift: threatDriftCounts,
+            threatCatalog,
             undescribed: undescribedOf(activeProject.dfd),
             unratedThreats: unratedThreatsOf(activeProject.threats),
             verification: verification
@@ -159,7 +168,7 @@ export function usePhaseIndicators({
             t,
           })
         : null,
-    [activeProject, dfdSavedValidation, threatDriftCounts, assetDataRef, verification, componentFindings, t],
+    [activeProject, dfdSavedValidation, threatDriftCounts, threatCatalog, assetDataRef, verification, componentFindings, srslOpenRiskIds, t],
   );
 
   return { threatDriftCounts, auditHintLines, indicators };

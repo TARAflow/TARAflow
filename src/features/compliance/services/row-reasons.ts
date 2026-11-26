@@ -32,11 +32,17 @@ export const REASON_TEXTS = {
   notSetYet: "not set yet: {{items}}",
   exposedWithoutSrsl: "on a path to a safety function, exposed, no risk with SRSL",
   srslOrElUnrated: "SRSL or EL not rated yet",
+  threatsOpen: "threats not assessed yet — rate them, or dismiss them with a reason",
   safetyFunctionsUnlinked: "safety functions without DFD elements: {{list}}",
   noExposedInterface: "no interface above EL0 on a path to a safety function",
   noElRatedInterface: "no EL-rated interface yet: {{list}}",
   srslZeroExposed: "SRSL 0 on an interface above EL0",
   noSrsl: "no SRSL determined",
+  noAuditRecordStore: "no data store in scope keeps the audit logs — keep them for at least 5 years or state where they are kept",
+  noSystemCountermeasure: "no Table 4 requirement is met only with countermeasures of the machinery system",
+  nameCountermeasures: "met only with countermeasures of the machinery system — name them in the information for use: {{list}}",
+  noSafetyScope: "no safety zone and no safety function — the interfaces EN 50742 assesses are not known",
+  noRelevantInterface: "no interface or data flow crosses the safety zone or leads to a safety function — link the safety functions to the DFD or draw the zone",
 } as const;
 
 export type RowReasonCode = keyof typeof REASON_TEXTS | "void";

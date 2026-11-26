@@ -93,6 +93,50 @@ function setWindowFile(api: FileApi | null) {
 
 afterEach(() => setWindowFile(null));
 
+describe("createIpcGitRunner — repository changes through git:fixedOp (roadmap 0.20)", () => {
+  it("init, the hooks path, untracking the hook file and the component fetch go to fixedOp, not rawInDir", async () => {
+    const raw: string[][] = [];
+    const fixed: [string, string][] = [];
+    (window as any).git = {
+      rawInDir: async (_dir: string, args: string[]) => {
+        raw.push(args);
+        return { success: true, data: { stdout: "", stderr: "", code: 0 } };
+      },
+      fixedOp: async (op: string, dir: string) => {
+        fixed.push([op, dir]);
+        return { success: true, data: { stdout: "", stderr: "", code: 0 } };
+      },
+    };
+    const run = createIpcGitRunner();
+    await run(["init"], "/r");
+    await run(["config", "core.hooksPath", ".tara/hooks"], "/r");
+    await run(["rm", "--cached", "--ignore-unmatch", ".tara/hooks/commit-msg"], "/r");
+    await run(["fetch", "--quiet", "--tags"], "/c");
+    await run(["config", "--get", "core.hooksPath"], "/r");
+    expect(fixed).toEqual([
+      ["initRepo", "/r"],
+      ["setHooksPath", "/r"],
+      ["untrackHookFile", "/r"],
+      ["fetchTags", "/c"],
+    ]);
+    expect(raw).toEqual([["config", "--get", "core.hooksPath"]]);
+  });
+
+  it("another value for the hooks path is no fixed operation — it goes to rawInDir (and is refused there)", async () => {
+    const raw: string[][] = [];
+    (window as any).git = {
+      rawInDir: async (_dir: string, args: string[]) => {
+        raw.push(args);
+        return { success: true, data: { stdout: "", stderr: "refused", code: 128 } };
+      },
+      fixedOp: async () => ({ success: true, data: { stdout: "", stderr: "", code: 0 } }),
+    };
+    const r = await createIpcGitRunner()(["config", "core.hooksPath", "/tmp/evil"], "/r");
+    expect(raw).toHaveLength(1);
+    expect(r.code).toBe(128);
+  });
+});
+
 describe("createIpcFileIO", () => {
   it("returns null for a missing file (ENOENT → data:null)", async () => {
     setWindowFile({

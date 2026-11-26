@@ -9,6 +9,7 @@ import type {
 import { ValidationMessages } from "./validator-utils";
 import type { DataFlowProperties } from "../../models/element-properties";
 import type { DFDGraph } from "../../models/dfd-graph-types";
+import { safetyZoneIds, type VisibilityElement } from "shared";
 
 /**
  * Validate all connections
@@ -402,3 +403,34 @@ export function validateTransducerConnections(
     }
   }
 }
+
+/**
+ * EN 50742 (O18): a data flow that crosses the border of the safety zone
+ * passes an Interface — the interface carries the exposure level the
+ * assessment needs (EL, SRSL of Approach A; the scope of A and B). Without
+ * one the crossing has no EL anchor. Warning; the analysis still runs.
+ */
+export function validateSafetyZoneCrossings(
+  connections: DFDConnection[],
+  elements: DFDElement[],
+  warnings: ValidationFinding[],
+  graph?: DFDGraph,
+): void {
+  if (!graph) return;
+  const zones = safetyZoneIds(elements as unknown as VisibilityElement[]);
+  if (zones.length === 0) return;
+  for (const conn of connections) {
+    const analysis = graph.dataFlowAnalysis.get(conn.id);
+    if (!analysis || analysis.interfaceIds.length > 0) continue;
+    const from = new Set(analysis.fromTrustBoundaryIds);
+    const to = new Set(analysis.toTrustBoundaryIds);
+    if (!zones.some((z) => from.has(z) !== to.has(z))) continue;
+    warnings.push({
+      key: ValidationMessages.SAFETY_ZONE_CROSSING_WITHOUT_INTERFACE,
+      displayId: conn.displayId,
+      elementId: conn.id,
+      params: { name: conn.displayId || conn.name || conn.id },
+    });
+  }
+}
+

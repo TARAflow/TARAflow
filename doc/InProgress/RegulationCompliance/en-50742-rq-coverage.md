@@ -1,6 +1,10 @@
 # TARAflow — prEN 50742 requirement coverage
 
-**Status:** v0.4 · 2026-11-14 · v0.4: Approach B rows from the text (§6: Clauses 6 and 8 complete, findings B-F1 … B-F8 decided (O13 – O16, user 2026-11-14), row list of the sub-tab `en-50742-b`; 0.20, roadmap) — source checked again: BSI DPC 25/30551049 DC (2025-12-05) carries the same CENELEC enquiry draft, line numbers identical · v0.3: CT-A rows evaluate (CM-12, CM-12b) and are in the report (CM-13) — §4, §5, §7 rows with a CT-A row set to met / tracked with test references · v0.2: the §9.2 rows are the module `en-50742-a` (CM-11; completeness test) · source: prEN 50742:2025 (E), Draft for Enquiry
+**Status:** v0.6 · 2026-11-21 · v0.6: Approach B done in 0.20 (patches 09 – 18: data,
+relevance O17 / O18, evaluation, retention field, preset / tag / sub-tab / report, the safety
+zone as a mark with crossing warning, EL badges and zone style in the diagram, tag
+combinations, Approach A as an overlay on the base method so it goes with ETSI TVRA);
+manual test `doc/Testing/manual/en-50742.md` · v0.5: Approach B data in the code (0.20 patch 09: edition `en-50742-b` derived from the 2019 edition and Table 4, rules and texts of the new EN rows; not switched on yet — evaluation patch 10, retention field 11, preset / tag / UI / report 12) · v0.4: Approach B rows from the text (§6: Clauses 6 and 8 complete, findings B-F1 … B-F8 decided (O13 – O16, user 2026-11-14), row list of the sub-tab `en-50742-b`; 0.20, roadmap) — source checked again: BSI DPC 25/30551049 DC (2025-12-05) carries the same CENELEC enquiry draft, line numbers identical · v0.3: CT-A rows evaluate (CM-12, CM-12b) and are in the report (CM-13) — §4, §5, §7 rows with a CT-A row set to met / tracked with test references · v0.2: the §9.2 rows are the module `en-50742-a` (CM-11; completeness test) · source: prEN 50742:2025 (E), Draft for Enquiry
 (CLC/TC 44X), licensed copy · code base: `main` 3570655c (CM-2) · v0.1: rows of Approach A
 mapped to the Compliance sub-tab `en-50742-a` (§9, user 2026-11-02); Approach B deferred
 **Belongs to:** `en-50742-approach-a-design.md` (Approach A) and the Compliance sub-tab
@@ -71,6 +75,24 @@ Proposal: validator "SRSL0 only if every interface of the safety function has EL
 otherwise at least SRSL1" ([N], Table 2 wins over informative B.6). Candidate for an
 enquiry comment.
 
+**Done (0.20 patch 21, per interface):** the calculation applies the rule per interface
+(`guardSrslZero`). B.6 SRSL0 on an interface above EL0 becomes SRSL1, and the risk dialog
+says why.
+
+**Patch 22 — per safety function, as F2 reads (user 2026-11-21: the stricter reading, on
+the safe side):**
+- A safety function is isolated only when every interface on its paths has EL0. An
+  interface with no EL set, or a flow above EL0, counts as reachable.
+- The risks of a function that is not isolated get no SRSL0 on any interface. Example: a
+  controller with a USB port (EL1) and an internal bus (EL0) to the safety function — the
+  bus's risk gets SRSL1 too.
+- The risk dialog names what makes the function reachable.
+- Without a linked safety function, the rule per interface still applies.
+- `srsl-consistent` uses the same reading.
+- The risk sync updates a stored SRSL that no longer matches.
+- Check again against the final EN (O1): if it clarifies "per interface" or corrects B.6,
+  this is a data change.
+
 **F3 — PLr as severity source.** Annex B NOTE 1 (l. 585–588): PLr/SIL from the separate
 safety risk assessment can express the safety impact. Severity in B.6 is only "low / e.g.
 reversible" and "high / e.g. non reversible". → The PLr from an ISO 12100 / 13849
@@ -78,8 +100,22 @@ assessment (hazard import HI-5, `plRequired`) is a legitimate severity input. TA
 `fatal` row is a [D] extension (design doc §3.6).
 
 **F4 — Likelihood of being targeted.** 4.3 (l. 242): not relevant for the threat
-assessment. → Under `en-50742-a` no motivation / benefit factor ([N]); the preset already
-sets `likelihoodFactorIds: ["exposure_level", "attacker_capability"]`.
+assessment.
+
+**Resolved (user 2026-11-21, 0.20 patch 27):** 4.3/242 is met because AP and SRSL contain
+no motivation or benefit factor. TARAflow rates two separate things:
+- **The norm's safety assessment:** AP from EL, WoO and AC, giving the SRSL (Approach A),
+  or the fixed requirement set (Approach B). Neither contains motive.
+- **TARAflow's own cyber risk R = L × I:** it uses the standard factors with `motive` in
+  both approaches. This does not touch the safety assessment.
+
+A decision in the cyber risk must not lift a safety requirement (patch 28):
+- **Accepting a risk** never met a mandated control. It still does not.
+- **"Won't"** is a prioritisation of the cyber risk. It no longer takes the risk out of the
+  SRSL rows.
+- **A threat that does not apply** is dismissed at the threat ("not relevant"). On an
+  EN 50742 relevant interface or flow this needs a reason: the threat dialog asks for it,
+  and the Threats tab lists old cases as warnings.
 
 ## 4. Clause 4 — Protection against corruption
 
@@ -101,7 +137,7 @@ sets `likelihoodFactorIds: ["exposure_level", "attacker_capability"]`.
 
 | ID | Requirement | ZZ | Role | Marker | Status | Plan | Code / Test |
 |---|---|---|---|---|---|---|---|
-| EN-7.1/260 | Identify all accessible interfaces that can affect safety and protect them (countermeasures or compensating) | 1.1.9, 1.2.1a | method | [N] | **met** — CT-A check `interfaces-assessed` on the derived paths to the safety functions (CM-12b) | P2 + CT-A | `evaluate-en50742.test.ts`, `en50742-a.golden.test.ts`, report `compliance-matrix-chapter.test.ts`, `safety-function-paths.test.ts` |
+| EN-7.1/260 | Identify all accessible interfaces that can affect safety and protect them (countermeasures or compensating) | 1.1.9, 1.2.1a | method | [N] | **met** — CT-A check `interfaces-assessed` on the derived paths to the safety functions (CM-12b); per threat since patch 28: every threat of an exposed anchor has a risk with an SRSL or is dismissed with a reason, an unrated or unjustified one leaves the anchor open (named) | P2 + CT-A | `evaluate-en50742.test.ts`, `en50742-a.golden.test.ts`, report `compliance-matrix-chapter.test.ts`, `safety-function-paths.test.ts` |
 
 ### 7.2 Security measures
 
@@ -119,7 +155,7 @@ sets `likelihoodFactorIds: ["exposure_level", "attacker_capability"]`.
 | EN-7.3.1/281 | Types of interventions to be considered (list a–e) | – | track | [N] | **tracked** — CT-A statement row | CT-A | `evaluate-matrix.en50742.test.ts`, report `compliance-matrix-chapter.test.ts` |
 | EN-7.3.2/295–296 | Record interventions that change software or data; minimum content | 1.1.9, 1.2.1f | track | [N] | **tracked** — CT-A model row (logging element) + checklist | CT-A | `evaluate-matrix.en50742.test.ts`, report `compliance-matrix-chapter.test.ts` |
 | EN-7.3.3/304–311 | Means for traceability; readable/accessible evidence; documentation how to access; automatic collection | 1.1.9, 1.2.1f | track | [N] | **tracked** — CT-A model row + checklist (readable, documented access, automatic) | CT-A | `evaluate-matrix.en50742.test.ts`, report `compliance-matrix-chapter.test.ts` |
-| EN-7.3.4/317–319 | Storage: last intervention of each type; ≥ 5 years; from putting into service | 1.1.9, 1.2.1f | track | [N] | **tracked** — CT-A statement row (B with the audit cluster F-11 … F-14) | CT-A | `evaluate-matrix.en50742.test.ts`, report `compliance-matrix-chapter.test.ts` |
+| EN-7.3.4/317–319 | Storage: last intervention of each type; ≥ 5 years; from putting into service | 1.1.9, 1.2.1f | track | [N] | **tracked** — CT-A row B: retention field of the audit-log store (0.20 patch 13) + checklist | CT-A | `evaluate-matrix.en50742.test.ts`, report `compliance-matrix-chapter.test.ts` |
 | EN-7.3.5/321–322 | Logs protected against tampering; deletion only by authorised procedure | – | track | [N] | **tracked** — CT-A model row (audit log stores integrity protected) + checklist | CT-A | `evaluate-matrix.en50742.test.ts`, report `compliance-matrix-chapter.test.ts` |
 
 ### 7.4 Protection measures against corruption
@@ -161,9 +197,9 @@ and 8 (text checked 2026-11-14).
 | EN-8.3/465–466 | Machinery **components**: EN IEC 62443-4-2:2019 with the CRs of Table 4 for their safety function(s) — FR1 SL-C2 CR 1.1, 1.2; FR2 SL-C2 CR 2.1, 2.6, 2.8, 2.9, 2.12, EDR 2.13; FR3 SL-C2 CR 3.1, 3.4, 3.5, 3.6, EDR 3.2, EDR 3.11, EDR 3.14; FR4 none; FR5 SL-C1 CR 5.1; FR6 SL-C1 CR 6.1; FR7 SL-C2 CR 7.1, 7.2 (NOTE 1, 2 as Table 3) | 1.1.9, 1.2.1f | track | [N] | **gap** — rows exist in the 2019 edition; subset + fixed SL-T missing (§6.2) | CT-B | – |
 | EN-8.3/471–472 | Components comply with 62443-4-2 4.2 support of essential functions (CCSC 1) and 4.4 least privilege (CCSC 3) | 1.1.9, 1.2.1f | track | [N] | **gap** — no CCSC row in the 2019 edition | CT-B statement | – |
 | EN-8.3/473–478 | Compensating countermeasures of the machinery system may count for a component (CCSC 2): a component may have a lower SL-C than Table 4 when the system provides countermeasures so that the system reaches the SL-C of Table 3; then the component's information for use names the needed countermeasures and the CRs it does not meet | 1.1.9, 1.2.1f | track + doc | [N] | **partial** — supporting measures and claims exist (D-14, "with measures of the system"); the link to Table 3 and to the information for use is missing | CT-B | supporting-measure evaluation of the 62443 sub-tabs |
-| EN-8.3/479–480 | Components serving safety **and** non-safety functions comply with Table 4 as well | 1.1.9, 1.2.1f | track | [N] | **gap** — scope rule (B-F4) | CT-B | – |
+| EN-8.3/479–480 | Components serving safety **and** non-safety functions comply with Table 4 as well | 1.1.9, 1.2.1f | track | [N] | **statement** — the model cannot show an evaluation as a whole; a scope with elements proves nothing about it (review 2026-11-21, 0.20 patch 25; patch 12 had a model check) | CT-B statement + checklist | `evaluate-matrix.en50742-b.test.ts` |
 | EN-8.4/482–484 | Software versions and configuration relevant for safety functions available on demand, human-readable (built-in or external tool) | 1.2.1f | track | [N] | **gap** — same content as EN-7.5/444–445 of Approach A (statement row, O9) | CT-B | – |
-| EN-8.5/487–488 | Audit records of CR 2.8 (auditable events) persist for at least 5 years; for safety functions only (NOTE) | – (B-F2) | track | [N] | **gap** — no retention field (O8, B-F6) | CT-B | – |
+| EN-8.5/487–488 | Audit records of CR 2.8 (auditable events) persist for at least 5 years; for safety functions only (NOTE) | – (B-F2) | track | [N] | **tracked** — CT-B row B: `auditRecordRetention` of the audit-log store in the safety scope ≥ 5 years (0.20 patch 13) + checklist | CT-B | `evaluate-matrix.en50742-b.test.ts` |
 
 ### 6.1 Findings from the B pass (decide before coding)
 
@@ -197,7 +233,8 @@ the status; the HDR / NDR / SAR variants appear as "recommended (analogy, B-F3)"
 out of the met / open summary [D]. If the final EN corrects Table 4, the recommendation
 becomes a required row — a data change under O1.
 
-**B-F4 — Scope: "for their safety function(s)".** Tables 3 and 4 apply to the system /
+**B-F4 — Scope: "for their safety function(s)".** *(O15 below is replaced by **O17** —
+scope from the interfaces, user 2026-11-20; §10.)* Tables 3 and 4 apply to the system /
 component **for its safety functions**; 8.3/479–480 extends a mixed component to the full
 table. TARAflow can derive the safety path already (§9.2, CM-12b: from safety-function
 assets backwards along the flows). **Decided (O15, user 2026-11-14):** the rows are evaluated on the DFD elements on a path to
@@ -229,6 +266,10 @@ weighted-mean set (preset `standard`: `skill_level`, `motive`, `opportunity`,
 group, off by default, stays off);
 the B sub-tab checks it like F4 does for A. Changes risk values of existing B projects —
 there are none in the field yet, the tag is switched off since 0.17. **O16.**
+**Revoked (user 2026-11-21, 0.20 patch 27):** as for A (F4), R = L × I is TARAflow's cyber
+risk and not the norm's result; B's safety side is the fixed requirement set. `en-50742-b`
+manages the `standard` factors, `motive` included; a motive the earlier preset switched off
+is switched on again.
 
 **B-F8 — No SRSL in Approach B.** Annex B and Table 2 belong to Approach A (Clause 7). In
 B the risk tab keeps its normal risk calculation; the SRSL column and the Annex B
@@ -257,13 +298,49 @@ requirement ids, same model rules, statements shared inside the family `iec-6244
 | FR7 RA, SL 2 | CR 7.1, CR 7.1 RE(1), CR 7.2 | as above | as above |
 | CCSC (8.3) | EN-8.3/471–472 | C / S | statement per CCSC 1 and CCSC 3 |
 | | EN-8.3/473–478 | B / M + S | every Table 4 row below its SL that is met only with supporting measures / claims is named in the information-for-use statement with the countermeasure the system must provide |
-| | EN-8.3/479–480 | A / P | scope check: every element that serves a safety function is evaluated in full (no partial scope inside an element) |
+| | EN-8.3/479–480 | C | statement (patch 25): the component meets Table 4 as a whole; the checklist names the scope rule of O17 |
 | Identification (8.4) | EN-8.4/482–484 | C / S | statement, shared with EN-7.5/444–445 (O9) |
 | Persistency (8.5) | EN-8.5/487–488 | B / M + S | the audit-record store on the safety path has a retention ≥ 5 years (field of B-F6); checklist: records survive restart / replacement |
 | System role (8.2) | EN-8.2/458–459 | C / S | statement: the machinery system meets Table 3 per IEC 62443-3-3 (O13) |
 
 26 counted rows from the 2019 edition plus 12 recommended ones (O14). The completeness test of the
 module reads this table, as `en50742-a-module.test.ts` does for §9.2.
+
+**Implemented (0.20 patch 09):** `features/compliance/data/edition-en-50742-b.ts` derives the
+Table 4 rows from the 2019 edition (`EN50742_B_TABLE_4`: listed requirement + its REs with
+lowest SL-C ≤ the SL of the FR; the HDR / NDR / SAR variants of the EDR-only rows as
+`recommended`), `family: "iec-62443-4-2"` on those rows (statements shared, K-6),
+`fixedSlTarget`; the new EN ids `en-6-257`, `en-8.2-458`, `en-8.3-471`, `en-8.3-473`,
+`en-8.3-479`, `en-8.5-487` (rules and texts — statements until patches 10 / 11 give
+8.3/473, 8.3/479 and 8.5 their checks); 8.4 uses `en-7.5-444`. Test:
+`en50742-b-module.test.ts` reads this table.
+
+**Evaluated (0.20 patch 12):** the Table 4 rows read the statements of the family
+`iec-62443-4-2` (`editionStatements` per row family, K-6); recommended rows are evaluated,
+carry `recommended` and are left out of the SL-C (`vectorOf`); the scope is the EN 50742
+relevance scope (O17, as Approach A); 8.3/479 was a project check `safety-scope` (met when
+the scope has elements — a statement row again since patch 25, review 2026-11-21); 8.3/473 (CCSC 2) is met by the model when no Table 4 row is met
+only with countermeasures of the system, otherwise it lists those rows for a statement
+(`withSystemCountermeasures`). Test: `evaluate-matrix.en50742-b.test.ts`. 8.5 and 7.3.4 read the
+retention field `auditRecordRetention` of the data stores in scope (patch 13: some store
+holds audit logs ≥ 5 years; none → gap with a statement to close it, never n/a). Not
+switched on in patch 14: tag "EN 50742 B" (brings "IEC 62443" along), preset without
+`motive` (O16), sub-tab with the fixed SL-T read-only, recommended rows marked and left out
+of the counts and the to-do list, statements written to the row's family, report with the
+fixed SL-T and recommended rows named.
+
+**Around it (0.20 patches 15 – 18):**
+
+- Patch 15: the safety zone became a mark on the trust boundary (`safetyZone`), with a
+  warning for a flow that crosses it without an interface.
+- Patch 16: the diagram shows the EL badges and the yellow zone, with a report legend.
+- Patch 17: the tag rules. B goes with the standard method or ETSI TVRA and always with
+  an IEC 62443-4-2 edition. It excludes A and ISO 21434.
+- Patch 18: Approach A became an overlay on the base method
+  (`regulation-presets-design.md` §10.9). The EN 50742 questions follow the A / B tag:
+  safety zone, relevance and scope.
+- Manual test: `doc/Testing/manual/en-50742.md`. The example projects with a safety zone
+  come from its section 9.
 
 ## 7. Clause 9 — Information for use
 
@@ -320,13 +397,13 @@ Row ids are the ids of this list (unqualified inside the family `en-50742`, name
 | Threat assessment | EN-4.3/217 | A | P | hazard data imported, every in-scope hazard has a `contributes_to` input, every safety-function asset has risks | — |
 | | EN-4.3/220 | B | P + S | WoO set; system definition sections `boundary` and `environment` filled. Checklist: intended use, reasonably foreseeable misuse, user groups, connections of the machine | — |
 | | EN-4.3/238 + EN-7.2.1/272 | C | S | statement per safety function: the selected measures do not degrade the safety function (one row, both clauses) | — |
-| | EN-7.1/260 | A | P | every interface on a path to a safety function has a risk with SRSL (or an elimination rationale) | — |
+| | EN-7.1/260 | A | P | every threat of an interface on a path to a safety function has a risk with SRSL or is dismissed with a reason (patch 28; "won't" no longer counts) | — |
 | | EN-7.4.2/334 | A | P | every safety-function asset has an SRSL on every risk of its interfaces | — |
 | | EN-7.4.2/344 | A | P | no SRSL0 while an interface of the safety function has EL > EL0 (F2) | — |
 | Information collection (7.3) | EN-7.3.1/281 | C | S | statement: which intervention types a–e the machine has and which are logged | CR 2.8 |
 | | EN-7.3.2/295–296 | B | M + S | an element on the safety path logs changes (`nonRepudiation` ∈ audit_log / digital_signature / hardware_backed, or an `audit_logs` store). Checklist: minimum content of each record | CR 2.8, CR 2.9 |
 | | EN-7.3.3/304–311 | B | M + S | as above, plus a readable access path. Checklist: evidence readable, access documented, collection automatic | CR 2.8 |
-| | EN-7.3.4/317–319 | C | S | statement: last intervention per type kept ≥ 5 years from putting into service (B once the audit cluster F-11 … F-14 brings a retention field) | CR 2.9 |
+| | EN-7.3.4/317–319 | B | M + S | the audit-log store has `auditRecordRetention` ≥ 5 years (B-F6, 0.20 patch 13); checklist: last intervention per type, counted from putting into service | CR 2.9 |
 | | EN-7.3.5/321–322 | B | M + S | every `audit_logs` store has `integrityProtection` ≠ none. Checklist: deletion only by an authorised procedure | CR 3.9 |
 | SW identification (7.5) | EN-7.5/444–445 | C | S | statement: safety-relevant software versions and configuration readable on demand (B once F-25b `securityConfigReporting` and a version-reporting field exist, §10 O9) | HDR 3.2 RE(1), CR 7.6 |
 | Protection measures (7.4.3) | EN-7.4.3.1/347–349 | A | R | summary: every clause row below is met for every (safety function, interface) | — |
@@ -374,7 +451,9 @@ of rows per status. Header kind `srsl` next to `security-levels` and `conformanc
 |---|---|---|
 | O1 | Draft line numbers change with the final EN; remap IDs on publication. Check whether the final text changes Annex B / Table 2. | Juergen (standards body) |
 | O2 | F1: re-classify the Annex B method as [K] in `en-50742-approach-a-design.md` §1. | design doc |
-| O3 | F2: validator SRSL0 ⇒ all interfaces EL0; consider an enquiry comment on B.6 vs Table 2. | Juergen / design doc |
+| O3 | F2: validator SRSL0 ⇒ all interfaces EL0; consider an enquiry comment on B.6 vs Table 2. **Calculation guard done (0.20 patch 21 per interface, patch 22 per safety function — the
+stricter reading, user 2026-11-21); the enquiry comment is still open; check against the
+final EN (O1).** | Juergen / design doc |
 | O4 | F3: PLr as severity input for B.6 (link to hazard import HI-5). | design doc |
 | O5 | 7.2.2 cryptography and 7.3.1 list items: confirm whether they contain normative "shall" beyond the extracted lines. | completion pass |
 | O6 | Rows "met?" / "tracked?" need a test reference before they count (rule). | per step |
@@ -383,8 +462,10 @@ of rows per status. Header kind `srsl` next to `security-levels` and `conformanc
 | O9 | 7.5 has no model field: decide a version-reporting field (shared with HDR 3.2 RE(1)) in the stage-2 triage of the model coverage plan, or keep the row C. | model coverage plan §4.3 |
 | O10 | 7.4.3.5.1 (authenticity of SRESW/SRASW) is mandated by no STRIDE row of design §11.4 (`EN50742_MANDATED_CLAUSES`). Decided (E-4): the sub-tab evaluates it from the model with the existing 62443 security properties (§9.2). Still open: check against the final EN whether it belongs into the mandate table as well. | design doc §11.4 |
 | O11 | Row EN-4.3/238 + 7.2.1/272 is a statement per safety function; a field per mandated control ("does not affect the safety function") would make it B. Decide with P4. | design doc §3.8 |
-| O12 | Approach B is switched off in `shared/utils/tag-categories.ts` with the outdated reason "no IEC 62443-4-2 support yet"; `regulation-presets-design.md` is stale. Switch on with the sub-tab. | 0.20 |
+| O12 | Approach B is switched off in `shared/utils/tag-categories.ts` with the outdated reason "no IEC 62443-4-2 support yet"; `regulation-presets-design.md` is stale. Switch on with the sub-tab. | **done** (0.20 patch 14) |
 | O13 | B-F1: system role (8.2, Table 3). **Decided 2026-11-14:** component role + statement row for 8.2 in 0.20; an IEC 62443-3-3 SR edition once a customer chooses B for a whole machine (roadmap §4 R-9). | done |
 | O14 | B-F3: Table 4 EDR-only rows. **Decided 2026-11-14:** literal for the status; HDR / NDR / SAR variants shown as recommended, not counted. Re-check with the final EN (O1). | done |
 | O15 | B-F4: scope. **Decided 2026-11-14:** elements on a path to a safety function (CM-12b search), mixed elements in full, outside = out of scope, no safety function = unknown. | done |
-| O16 | B-F7. **Decided 2026-11-14:** preset `en-50742-b` = the `standard` factors without `motive` (4.3/242 is common to both approaches). | done |
+| O16 | B-F7. **Decided 2026-11-14:** preset `en-50742-b` = the `standard` factors without `motive` (4.3/242 is common to both approaches). **Revoked 2026-11-21 (patch 27):** motive in both approaches — it rates the cyber risk L × I only; AP / SRSL and B's requirement set contain none (F4). | revoked |
+| O17 | **Scope = interfaces (user 2026-11-20), replaces O15 for B and applies to A too.** EN 50742 is about the interfaces to the safety functions and the data flows crossing them. The model rows of both approaches are evaluated on: the interfaces on a path to a safety function, the data flows crossing them, and the elements those flows reach directly (the process / store behind the interface, its chip and physical boundary). Elements without such a crossing flow are out of scope (listed, never met); a mixed element in scope is evaluated in full (8.3/479); no safety function = `unknown`. For A this changes the results of the model rows (7.3.2, 7.3.3, 7.3.5, 7.4.3.5.1 — today the whole machine): release note, results dump. | 0.20 patches 10 – 12 |
+| O18 | **How the relevant interfaces are found (user 2026-11-20).** A trust boundary marked as the safety zone (`safetyZone = yes`; user 2026-11-21: a mark next to the boundary type, not a type of its own — the zone keeps its type network / device …; patch 15) marks the yellow, safety-related area of the machine (grey / yellow separation); relevant are the flows crossing its border (either direction) and the interfaces they pass. Without a zone the path search to the safety-function assets (CM-12b) decides. One function for A and B (`app/utils/en50742-relevance.ts`, patch 10). Approach A: EL, AC, WoO and SRSL only for risks with a relevant anchor; the others are rated as usual and shown as not relevant (patch 11). Attack-path risks (patch 26, review 2026-11-21): the leaves' DFD refs decide — a relevant leaf → relevant; all leaves anchored, none relevant → not relevant; else relevant ("not determinable"); EL prefill = MIN of the anchored leaves (AND = MIN). Patch 16 (user 2026-11-21): the diagram shows it — the zone is drawn yellow and dashed, and every boundary and interface carries its EL as a read-only text at the top right ("Safety · EL2" on the zone; `dfd/services/dfd-badges.ts`, project setting `settings.dfdBadges`, legend in the report). | **done** (0.20 patches 10, 11, 16) |

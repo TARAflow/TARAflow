@@ -49,6 +49,8 @@ import type {
   KEY_RENEWAL_VALUES,
   USER_ACCOUNTS_VALUES,
   USER_DATA_DELETION_VALUES,
+  AUDIT_RECORD_RETENTION_VALUES,
+  SAFETY_ZONE_VALUES,
 } from "shared";
 
 // ==================== SHARED: IDENTITY (model coverage F-1 … F-3b, F-29) ====================
@@ -1024,6 +1026,14 @@ export interface DataStoreProperties {
    * When true: mandatory threats: Tampering (integrity), DoS (availability)
    */
   containsSafetyRelevantData?: boolean;
+
+  /**
+   * EN 50742 (B-F6, 0.20): how long the audit records of this store are kept
+   * — 8.5 / 7.3.4 ask for at least 5 years. Shown only when the store holds
+   * audit logs (MODEL_CONDITIONS.storesAuditRecords). Optional, never written
+   * as a default (roadmap rule 5).
+   */
+  auditRecordRetention?: (typeof AUDIT_RECORD_RETENTION_VALUES)[number];
 
   /**
    * Rationale for safety classification.
@@ -2015,6 +2025,14 @@ export interface TrustBoundaryProperties {
 
   owner?: string;
   notes?: string;
+
+  /**
+   * O18 (user 2026-11-21): this boundary is the EN 50742 safety zone — the
+   * yellow, safety-related area of the machine. The flows crossing it and
+   * the interfaces they pass are what EN 50742 A and B assess. A mark next
+   * to the boundary type. Optional, never written as a default.
+   */
+  safetyZone?: (typeof SAFETY_ZONE_VALUES)[number];
 }
 
 // ==================== CHIP BOUNDARY PROPERTIES ====================

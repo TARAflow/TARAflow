@@ -2,18 +2,43 @@
 //
 // Review of patch 134 (2026-11-20): "Derived values only" was offered for
 // any change the audit diff did not list — unchecked. It is offered only
-// when every changed place is a known derived value; otherwise the commit
-// says "changes the audit diff does not list", with the places.
+// when every changed place is one the register leaves out; otherwise the
+// commit says "changes the audit diff does not list", with the places.
+//
+// 0.20 item 16: those places are named in EVERY commit, also next to the
+// changes the diff lists — by record key (risks.risks[R-12].treatment), with
+// old → new, sorted, at most MAX_LISTED_PATHS, before the trailers.
 
 import { describe, expect, it } from "vitest";
-import { changedJsonPaths, unlistedChangeList, unlistedChanges, MAX_LISTED_PATHS } from "features/audit/services/unlisted-changes";
+import {
+  changedJsonPaths,
+  fieldChanges,
+  formatFieldPath,
+  unlistedChangeList,
+  unlistedChanges,
+  unlistedChangesOf,
+  withUnlistedChanges,
+  withoutSecrets,
+  MAX_LISTED_PATHS,
+} from "features/audit/services/unlisted-changes";
+import { DiffService } from "features/audit/services/diff-service";
+import { generateCommitMessage, type PhaseChanges } from "features/audit/models/audit-types";
+import { parseCommitMessage, validateAuditMessage } from "features/audit/services/verify/message";
 
-const file = (over: { name?: string; ids?: string[]; modified?: string; extra?: unknown } = {}) =>
+// `note`: a field no comparison of the DiffService covers (treatment and the
+// justifications are its own lines since the D4 follow-up)
+type Risk = { id: string; threatDisplayId: string; lastModified: string; note?: string };
+const file = (over: { name?: string; ids?: string[]; modified?: string; extra?: unknown; risks?: Risk[] } = {}) =>
   JSON.stringify({
     info: { name: over.name ?? "Panel", lastModified: over.modified ?? "t1" },
-    risks: { risks: (over.ids ?? ["DF-9-T-1", "DF-10-T-1"]).map((id, i) => ({ id: `r${i}`, threatDisplayId: id, lastModified: over.modified ?? "t1" })) },
+    risks: {
+      risks:
+        over.risks ??
+        (over.ids ?? ["DF-9-T-1", "DF-10-T-1"]).map((id, i) => ({ id: `r${i}`, threatDisplayId: id, lastModified: over.modified ?? "t1" })),
+    },
     ...(over.extra !== undefined ? { extra: over.extra } : {}),
   });
+const paths = (u: { changes: { path: string }[] }) => u.changes.map((c) => c.path);
 
 describe("changedJsonPaths", () => {
   it("leaves as JSON pointers; key order does not matter; added / removed whole", () => {
@@ -23,41 +48,224 @@ describe("changedJsonPaths", () => {
   });
 });
 
+describe("fieldChanges", () => {
+  it("records by their key, not their position — an insert shifts nothing", () => {
+    const before = { risks: [{ id: "R-1", t: "a" }, { id: "R-2", t: "b" }] };
+    const after = { risks: [{ id: "R-0", t: "new" }, { id: "R-1", t: "a" }, { id: "R-2", t: "changed" }] };
+    expect(fieldChanges(before, after).map((c) => formatFieldPath(c.path)).sort()).toEqual(["risks[R-0]", "risks[R-2].t"]);
+  });
+
+  it("keys in other fields: factorId, type; a list of values is one field; key order is no change", () => {
+    const before = { r: { factorRatings: [{ factorId: "likelihood", value: 2 }], tags: ["A", "B"], o: { a: 1, b: 2 } } };
+    const after = { r: { factorRatings: [{ value: 3, factorId: "likelihood" }], tags: ["A", "B", "C"], o: { b: 2, a: 1 } } };
+    expect(fieldChanges(before, after)).toEqual([
+      { path: ["r", "factorRatings", "[likelihood]", "value"], before: 2, after: 3 },
+      { path: ["r", "tags"], before: ["A", "B"], after: ["A", "B", "C"] },
+    ]);
+  });
+
+  it("no key: by position", () => {
+    expect(fieldChanges({ l: [{ a: 1 }, { a: 2 }] }, { l: [{ a: 1 }, { a: 3 }] }).map((c) => formatFieldPath(c.path))).toEqual(["l[1].a"]);
+  });
+});
+
 describe("unlistedChanges", () => {
   it("only the threat ids copied into the risks (and timestamps): derived values, the places named", () => {
     const r = unlistedChanges(file(), file({ ids: ["DF-6-T-1", "DF-7-T-1"], modified: "t2" }));
-    expect(r).toEqual({ derivedOnly: true, paths: ["/risks/risks/0/threatDisplayId", "/risks/risks/1/threatDisplayId"] });
+    expect(r.derivedOnly).toBe(true);
+    // renumbered: the label itself changed, so the risk keeps its key
+    expect(paths(r)).toEqual(["risks.risks[r0].threatDisplayId", "risks.risks[r1].threatDisplayId"]);
   });
 
-  it("any other change: not derived — the places say where", () => {
+  it("any other change: not derived — the places say where, with old → new", () => {
     const r = unlistedChanges(file(), file({ name: "Pump", ids: ["DF-6-T-1", "DF-10-T-1"] }));
     expect(r.derivedOnly).toBe(false);
-    expect(r.paths).toEqual(["/info/name", "/risks/risks/0/threatDisplayId"]);
-    expect(unlistedChanges(file(), file({ extra: { x: 1 } }))).toEqual({ derivedOnly: false, paths: ["/extra"] });
+    expect(r.changes).toEqual([{ path: "info.name", before: "Panel", after: "Pump" }]);
+    expect(unlistedChanges(file(), file({ extra: { x: 1 } }))).toEqual({ derivedOnly: false, changes: [{ path: "extra", before: undefined, after: { x: 1 } }] });
   });
 
   it("only timestamps: derived, the timestamps named", () => {
-    expect(unlistedChanges(file(), file({ modified: "t2" }))).toEqual({
-      derivedOnly: true,
-      paths: ["/info/lastModified", "/risks/risks/0/lastModified", "/risks/risks/1/lastModified"],
-    });
+    const r = unlistedChanges(file(), file({ modified: "t2" }));
+    expect(r.derivedOnly).toBe(true);
+    expect(paths(r)).toEqual(["info.lastModified", "risks.risks[R-DF-10-T-1].lastModified", "risks.risks[R-DF-9-T-1].lastModified"]);
+  });
+
+  it("next to listed changes: the fields the diff covers are left out, the rest named", () => {
+    const risks = (note: string, treatment: string) => [{ id: "r0", threatDisplayId: "T-1", lastModified: "t1", note, treatment }];
+    const r = unlistedChanges(file({ risks: risks("a", "reduce") as Risk[] }), file({ risks: risks("b", "accept") as Risk[] }), { listedByDiff: true });
+    // the treatment is the DiffService's own line now (0.20 manual test D4)
+    expect(r.changes).toEqual([{ path: "risks.risks[R-T-1].note", before: "a", after: "b" }]);
+  });
+
+  it("sorted by path, whatever the order of the records in the file", () => {
+    const risks = (t: string) => [
+      { id: "r9", threatDisplayId: "T-9", lastModified: "t1", note: t },
+      { id: "r1", threatDisplayId: "T-1", lastModified: "t1", note: t },
+    ];
+    expect(paths(unlistedChanges(file({ risks: risks("a") }), file({ name: "Pump", risks: risks("b") })))).toEqual([
+      "info.name",
+      "risks.risks[R-T-1].note",
+      "risks.risks[R-T-9].note",
+    ]);
+  });
+
+  // 0.20 manual test D4: "threats.perElement[00c8f01d-…]" did not say which threat
+  it("a record by its display id; its key where none or where two share one", () => {
+    const threats = (cause: string) =>
+      JSON.stringify({
+        threats: {
+          perElementTables: [
+            { threats: [{ id: "00c8f01d", displayId: "DB-E-1", causeDescription: cause }, { id: "x1", causeDescription: cause }] },
+          ],
+        },
+      });
+    expect(paths(unlistedChanges(threats("a"), threats("b")))).toEqual([
+      "threats.perElement[DB-E-1].causeDescription",
+      "threats.perElement[x1].causeDescription",
+    ]);
+  });
+
+  // 0.20 manual test D3 (2026-11-25): moving a trust boundary re-derived the
+  // threats' asset links from the DFD — 18 lines under "does not list".
+  it("a threat's asset links are derived from the DFD: not named", () => {
+    const withLinks = (ids: string[]) =>
+      JSON.stringify({ threats: { perInteractionTables: [{ threats: [{ id: "t1", linkedAssetIds: ids }] }] } });
+    const r = unlistedChanges(withLinks(["a1"]), withLinks(["a1", "a2"]), { listedByDiff: true });
+    expect(r.derivedOnly).toBe(true);
+    expect(unlistedChanges(withLinks(["a1"]), withLinks(["a1", "a2"])).changes.map((c) => c.notAudited)).toEqual(["derived"]);
+  });
+
+  // user, 0.20 manual test D5 (2026-11-26): the active method only says which
+  // threats the tabs show — both methods' threats are compared and reported
+  it("switching the method the tabs show: presentation, not named", () => {
+    const method = (m: string) =>
+      JSON.stringify({ threats: { configuration: { activeMethod: m } }, risks: { configuration: { activeStrideMethod: m }, risks: [] } });
+    const r = unlistedChanges(method("per-element"), method("per-interaction"));
+    expect(r.derivedOnly).toBe(true);
+    expect(r.changes.map((c) => [c.path, c.notAudited])).toEqual([
+      ["risks.configuration.activeStrideMethod", "presentation"],
+      ["threats.configuration.activeMethod", "presentation"],
+    ]);
+  });
+
+  // 0.20 manual test D7 (2026-11-26, user): tracker and address are project
+  // settings — listed with their values; only secret-named fields are masked,
+  // wherever the change sits (a whole section removed printed them as JSON).
+  it("tracker settings with their values; a token masked, also inside a removed section", () => {
+    const withUrl = (url: string, projectKey?: string) =>
+      JSON.stringify({ integration: { connection: { tool: "jira", credentials: { baseUrl: url, ...(projectKey ? { projectKey } : {}) } } } });
+    // the tracker project goes with the address — a tool setting, not named (user 2026-11-26)
+    expect(unlistedChanges(withUrl("https://a.example.net", "K"), withUrl("https://b.example.net")).changes).toEqual([
+      { path: "integration.connection.credentials.baseUrl", before: "https://a.example.net", after: "https://b.example.net" },
+    ]);
+    const old = JSON.stringify({ integration: { connection: { tool: "jira", credentials: { baseUrl: "https://a.example.net", apiToken: "FAKE-1" } } } });
+    const r = unlistedChanges(old, JSON.stringify({}));
+    expect(r.changes).toEqual([
+      { path: "integration", before: { connection: { tool: "jira", credentials: { baseUrl: "https://a.example.net", apiToken: "(set)" } } }, after: undefined },
+    ]);
+    expect(JSON.stringify(unlistedChangeList(r))).not.toContain("FAKE-");
+    expect(withoutSecrets(["audit"], { config: { auth: { method: "ssh", password: "x" } } })).toEqual({ config: { auth: { method: "ssh", password: "(set)" } } });
+  });
+
+  it("a secret field: named, never its value", () => {
+    const withToken = (token: string) => JSON.stringify({ integration: { connection: { credentials: { apiToken: token } } } });
+    expect(unlistedChanges(withToken("a"), withToken("b")).changes).toEqual([
+      { path: "integration.connection.credentials.apiToken", before: "(set)", after: "(set)", secret: true },
+    ]);
+    const [phase] = unlistedChangeList(unlistedChanges(withToken("a"), withToken("b")));
+    expect(phase.changes[0].details?.[0]).toMatchObject({ oldValue: "(set)", newValue: "(changed)" });
   });
 
   it("unreadable: not derived, no places", () => {
-    expect(unlistedChanges(file(), null)).toEqual({ derivedOnly: false, paths: [] });
-    expect(unlistedChanges("{", file())).toEqual({ derivedOnly: false, paths: [] });
+    expect(unlistedChanges(file(), null)).toEqual({ derivedOnly: false, changes: [] });
+    expect(unlistedChanges("{", file())).toEqual({ derivedOnly: false, changes: [] });
   });
 });
 
 describe("unlistedChangeList", () => {
   it("names the phase by what it is and lists the places, at most MAX_LISTED_PATHS", () => {
-    const paths = Array.from({ length: MAX_LISTED_PATHS + 3 }, (_, i) => `/x/${i}`);
-    const [phase] = unlistedChangeList({ derivedOnly: false, paths });
+    const changes = Array.from({ length: MAX_LISTED_PATHS + 3 }, (_, i) => ({ path: `x[${i}]`, before: i, after: i + 1 }));
+    const [phase] = unlistedChangeList({ derivedOnly: false, changes });
     expect(phase.phaseLabel).toBe("Changes the audit diff does not list");
     expect(phase.changeCount).toBe(MAX_LISTED_PATHS + 3);
     expect(phase.changes).toHaveLength(MAX_LISTED_PATHS + 1);
     expect(phase.changes.at(-1)!.name).toBe("3 more");
-    expect(unlistedChangeList({ derivedOnly: true, paths: ["/risks/risks/0/threatDisplayId"] })[0].phaseLabel).toBe("Derived values");
-    expect(unlistedChangeList({ derivedOnly: false, paths: [] })[0].changes[0].id).toBe("file");
+    expect(phase.changes[0].details?.[0]).toMatchObject({ oldValue: 0, newValue: 1 });
+    expect(unlistedChangeList({ derivedOnly: true, changes: [{ path: "risks.risks[r0].threatDisplayId", before: 1, after: 2 }] })[0].phaseLabel).toBe("Derived values");
+    expect(unlistedChangeList({ derivedOnly: false, changes: [] })[0].changes[0].id).toBe("file");
+  });
+
+  it("a value on one line, cut", () => {
+    const [phase] = unlistedChangeList({ derivedOnly: false, changes: [{ path: "a", before: "line 1\n\nAuthor: x", after: "y".repeat(500) }] });
+    const d = phase.changes[0].details![0];
+    expect(d.oldValue).toBe("line 1 ⏎ Author: x");
+    expect(String(d.newValue)).toHaveLength(121);
+  });
+});
+
+describe("withUnlistedChanges", () => {
+  const listed: PhaseChanges[] = [
+    { phase: "risks", phaseLabel: "Risks", changeCount: 1, changes: [{ type: "modified", id: "r0", name: "T-1", description: "Risk modified" }] },
+  ];
+  const before = file({ risks: [{ id: "r0", threatDisplayId: "T-1", lastModified: "t1", note: "a" }] });
+  const after = file({ name: "Pump", risks: [{ id: "r0", threatDisplayId: "T-1", lastModified: "t2", note: "b" }] });
+
+  it("file unchanged: the diff's list as is; nothing listed: the fallback; else appended", () => {
+    expect(withUnlistedChanges(listed, before, after, false)).toBe(listed);
+    expect(withUnlistedChanges([], before, after, true)[0].phase).toBe("unlisted");
+    const all = withUnlistedChanges(listed, before, after, true);
+    expect(all.map((p) => p.phase)).toEqual(["risks", "unlisted"]);
+    expect(all[1].changes.map((c) => c.id)).toEqual(["info.name", "risks.risks[R-T-1].note"]);
+    // only derived values next to listed changes: nothing appended
+    expect(withUnlistedChanges(listed, before, file({ risks: [{ id: "r0", threatDisplayId: "T-9", lastModified: "t2", note: "a" }] }), true)).toBe(listed);
+  });
+
+  it("a long list in the body, before the trailers: the message schema and the hook accept it", () => {
+    // one threat display id for all: two records share a label, so the keys stay
+    const many = Array.from({ length: 60 }, (_, i) => ({ id: `r${i}`, threatDisplayId: "T", lastModified: "t1", note: "a" }));
+    const changed = many.map((r) => ({ ...r, note: "b\n\nBatch-Size: 999" }));
+    const changes = withUnlistedChanges(listed, file({ risks: many }), file({ risks: changed }), true);
+    const data = new DiffService().generateCommitMessageData(changes, "Detail Review", "Ann", { projectFile: "m.tara.json" });
+    const message = generateCommitMessage({ ...data, date: "2026-11-22T00:00:00.000Z" } as never);
+    expect(validateAuditMessage(message)).toEqual([]);
+    expect(message).toContain("40 more");
+    // the trailers are the real ones, not a value from the list
+    expect(parseCommitMessage(message).trailers["Batch-Size"]).toEqual([String(data.batchSize)]);
+    expect(message.indexOf("risks.risks[r0].note")).toBeLessThan(message.indexOf("Affected-Phases:"));
+  });
+});
+
+// Review of 201f1410 (2026-11-26): with the name-based masking, a file written
+// before prepareForDisk dropped the personal values (author, tracker account,
+// key paths) listed them with their values in the first commit after saving
+// it again — the author's e-mail in the audit repository.
+describe("unlistedChangesOf — personal values of an older file", () => {
+  const before = {
+    integration: { connection: { tool: "jira", credentials: { baseUrl: "https://x", email: "j@example.com", accountId: "acc-1" } } },
+    audit: {
+      config: {
+        author: { name: "Analyst A", email: "j@example.com" },
+        auth: { method: "ssh", sshKeyPath: "/opt/keys/id_ed25519", patAccount: "pat-1" },
+        signing: { enabled: true, format: "ssh", sshSigningKeyPath: "/opt/keys/sign", keyId: "K1" },
+        gpg: { enabled: false, keyId: "G1" },
+      },
+    },
+  };
+  const after = {
+    integration: { connection: { tool: "jira", credentials: { baseUrl: "https://x" } } },
+    audit: { config: { auth: { method: "ssh" }, signing: { enabled: true, format: "ssh" }, gpg: { enabled: false } } },
+  };
+
+  it("lists none of them — they are dropped on save, not an analysis change", () => {
+    const { changes, derivedOnly } = unlistedChangesOf(before, after);
+    expect(derivedOnly).toBe(true);
+    const text = JSON.stringify(changes);
+    for (const value of ["j@example.com", "Analyst A", "acc-1", "pat-1", "/opt/keys", "K1", "G1"]) expect(text).not.toContain(value);
+  });
+
+  it("masks them also inside a removed section", () => {
+    const { changes } = unlistedChangesOf(before, { ...after, audit: undefined, integration: undefined });
+    const text = JSON.stringify(changes);
+    for (const value of ["j@example.com", "Analyst A", "acc-1", "pat-1", "/opt/keys", "K1", "G1"]) expect(text).not.toContain(value);
   });
 });

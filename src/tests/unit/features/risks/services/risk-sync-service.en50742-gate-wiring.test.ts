@@ -14,7 +14,7 @@
 // Pure logic, no rendering.
 
 import { describe, it, expect } from "vitest";
-import { syncRisksFromThreats } from "features/risks/services/risk-sync-service";
+import { checkRiskSyncStatus, syncRisksFromThreats } from "features/risks/services/risk-sync-service";
 import {
   createDefaultRiskData,
   createEmptyRisk,
@@ -220,5 +220,169 @@ describe("syncRisksFromThreats — §11.2 gate wiring, existing risks (re-sync)"
     // enforces that SRSL has no mitigated counterpart. This just pins that
     // the After number is unaffected by the Before-side gate being active.
     expect(risk.calculatedRiskAfterMitigation).toBe(0); // unrated mitigatedFactorRatings
+  });
+});
+// ── O18 (user 2026-11-20): only EN 50742 relevant anchors get EL / SRSL ──
+
+describe("syncRisksFromThreats — O18 relevance gate", () => {
+  const configuration = configWithEN50742Enabled(createDefaultRiskData().configuration);
+  const dfd = dfdWithElementEL("if-1", "EL3");
+  const assets = assetDataRef([asset("A-1", "fatal")]);
+  const rated = (threat: ThreatReference) => {
+    const empty = createEmptyRisk(threat, configuration);
+    return {
+      ...empty,
+      linkedAssetIds: ["A-1"],
+      factorRatings: empty.factorRatings.map((r) => (r.factorId === "attacker_capability" ? { ...r, value: 4 } : r)),
+    };
+  };
+
+  it("a relevant anchor: EL derived, SRSL computed (as before)", () => {
+    const threat = { ...perElementThreat("T-R", "if-1", ["A-1"]), en50742: { relevant: true } };
+    const result = syncRisksFromThreats({ ...createDefaultRiskData(), configuration, risks: [rated(threat)] }, [threat], dfd, assets);
+    const risk = riskById(result, "T-R");
+    expect(risk.factorRatings.find((r) => r.factorId === "exposure_level")?.source).toBe("derived");
+    expect(risk.calculatedSrsl).not.toBeNull();
+  });
+
+  it("a new risk on a not relevant anchor: no EL derived, no SRSL", () => {
+    const threat = { ...perElementThreat("T-N", "if-1", ["A-1"]), en50742: { relevant: false } };
+    const result = syncRisksFromThreats({ ...createDefaultRiskData(), configuration }, [threat], dfd, assets);
+    const risk = riskById(result, "T-N");
+    expect(risk.factorRatings.find((r) => r.factorId === "exposure_level")?.value ?? 0).toBe(0);
+    expect(risk.calculatedSrsl).toBeNull();
+  });
+
+  it("an existing risk whose anchor is no longer relevant: derived EL reset, SRSL taken away, the sync status says so", () => {
+    const relevant = { ...perElementThreat("T-X", "if-1", ["A-1"]), en50742: { relevant: true } };
+    const before = syncRisksFromThreats({ ...createDefaultRiskData(), configuration, risks: [rated(relevant)] }, [relevant], dfd, assets);
+    expect(riskById(before, "T-X").calculatedSrsl).not.toBeNull();
+
+    const outside = { ...relevant, en50742: { relevant: false } };
+    const status = checkRiskSyncStatus(before.riskData, [outside], dfd, assets);
+    expect(status.changedExposureLevels).toBe(1);
+    const after = syncRisksFromThreats(before.riskData, [outside], dfd, assets);
+    const risk = riskById(after, "T-X");
+    expect(risk.calculatedSrsl).toBeNull();
+    expect(risk.factorRatings.find((r) => r.factorId === "exposure_level")?.value).toBe(0);
+  });
+
+  it("a manual EL stays in the ratings, but the risk gets no SRSL when not relevant", () => {
+    const threat = { ...perElementThreat("T-M", "if-1", ["A-1"]), en50742: { relevant: false } };
+    const risk0 = rated(threat);
+    const manual = {
+      ...risk0,
+      factorRatings: risk0.factorRatings.map((r) => (r.factorId === "exposure_level" ? { ...r, value: 4, source: "manual" as const } : r)),
+      calculatedSrsl: "SRSL2" as const,
+    };
+    const result = syncRisksFromThreats({ ...createDefaultRiskData(), configuration, risks: [manual] }, [threat], dfd, assets);
+    const risk = riskById(result, "T-M");
+    expect(risk.factorRatings.find((r) => r.factorId === "exposure_level")).toMatchObject({ value: 4, source: "manual" });
+    expect(risk.calculatedSrsl).toBeNull();
+  });
+
+  it("no decision (absent en50742, e.g. other projects): unchanged behaviour", () => {
+    const threat = perElementThreat("T-U", "if-1", ["A-1"]);
+    const result = syncRisksFromThreats({ ...createDefaultRiskData(), configuration, risks: [rated(threat)] }, [threat], dfd, assets);
+    expect(riskById(result, "T-U").calculatedSrsl).not.toBeNull();
+  });
+});
+
+describe("syncRisksFromThreats — the overlay of EN 50742 A on ETSI TVRA (0.20)", () => {
+  const tvraWithA = (base: RiskConfiguration): RiskConfiguration => ({
+    ...configWithEN50742Enabled(base),
+    likelihoodMethod: "etsi-tvra",
+    en50742Overlay: true,
+  });
+
+  it("TVRA + A: the SRSL is computed as with the standard method", () => {
+    const configuration = tvraWithA(createDefaultRiskData().configuration);
+    const threat = perElementThreat("T-10", "if-1", ["A-1"]);
+    const empty = createEmptyRisk(threat, configuration);
+    const existing = {
+      ...empty,
+      linkedAssetIds: ["A-1"],
+      factorRatings: empty.factorRatings.map((r) => (r.factorId === "attacker_capability" ? { ...r, value: 4 } : r)),
+    };
+    const result = syncRisksFromThreats(
+      { ...createDefaultRiskData(), configuration, risks: [existing] },
+      [threat],
+      dfdWithElementEL("if-1", "EL3"),
+      assetDataRef([asset("A-1", "fatal")]),
+    );
+    expect(riskById(result, "T-10").calculatedSrsl).not.toBeNull();
+  });
+
+  it("the A tag removed: a stored SRSL goes on the next sync, also without a rating change", () => {
+    const configuration = createDefaultRiskData().configuration; // no overlay
+    const threat = perElementThreat("T-11", "if-1", ["A-1"]);
+    const stored = { ...createEmptyRisk(threat, configuration), linkedAssetIds: ["A-1"], calculatedSrsl: "SRSL2" as const, calculatedApScore: 7, calculatedApBand: null };
+    const riskData: RiskData = { ...createDefaultRiskData(), configuration, risks: [stored] };
+    const dfd: DFDReference = { elements: [], connections: [] };
+    const assets = assetDataRef([asset("A-1", "fatal")]);
+    expect(checkRiskSyncStatus(riskData, [threat], dfd).changedExposureLevels).toBe(1);
+    const risk = riskById(syncRisksFromThreats(riskData, [threat], dfd, assets), "T-11");
+    expect(risk.calculatedSrsl).toBeUndefined();
+    expect(risk.calculatedApScore).toBeUndefined();
+  });
+});
+
+describe("syncRisksFromThreats — SRSL0 and the isolation of the safety function (patch 22)", () => {
+  // EL0 interface, very restricted WoO, advanced attacker → AP0 → B.6 SRSL0
+  const configuration = (): RiskConfiguration => ({
+    ...configWithEN50742Enabled(createDefaultRiskData().configuration),
+    windowOfOpportunity: "very_restricted",
+  });
+  const stored = (threat: ThreatReference) => {
+    const empty = createEmptyRisk(threat, configuration());
+    return {
+      ...empty,
+      linkedAssetIds: ["A-1"],
+      factorRatings: empty.factorRatings.map((r) =>
+        r.factorId === "attacker_capability" ? { ...r, value: 1 } : r.factorId === "exposure_level" ? { ...r, value: 1, source: "derived" as const, derivedValue: 1 } : r,
+      ),
+      calculatedSrsl: "SRSL0" as const,
+    };
+  };
+  const dfd = dfdWithElementEL("if-bus", "EL0");
+  const assets = assetDataRef([asset("A-1", "reversible_major")]);
+
+  it("the function became reachable (USB elsewhere): the stored SRSL0 becomes SRSL1 without a rating change", () => {
+    const threat = { ...perElementThreat("T-20", "if-bus", ["A-1"]), en50742: { relevant: true, functionIsolated: false } };
+    const riskData: RiskData = { ...createDefaultRiskData(), configuration: configuration(), risks: [stored(threat)] };
+    expect(checkRiskSyncStatus(riskData, [threat], dfd, assets).changedExposureLevels).toBe(1);
+    const result = syncRisksFromThreats(riskData, [threat], dfd, assets);
+    expect(riskById(result, "T-20").calculatedSrsl).toBe("SRSL1");
+  });
+
+  it("an isolated function keeps SRSL0 — nothing to update", () => {
+    const threat = { ...perElementThreat("T-21", "if-bus", ["A-1"]), en50742: { relevant: true, functionIsolated: true } };
+    const riskData: RiskData = { ...createDefaultRiskData(), configuration: configuration(), risks: [stored(threat)] };
+    expect(checkRiskSyncStatus(riskData, [threat], dfd, assets).changedExposureLevels).toBe(0);
+    expect(riskById(syncRisksFromThreats(riskData, [threat], dfd, assets), "T-21").calculatedSrsl).toBe("SRSL0");
+  });
+});
+
+describe("syncRisksFromThreats — attack-path risks (review 2026-11-21)", () => {
+  const pathThreat = (en50742: ThreatReference["en50742"]): ThreatReference => ({
+    ...baseThreat("AT-1"),
+    sourceStrideMethod: "attack-path",
+    linkedAssetIds: ["A-1"],
+    attackPathLeaves: [{ name: "Open case", dfdRef: "IF-1" }],
+    en50742,
+  });
+
+  it("no anchor of its own: the EL comes from the app layer (MIN of the anchored leaves)", () => {
+    const riskData = riskDataWithConfig(configWithEN50742Enabled);
+    const result = syncRisksFromThreats(riskData, [pathThreat({ relevant: true, exposureLevel: "EL2" })], { elements: [], connections: [] }, assetDataRef([asset("A-1", "fatal")]));
+    const el = riskById(result, "AT-1").factorRatings.find((r) => r.factorId === "exposure_level");
+    expect(el?.value).toBe(3); // EL2 = third level
+    expect(el?.source).toBe("derived");
+  });
+
+  it("not relevant: no EL prefill, whatever the leaves say", () => {
+    const riskData = riskDataWithConfig(configWithEN50742Enabled);
+    const result = syncRisksFromThreats(riskData, [pathThreat({ relevant: false, exposureLevel: "EL2" })], { elements: [], connections: [] }, assetDataRef([asset("A-1", "fatal")]));
+    expect(riskById(result, "AT-1").factorRatings.find((r) => r.factorId === "exposure_level")?.value ?? 0).toBe(0);
   });
 });

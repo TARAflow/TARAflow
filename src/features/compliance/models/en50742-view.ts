@@ -34,6 +34,11 @@ export interface En50742Risk {
   srsl: SrslLevel | null | undefined;
   /** The anchor's EL is above EL0; undefined = EL not rated. */
   exposed?: boolean;
+  /**
+   * Its safety functions are completely isolated — every interface on their
+   * paths EL0 (patch 22, Table 2); undefined = no safety function linked.
+   */
+  functionIsolated?: boolean;
   /** Clauses mandated at its SRSL for its anchor and STRIDE (design §11.4). */
   mandated: readonly string[];
   /** Several clauses mandated (Interface × T): one of them done suffices. */
@@ -41,7 +46,11 @@ export interface En50742Risk {
   controls: readonly MandatedControl[];
   /** Treatment "accept": the remaining risk is passed on in the information for use. */
   accepted: boolean;
-  /** MoSCoW "won't" with a justification — the threat is out (elimination rationale). */
+  /**
+   * MoSCoW "won't" with a justification. A prioritisation of the cyber risk
+   * only (0.20 patch 28): it no longer takes the risk out of the SRSL rows —
+   * a threat that does not apply is dismissed at the threat, with a reason.
+   */
   excluded: boolean;
 }
 
@@ -59,7 +68,19 @@ export interface En50742View {
    * above EL0, and Interfaces whose EL is unset.
    */
   interfaces: { exposed: readonly string[]; unrated: readonly string[] };
+  /**
+   * Per relevant interface / flow its threats and their state (7.1, patch
+   * 28): rated = a risk with an SRSL; pending = relevant or uncertain, its
+   * risk without an SRSL yet; dismissed = "not relevant" with a reason;
+   * unjustified = "not relevant" without one; unrated = not rated yet.
+   */
+  anchorThreats: ReadonlyMap<string, readonly { label: string; state: "rated" | "pending" | "dismissed" | "unjustified" | "unrated" }[]>;
   risks: readonly En50742Risk[];
+  /**
+   * O17 / O18: how the EN 50742 relevant interfaces and flows were found
+   * and how many there are (0 = the model rows have no scope).
+   */
+  relevance?: { mode: "zone" | "path" | "none"; count: number };
 }
 
 export interface En50742SafetyFunction {

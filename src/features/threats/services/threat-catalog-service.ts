@@ -538,6 +538,20 @@ export function findInteractionTemplate(
 }
 
 // ==================== LOCALIZATION ====================
+//
+// A missing text never comes back as its i18n key or as i18next's
+// "__MISSING__" (0.20 patch 30, persisted-threat-text-fix.md): those strings
+// were stored as threat text and shown as is. The resolvers give a detectable
+// placeholder instead; loading repairs it once the text exists
+// (threat-text-repair.ts). The completeness test of the catalog keeps the
+// built-in templates from getting here.
+
+/** The text a resolver gives when a template's text is missing — detectable, never a key. */
+export function pendingTranslationText(templateId: string, kind: "threat" | "attack" | "cause"): string {
+  return `[${templateId}] (${kind} text pending translation)`;
+}
+
+const MISSING = "__MISSING__";
 
 export function getLocalizedElementThreat(
   templateId: string,
@@ -553,13 +567,16 @@ export function getLocalizedElementThreat(
       console.error(
         `[ThreatCatalog] Missing element threat text: domain="${domain}" id="${templateId}" — falling back to "general"`,
       );
-      return i18n.t(`general.${templateId}.threat`, {
+      const general = i18n.t(`general.${templateId}.threat`, {
         ns: "element-threats-attacks",
+        defaultValue: MISSING,
       });
+      return general === MISSING ? pendingTranslationText(templateId, "threat") : general;
     }
     console.error(
       `[ThreatCatalog] Missing element threat text: domain="general" id="${templateId}"`,
     );
+    return pendingTranslationText(templateId, "threat");
   }
   return result;
 }
@@ -578,13 +595,16 @@ export function getLocalizedElementAttack(
       console.error(
         `[ThreatCatalog] Missing element attack text: domain="${domain}" id="${templateId}" — falling back to "general"`,
       );
-      return i18n.t(`general.${templateId}.attack`, {
+      const general = i18n.t(`general.${templateId}.attack`, {
         ns: "element-threats-attacks",
+        defaultValue: MISSING,
       });
+      return general === MISSING ? pendingTranslationText(templateId, "attack") : general;
     }
     console.error(
       `[ThreatCatalog] Missing element attack text: domain="general" id="${templateId}"`,
     );
+    return pendingTranslationText(templateId, "attack");
   }
   return result;
 }
@@ -636,15 +656,18 @@ export function getLocalizedInteractionThreat(
       console.error(
         `[ThreatCatalog] Missing interaction threat text: domain="${domain}" id="${templateId}" — falling back to "general"`,
       );
-      return i18n.t(`general.${templateId}.threat`, {
+      const general = i18n.t(`general.${templateId}.threat`, {
         ns: "interaction-threats-attacks",
         interpolation: { escapeValue: false },
+        defaultValue: MISSING,
         ...placeholders,
       });
+      return general === MISSING ? pendingTranslationText(templateId, "threat") : general;
     }
     console.error(
       `[ThreatCatalog] Missing interaction threat text: domain="general" id="${templateId}"`,
     );
+    return pendingTranslationText(templateId, "threat");
   }
   return result;
 }
@@ -666,15 +689,18 @@ export function getLocalizedInteractionAttack(
       console.error(
         `[ThreatCatalog] Missing interaction attack text: domain="${domain}" id="${templateId}" — falling back to "general"`,
       );
-      return i18n.t(`general.${templateId}.attack`, {
+      const general = i18n.t(`general.${templateId}.attack`, {
         ns: "interaction-threats-attacks",
         interpolation: { escapeValue: false },
+        defaultValue: MISSING,
         ...placeholders,
       });
+      return general === MISSING ? pendingTranslationText(templateId, "attack") : general;
     }
     console.error(
       `[ThreatCatalog] Missing interaction attack text: domain="general" id="${templateId}"`,
     );
+    return pendingTranslationText(templateId, "attack");
   }
   return result;
 }

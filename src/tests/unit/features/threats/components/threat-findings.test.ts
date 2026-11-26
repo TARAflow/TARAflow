@@ -56,3 +56,22 @@ describe("threatFindings", () => {
     expect(threatFindings([tables[2]])).toEqual([]);
   });
 });
+
+describe("threatFindings — EN 50742 dismissals without a reason (0.20 patch 28)", () => {
+  const relevant = new Set(["if-1", "df-3"]);
+  const t = (id: string, extra: Partial<Threat>) => threat(id, `X-${id}`, "DF-9", "T", extra);
+
+  it("a dismissed threat on a relevant interface / flow without a note is a warning; with a note or elsewhere not", () => {
+    const tables = [
+      table("[X]", [
+        t("a", { relevance: "not_relevant", linkedElement: { elementId: "if-1" } as never }),
+        t("b", { relevance: "not_relevant", dataFlow: { connectionId: "df-3" } as never }),
+        t("c", { relevance: "not_relevant", linkedElement: { elementId: "if-1" } as never, evalNote: "physically sealed" }),
+        t("d", { relevance: "not_relevant", linkedElement: { elementId: "p-1" } as never }),
+      ]),
+    ];
+    expect(threatFindings(tables, [], relevant).filter((f) => f.kind === "en50742Unjustified").map((f) => f.threatId)).toEqual(["a", "b"]);
+    // not an EN 50742 project: nothing
+    expect(threatFindings(tables).some((f) => f.kind === "en50742Unjustified")).toBe(false);
+  });
+});

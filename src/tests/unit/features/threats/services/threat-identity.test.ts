@@ -397,6 +397,26 @@ describe("mergeGeneratedTables — manual threat preservation (keepManual)", () 
     expect(allManual).toHaveLength(1);
     expect(allManual[0].displayId).toBe("P9-M-1");
   });
+  // Review 2026-11-22: a boundary's display id changes while it stays the same
+  // boundary — an imported component's boundary gets the instance prefix with
+  // its next update (0.20 item 17), an analyst renames "[CASE]". The manual
+  // threat stays in its table instead of a left-over one.
+  it("keepManual: the table is found by the boundary id, not its display id", () => {
+    const previous = [tbl([genThreat(), manualThreat()], "[CASE]", "tb-case")];
+    const fresh = [tbl([genThreat()], "[SD1:CASE]", "tb-case")];
+    const merged = mergeGeneratedTables(fresh, previous, elementThreatNaturalKey, { keepManual: true });
+    expect(merged).toHaveLength(1);
+    expect(merged[0].displayIdentifier).toBe("[SD1:CASE]");
+    expect(merged[0].threats.map((t) => t.source)).toEqual(["generated:full", "manual"]);
+  });
+
+  it("keepManual: tables without a boundary still by their label", () => {
+    const previous = [tbl([genThreat()], "[DF]"), tbl([manualThreat()], "[EE]")];
+    const fresh = [tbl([genThreat()], "[DF]"), tbl([], "[EE]")];
+    const merged = mergeGeneratedTables(fresh, previous, elementThreatNaturalKey, { keepManual: true });
+    expect(merged.find((t) => t.displayIdentifier === "[EE]")?.threats.map((t) => t.source)).toEqual(["manual"]);
+    expect(merged.find((t) => t.displayIdentifier === "[DF]")?.threats.map((t) => t.source)).toEqual(["generated:full"]);
+  });
 });
 
 describe("mergeGeneratedTables — a kept threat whose rule returns", () => {

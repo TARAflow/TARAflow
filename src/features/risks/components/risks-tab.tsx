@@ -9,10 +9,12 @@
 import { GoalsClaimsDialog } from "./goals-claims-dialog";
 import { ConceptFindingsProvider } from "./concept-findings-context";
 import { UncreditedResidualsProvider } from "./credited-residual-context";
+import { SafetyMarksProvider } from "./safety-marks-context";
+import { ElementInfoProvider } from "shared/components/element-info-context";
 import type { UncreditedResiduals } from "shared";
 import { conceptFindings, conceptWarningsByRisk } from "../services/concept-findings";
 import type { CybersecurityConcept } from "shared";
-import { collectConfiguredImpactCriteria } from "../services/risk-sync-service";
+import { collectConfiguredImpactCriteria, projectHasSafetyData } from "../services/risk-sync-service";
 import React, {
   useState,
   useCallback,
@@ -89,7 +91,7 @@ import {
   DEFAULT_TOP_HEIGHT,
   MainView,
 } from "../utils/risks-tab-helpers";
-import { calculateProgress } from "../utils/risk-progress";
+import { calculateProgress, openRiskReasonLines, openRiskReasons } from "../utils/risk-progress";
 
 // ==================== COMPONENT ====================
 
@@ -372,7 +374,27 @@ const RisksTabView: React.FC<RiskTabProps> = ({
       toolbarRisks.filter((r) => (r.isoRisk?.value ?? 0) > 0 || r.calculatedRiskBeforeMitigation > 0).length,
     [toolbarRisks],
   );
-  const completedRiskCount = useMemo(() => calculateProgress(toolbarRisks).done, [toolbarRisks]);
+  const completedRiskCount = useMemo(
+    () => calculateProgress(toolbarRisks, project.en50742SrslOpenRiskIds).done,
+    [toolbarRisks, project.en50742SrslOpenRiskIds],
+  );
+
+  // Why the risks not done are open (0.20 item 14) — the status chip's tooltip.
+  const openReasonLinesOfTab = useMemo(
+    () => openRiskReasonLines(openRiskReasons(toolbarRisks, project.en50742SrslOpenRiskIds), (k, o) => t(k, o)),
+    [toolbarRisks, project.en50742SrslOpenRiskIds, t],
+  );
+
+  // EN 50742 (patch 29): what the register marks — the threats whose risk is
+  // safety-relevant (A and B; undefined outside an EN 50742 project) and the
+  // risks whose SRSL controls are open.
+  const safetyMarks = useMemo(() => {
+    const refs = allThreatsUnfiltered.filter((th) => th.en50742 !== undefined);
+    return {
+      ...(project.en50742SrslOpenRiskIds ? { srslOpen: project.en50742SrslOpenRiskIds } : {}),
+      ...(refs.length > 0 ? { relevantThreatIds: new Set(refs.filter((th) => th.en50742?.relevant).map((th) => th.id)) } : {}),
+    };
+  }, [allThreatsUnfiltered, project.en50742SrslOpenRiskIds]);
 
   const currentThreats = useMemo(
     () =>
@@ -410,7 +432,14 @@ const RisksTabView: React.FC<RiskTabProps> = ({
   const ticketLinks = useMemo(() => collectTicketLinks(riskData.risks), [riskData.risks]);
   // With a tracker, a mitigation done by hand needs a ticket or evidence (user 2026-11-10).
   const trackerConnected = !!project.integration?.connection?.projectName;
-  const currentFindings = useMemo(() => riskFindings(riskData, { trackerConnected }), [riskData, trackerConnected]);
+  const currentRelevance = useMemo(
+    () => new Map(allThreats.map((t) => [t.id, t.relevance] as const)),
+    [allThreats],
+  );
+  const currentFindings = useMemo(
+    () => riskFindings(riskData, { trackerConnected, currentRelevance }),
+    [riskData, trackerConnected, currentRelevance],
+  );
   const currentValidation = useMemo(() => riskFindingLines(currentFindings, t), [currentFindings, t]);
 
   // ── Findings panel (manual test 2026-11-15: like the DFD tab's) ──────────
@@ -461,10 +490,11 @@ const RisksTabView: React.FC<RiskTabProps> = ({
     setRiskLevelFilter,
     setScopeFilter,
     setIsoReviewOnly,
+    setSafetyOnly,
     clearFilters,
     filterRisks,
     hasActiveFilters,
-  } = useRiskFilters(project.dfdTableGroups?.scope);
+  } = useRiskFilters(project.dfdTableGroups?.scope, safetyMarks.relevantThreatIds);
   // Leveled DFD (6f): the matrix shows all risks or those of one group
   // (top level / a top-level decomposed multiprocess, like the tables).
   const [matrixGroupChoice, setMatrixGroup] = useState("");
@@ -540,12 +570,24 @@ const RisksTabView: React.FC<RiskTabProps> = ({
 
   // ── Safety removal dialog: check on mount and when project/riskData changes ──
   // pendingSafetySourceRemoval is set by risk-sync-service when safety data
-  // disappears and the Safety factor was autoEnabled.
+  // disappears and the Safety factor was autoEnabled. The flag can be stale —
+  // a file saved before 0.20 kept it (example SmokeDetectorCase, manual test
+  // 2026-11-23: all four assets rated for safety, the dialog still asked, and
+  // "Remove" would have cleared 53 safety ratings). So ask only while the
+  // project really has no safety data; otherwise drop the flag silently — it
+  // is runtime state and never written (prepareForDisk).
   useEffect(() => {
-    if (riskData.configuration.pendingSafetySourceRemoval) {
-      setShowSafetyRemovalDialog(true);
+    if (!riskData.configuration.pendingSafetySourceRemoval) return;
+    if (projectHasSafetyData(project.dfd ?? null, project.assetDataRef)) {
+      setRiskData((prev) =>
+        prev.configuration.pendingSafetySourceRemoval
+          ? { ...prev, configuration: { ...prev.configuration, pendingSafetySourceRemoval: false } }
+          : prev,
+      );
+      return;
     }
-  }, [riskData.configuration.pendingSafetySourceRemoval]);
+    setShowSafetyRemovalDialog(true);
+  }, [riskData.configuration.pendingSafetySourceRemoval, project.dfd, project.assetDataRef]);
 
   // ── Ticket sync (adapters design §3.3) ──────────────────────────────────
   // One batch on opening the tab and on "Sync tickets" — no polling. Applied
@@ -906,6 +948,8 @@ const RisksTabView: React.FC<RiskTabProps> = ({
 
   return (
     <ConceptFindingsProvider value={conceptMarkers}>
+    <SafetyMarksProvider value={safetyMarks}>
+    <ElementInfoProvider graph={project.dfdGraph}>
     <UncreditedResidualsProvider value={uncreditedResiduals}>
     <Box
       sx={{
@@ -939,6 +983,7 @@ const RisksTabView: React.FC<RiskTabProps> = ({
         riskCount={toolbarRisks.length}
         assessedRiskCount={assessedRiskCount}
         completedRiskCount={completedRiskCount}
+        openReasonLines={openReasonLinesOfTab}
         wontCount={wontRisks.length}
         perElementCount={perElementCount}
         perInteractionCount={perInteractionCount}
@@ -1074,6 +1119,9 @@ const RisksTabView: React.FC<RiskTabProps> = ({
                 scopeIndex={project.dfdTableGroups?.scope}
                 scope={filters.scope}
                 onScopeChange={setScopeFilter}
+                {...(safetyMarks.relevantThreatIds
+                  ? { safetyOnly: !!filters.safetyOnly, onSafetyOnlyChange: setSafetyOnly }
+                  : {})}
                 filteredCount={filteredActiveRisks.length + filteredAttackPathRisks.length}
                 totalCount={toolbarRisks.length}
               />
@@ -1403,6 +1451,8 @@ const RisksTabView: React.FC<RiskTabProps> = ({
       )}
     </Box>
     </UncreditedResidualsProvider>
+    </ElementInfoProvider>
+    </SafetyMarksProvider>
     </ConceptFindingsProvider>
   );
 };

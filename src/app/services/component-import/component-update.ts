@@ -289,6 +289,8 @@ export function applyComponentUpdate(input: ComponentUpdateInput): ComponentUpda
         const added = own.securityGoals.filter((g) => !rec.securityGoals.some((x) => x.type === g.type));
         records.push({
           ...own,
+          // the instance prefix may have changed (renameInstancePrefix)
+          displayId: rec.displayId,
           name: rec.name,
           assetGroup: rec.assetGroup,
           properties: { ...own.properties, ...rec.properties },

@@ -126,6 +126,7 @@ contextBridge.exposeInMainWorld("git", {
   raw: (command: string[]) => ipcRenderer.invoke("git:raw", command),
   rawInDir: (dir: string, args: string[]) =>
     ipcRenderer.invoke("git:rawInDir", dir, args),
+  fixedOp: (op: string, dir: string) => ipcRenderer.invoke("git:fixedOp", op, dir),
 
   setRepoPath: (root: string) => ipcRenderer.invoke("git:setRepoPath", root),
 

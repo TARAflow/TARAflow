@@ -140,7 +140,12 @@ export type ExternalEvidence =
   | { kind: "project"; check: ProjectCheckId };
 
 /** The project checks of EN 50742 A (coverage §9.2, evidence P). */
-export type ProjectCheckId = "hazards-linked" | "system-definition" | "interfaces-assessed" | "srsl-complete" | "srsl-consistent";
+export type ProjectCheckId =
+  | "hazards-linked"
+  | "system-definition"
+  | "interfaces-assessed"
+  | "srsl-complete"
+  | "srsl-consistent";
 
 export interface EvidenceRule<R extends string = RequirementId> {
   id: R;
@@ -155,6 +160,13 @@ export interface EvidenceRule<R extends string = RequirementId> {
   /** Empty = the component as a whole (always applicable). */
   targets: readonly EvidenceTarget[];
   quantifier?: EvidenceQuantifier;
+  /**
+   * No element in scope is a target: by default the row does not apply
+   * (n/a). "gap" when the requirement holds anyway and the model just shows
+   * nothing that meets it (EN 50742 7.3.4 / 8.5: the audit records must be
+   * kept somewhere) — with this reason; a statement can close it.
+   */
+  withoutTarget?: { status: "gap"; reason: "noAuditRecordStore" };
   /** Criteria the model cannot show (type B); paraphrased, i18n in IEC-2b. */
   checklist?: readonly string[];
   /** Checklist items model fields answer (type B). */
@@ -243,7 +255,23 @@ export const EN50742_A_REQUIREMENT_IDS = [
   "en-9-491", "en-4.3-229",
 ] as const;
 
-export type En50742RequirementId = (typeof EN50742_A_REQUIREMENT_IDS)[number];
+/**
+ * EN 50742 Approach B (en-50742-rq-coverage.md §6.2): the rows of Clauses 6
+ * and 8 that Approach A has not — 8.4 shares the requirement of 7.5
+ * (en-7.5-444, O9), the common clauses 4 and 9 share theirs.
+ */
+export const EN50742_B_REQUIREMENT_IDS = [
+  "en-6-257", // development process per IEC 62443-4-1
+  "en-8.2-458", // system role: Table 3 per IEC 62443-3-3 (statement, O13)
+  "en-8.3-471", // CCSC 1 and CCSC 3
+  "en-8.3-473", // CCSC 2: compensating countermeasures of the system
+  "en-8.3-479", // mixed components in full
+  "en-8.5-487", // audit records persist ≥ 5 years
+] as const;
+
+export type En50742RequirementId =
+  | (typeof EN50742_A_REQUIREMENT_IDS)[number]
+  | (typeof EN50742_B_REQUIREMENT_IDS)[number];
 
 /** A requirement id of any family. */
 export type AnyRequirementId = RequirementId | En50742RequirementId;
@@ -316,6 +344,18 @@ export interface EditionRow<G extends string = FoundationalRequirement, R extend
   cra?: readonly CraEssentialRequirement[];
   /** prAA draft line number of the requirement heading. */
   sourceLine?: number;
+  /**
+   * The family whose statements the row shares, when it is not the
+   * edition's (EN 50742 B: the IEC 62443-4-2 rows share with
+   * `iec-62443-4-2`, K-6); absent = the edition's family.
+   */
+  family?: StandardFamilyId;
+  /**
+   * Shown and evaluated, but outside the met / open summary and the SL-C —
+   * with the reason (EN 50742 B: the HDR / NDR / SAR variants of the
+   * EDR-only rows of Table 4, O14).
+   */
+  recommended?: string;
 }
 
 export interface Edition<G extends string = FoundationalRequirement, R extends string = RequirementId> {
@@ -331,6 +371,11 @@ export interface Edition<G extends string = FoundationalRequirement, R extends s
   /** The row groups in display order; every row's `group` is one of them. */
   groups: readonly G[];
   rows: readonly EditionRow<G, R>[];
+  /**
+   * The SL-T the standard fixes per foundational requirement — nothing to
+   * enter (EN 50742 B, Table 4, B-F5); absent = the analyst's SL-T.
+   */
+  fixedSlTarget?: Readonly<Record<FoundationalRequirement, SecurityLevel>>;
 }
 
 /** An edition of any standard — what the evaluator, the tab and the report take. */

@@ -17,6 +17,7 @@
 // tickets, audit, the team, and timestamps (they change with every save and
 // carry no analysis content).
 
+import { stripDfdBadges } from "features/dfd/services/dfd-badges";
 import { canonicalStringify } from "shared/utils/tcs-canonical";
 import { fnv1aHex12 } from "shared/utils/fnv1a";
 import { withoutUrlCredentials } from "shared/utils/url-credentials";
@@ -170,7 +171,9 @@ export function buildComponentSnapshot(project: Project): ComponentSnapshot {
     about: snapshotAbout(project),
     dfd: dfd
       ? {
-          xml: dfd.xml,
+          // the display-only badges / zone frames never count (patch 23,
+          // review 2026-11-21): files of an earlier 0.20 build hold them
+          xml: dfd.xml === undefined ? dfd.xml : stripDfdBadges(dfd.xml),
           elements: dfd.elements,
           connections: dfd.connections,
           assets: dfd.assets ?? [],

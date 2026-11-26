@@ -238,7 +238,7 @@ export class AsciidocGenerator extends BaseDocumentGenerator {
       row(table.headers),
       "",
       ...table.rows.map(row),
-      row(table.total.map((c) => `*${c}*`)),
+      ...(table.total.length > 0 ? [row(table.total.map((c) => `*${c}*`))] : []),
       "|===",
     ].join("\n") + "\n\n";
   }

@@ -206,6 +206,15 @@ export function syncFromDFD(
       // Update existing — preserve all analyst-set fields, only refresh links
       const existing = updatedAssets[existingIndex];
 
+      // An asset of an imported component belongs to the component: its links
+      // to the component's elements, name, group and derived values come from
+      // the snapshot and change only with an import or a component update
+      // (component-update.ts). The component's elements on the machine's DFD
+      // carry no assetRelations, so re-deriving here emptied its links and
+      // rewrote its impact on every DFD update — the machine file changed on
+      // open (manual test 0.20, SmokeDetectorController, 2026-11-22).
+      if (existing.importedFrom) continue;
+
       // Check if anything actually changed before updating
       const newName = dfdAsset.name ?? existing.name;
       const newGroup = dfdAsset.assetGroup ?? existing.assetGroup;

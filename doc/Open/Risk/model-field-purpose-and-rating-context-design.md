@@ -2,7 +2,7 @@
 
 > **Purpose of this document:** many asset and DFD fields are entered (some even demanded by a validator) but read by nothing — not by threat generation, not by the risk rating, not by compliance, not by the report. This document (A) records that finding with evidence, (B) states what these fields were meant for — *context that makes the rating of attack feasibility better founded* — (C) designs the missing bridge from the model to the rating ("rating context"), and (D) proposes a rule plus a guard test so that no input field is without a purpose again. Binding once accepted: the principles in §4 and the decisions in §9.
 
-**Status:** Rev. 2 — proposal; D1 decided for 0.19 (2026-11-14), other decisions open (§9)
+**Status:** Rev. 3 — phase 0 shipped (0.19), phase 1 shipped (0.20 patch 04, 2026-11-20: register + guard test, §10); D1 decided, other decisions open (§9)
 **Code baseline:** `5fe3b693` (branch `feature/0.19-component-tara`, after "retire the asset field protection need")
 **Related:**
 - `doc/Done/Risk/risk-impact-aggregation-design.md` — how impact factor values are combined (this document is about the *likelihood* side)
@@ -244,4 +244,30 @@ Retiring follows the pattern of `5fe3b693`: dropped on load before every other s
 
 ## 10. Implementation status
 
-Phase 0 (0.19): honest messages and the doc correction (patch 106), the asset group findings as infos with "recorded with the asset; … not in the report yet" (patch 108); `criticality` and the dead fields of §2.2 C retired with the drop pattern, one list of retired asset fields shared by the load and the commit diff (patch 107). Phases 1–5 open.
+Phase 0 (0.19): honest messages and the doc correction (patch 106), the asset group findings as infos with "recorded with the asset; … not in the report yet" (patch 108); `criticality` and the dead fields of §2.2 C retired with the drop pattern, one list of retired asset fields shared by the load and the commit diff (patch 107). Phases 2–5 open.
+
+**Phase 1 (0.20 patch 04):** `shared/models/field-purpose-register.ts` holds one entry per
+property of `AssetProperties` and of the nine element property interfaces (246 fields): 155
+*calculation* (with the files that read them), 45 *documentation*, 46 *pending*, no *context*
+yet (phase 2). The guard `src/tests/unit/shared/models/field-purpose-register.guard.test.ts`
+parses the interfaces with the TypeScript parser (G-1: a new field without an entry fails),
+checks that every reader exists, is no plumbing and reads the field (G-2), that every
+documentation field is in the report's layout or a model coverage field (G-3), that factor
+ids exist (G-4), that *pending* only shrinks (G-5, the 46 fields of 0.20 frozen) and that
+retired asset fields are gone (G-6). Infrastructure only — no effect on files or results.
+
+Found while registering (current truth, not fixed here):
+
+- `DataFlow.assumedTrusted` is copied into the reference graph (`to-reference-graph.ts`) but
+  read by nothing there — §2.3 counted it as read; it is *pending*, like its rationale.
+- `Process.runsAs` is named in the STRIDE modifier's comment and props type only ("handled by
+  the caller") — no caller reads it; it is *documentation* (in the report).
+- `DataFlow.crossesSafetyBoundary`: the same — comment and type only, *pending*.
+- **ChipBoundary is not in the report at all** (no layout in `property-doc-mappers.ts`): its
+  security fields are read by the generator and compliance, but `notes` and
+  `safetyRationale` reach no output — *pending*.
+- `DataFlow.volume`, `Interface.connectionSpeed`, `Process.securityControls`: the report's label
+  table names them, its layout does not render them — *pending*.
+- `TrustBoundary.boundaryId`: written by the DFD parser, read by nothing.
+- Asset `owner`, `notes`: not in the report (only the description is) — *pending* with the
+  §5 proposal "documentation → report".

@@ -30,6 +30,7 @@ import { formatRiskLabel } from "shared";
 import { DONE_MITIGATION_STATUSES } from "shared/models/control-instance";
 import type { Project } from "../models/project-types";
 import { pathAnchors, type SafetyPathInput } from "./safety-function-paths";
+import { dfdRefResolver, threatIsolation, threatRelevance, type En50742Relevance, type FunctionIsolation } from "./en50742-relevance";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
@@ -48,13 +49,26 @@ function anchorOf(threat: Any): { id?: string; type?: SrslAnchorType } {
   return flow ? { id: flow, type: "DataFlow" } : {};
 }
 
-export function buildEn50742View(project: Project, paths: SafetyPathInput): En50742View {
+export function buildEn50742View(
+  project: Project,
+  paths: SafetyPathInput,
+  relevance?: En50742Relevance,
+  /** Patch 22: per safety function, completely isolated or not. */
+  isolation?: ReadonlyMap<string, FunctionIsolation>,
+  /**
+   * The attack-path threats (review 2026-11-21): their risks are not in the
+   * threat tables; their relevance comes from the leaves' DFD refs.
+   */
+  attackPathThreats: readonly { id: string; attackPathLeaves?: { name: string; dfdRef?: string }[] }[] = [],
+): En50742View {
   const threats = new Map<string, Any>(
     [
       ...((project.threats as Any)?.perElementTables ?? []).flatMap((t: Any) => t.threats ?? []),
       ...((project.threats as Any)?.perInteractionTables ?? []).flatMap((t: Any) => t.threats ?? []),
+      ...attackPathThreats,
     ].map((t: Any) => [t.id, t]),
   );
+  const resolveRef = dfdRefResolver(project.dfd as Any);
   const elements = (project.dfd?.elements ?? []) as Any[];
   const connections = (project.dfd?.connections ?? []) as Any[];
   const typeOf = new Map<string, string>(elements.map((e) => [e.id, e.type]));
@@ -72,12 +86,24 @@ export function buildEn50742View(project: Project, paths: SafetyPathInput): En50
         interfaces: [...anchors].filter((id) => typeOf.get(id) === "Interface"),
       };
     });
+  // O18: the interfaces and flows EN 50742 assesses — the safety zone's when
+  // one is modelled; in path mode the same anchors as above.
+  if (relevance) {
+    onPath.clear();
+    for (const id of relevance.relevant.keys()) onPath.add(id);
+  }
   const safetyIds = new Set(safetyFunctions.map((s) => s.id));
+  const isolatedOf = (linked: string[] | undefined) =>
+    isolation ? threatIsolation(linked, isolation)?.isolated : undefined;
 
   const risks: En50742Risk[] = ((project.risks?.risks ?? []) as Any[]).map((risk) => {
-    const anchor = anchorOf(threats.get(risk.threatId));
+    const threat = threats.get(risk.threatId);
+    const anchor = anchorOf(threat);
+    // O18: a risk on an anchor that is not EN 50742 relevant has no SRSL at
+    // all (rated L × I) — undefined, not "not rated yet" (null).
+    const relevant = !relevance || !threat || threatRelevance(threat, relevance, resolveRef).relevant;
     const srsl: SrslLevel | null | undefined =
-      risk.calculatedSrsl === undefined ? undefined : risk.calculatedSrsl === null ? null : SRSL_LEVEL[risk.calculatedSrsl as Srsl];
+      !relevant || risk.calculatedSrsl === undefined ? undefined : risk.calculatedSrsl === null ? null : SRSL_LEVEL[risk.calculatedSrsl as Srsl];
     const elRating = (risk.factorRatings ?? []).find((f: Any) => f.factorId === "exposure_level")?.value ?? 0;
     const el = en50742LevelFromRating("exposure_level", elRating);
     const mandated =
@@ -95,6 +121,7 @@ export function buildEn50742View(project: Project, paths: SafetyPathInput): En50
       safetyFunctionIds: ((risk.linkedAssetIds ?? []) as string[]).filter((id) => safetyIds.has(id)),
       srsl,
       ...(el ? { exposed: el !== "EL0" } : {}),
+      ...(isolatedOf(risk.linkedAssetIds) !== undefined ? { functionIsolated: isolatedOf(risk.linkedAssetIds) } : {}),
       mandated,
       anyOfMandated: mandated.length > 1,
       controls,
@@ -102,6 +129,29 @@ export function buildEn50742View(project: Project, paths: SafetyPathInput): En50
       excluded: risk.moscowPriority === "wont" && hasText(risk.wontJustification),
     };
   });
+
+  // 7.1 per threat (patch 28): the threats of each relevant anchor and how far they are.
+  const riskByThreat = new Map(((project.risks?.risks ?? []) as Any[]).map((r) => [r.threatId as string, r]));
+  const anchorThreats = new Map<string, { label: string; state: "rated" | "pending" | "dismissed" | "unjustified" | "unrated" }[]>();
+  for (const threat of threats.values()) {
+    const anchorId = anchorOf(threat).id;
+    if (!anchorId || !onPath.has(anchorId)) continue;
+    const relevance = threat.relevance as string | undefined;
+    const risk = riskByThreat.get(threat.id);
+    const state =
+      relevance === "not_relevant"
+        ? hasText(threat.evalNote)
+          ? ("dismissed" as const)
+          : ("unjustified" as const)
+        : !relevance || relevance === "unrated"
+          ? ("unrated" as const)
+          : risk && typeof risk.calculatedSrsl === "string"
+            ? ("rated" as const)
+            : ("pending" as const);
+    const list = anchorThreats.get(anchorId) ?? [];
+    list.push({ label: (threat.displayId as string | undefined) ?? (threat.id as string), state });
+    anchorThreats.set(anchorId, list);
+  }
 
   const hazards = (project.hazards?.hazards ?? []) as Any[];
   const relations = (project.hazards?.relations ?? []) as Any[];
@@ -130,6 +180,8 @@ export function buildEn50742View(project: Project, paths: SafetyPathInput): En50
     },
     safetyFunctions,
     interfaces: { exposed, unrated },
+    anchorThreats,
     risks,
+    ...(relevance ? { relevance: { mode: relevance.mode, count: relevance.relevant.size } } : {}),
   };
 }

@@ -7,7 +7,7 @@ import type { RiskDialogModel } from "./use-risk-dialog-model";
 import { renderFactorRowOf, type FactorRowFactor, renderIsoFactorRowOf, renderTreeFactorRowOf } from "./factor-rows";
 import { isoFeasibilityNoteOf, isoImpactNoteOf } from "./iso-notes";
 import { ISO_AP_FACTOR_IDS } from "./local-risk-state";
-import { Box, Typography, Chip, Stack, Divider, Tooltip, IconButton, Paper, TextField, Collapse } from "@mui/material";
+import { Box, Typography, Chip, Stack, Divider, Tooltip, IconButton, Paper, TextField, Collapse, Alert } from "@mui/material";
 import { ExpandMore as ExpandMoreIcon, InfoOutlined as InfoIcon } from "@mui/icons-material";
 import { impactBasisText } from "../../utils/impact-basis-text";
 import { IsoRiskPanel } from "../shared/iso-risk-panel";
@@ -20,7 +20,7 @@ import { SrslBadge } from "../shared/srsl-badge";
 import { SrslReferenceTables } from "../shared/srsl-reference-tables";
 
 export function RiskBeforeTab({ m }: { m: RiskDialogModel }) {
-  const { t, configuration, currentRisk, local, setLocal, showSrslTables, setShowSrslTables, isEN50742, isISO, linkedAssets, en50742Severity, hasExposureAnchor, srslFormula, beforeValues, effectiveCauseDescription, impactFactors, likelihoodFactors, elFactor, acFactor, liveIso, hasTreeIsoFactors } = m;
+  const { t, configuration, currentRisk, local, setLocal, showSrslTables, setShowSrslTables, isEN50742, isISO, linkedAssets, en50742Severity, hasExposureAnchor, en50742NotRelevant, en50742Reason, en50742IsolationReason, srslFormula, beforeValues, effectiveCauseDescription, impactFactors, likelihoodFactors, elFactor, acFactor, liveIso, hasTreeIsoFactors } = m;
   const renderFactorRow = (factor: FactorRowFactor, mitigated: boolean) => renderFactorRowOf(m, factor, mitigated);
   const renderIsoFactorRow = (factorId: string, mitigated: boolean) => renderIsoFactorRowOf(m, factorId, mitigated);
   const renderTreeFactorRow = (mitigated: boolean) => renderTreeFactorRowOf(m, mitigated);
@@ -117,6 +117,16 @@ export function RiskBeforeTab({ m }: { m: RiskDialogModel }) {
       }
 
       <Divider />
+
+      {en50742NotRelevant && (
+        <Alert severity="info" variant="outlined" data-testid="en50742-not-relevant">
+          {t("tabs.risks.dialog.en50742NotRelevant", {
+            reason: en50742Reason ?? "",
+            defaultValue:
+              "Not EN 50742 relevant — {{reason}}. Rated as usual (likelihood × impact); EL, attacker capability and SRSL do not apply.",
+          })}
+        </Alert>
+      )}
 
       {isEN50742 &&
         hasExposureAnchor &&
@@ -319,6 +329,26 @@ export function RiskBeforeTab({ m }: { m: RiskDialogModel }) {
                         srsl={beforeValues.srsl}
                         apBand={beforeValues.apBand}
                       />
+                      {beforeValues.srslRaised && (
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          display="block"
+                          sx={{ mt: 0.5 }}
+                          data-testid="srsl-raised"
+                        >
+                          {en50742IsolationReason
+                            ? t("tabs.risks.dialog.srslRaisedFunction", {
+                                reason: en50742IsolationReason,
+                                defaultValue:
+                                  "Table B.6 gives SRSL0, but the safety function is not isolated ({{reason}}): SRSL1 — Table 2 reserves SRSL0 for an isolated safety function.",
+                              })
+                            : t("tabs.risks.dialog.srslRaised", {
+                                defaultValue:
+                                  "Table B.6 gives SRSL0, but the interface is not isolated (EL above EL0): SRSL1 — Table 2 reserves SRSL0 for an isolated safety function.",
+                              })}
+                        </Typography>
+                      )}
                     </Box>
                   </Stack>
                 ) : (

@@ -16,7 +16,7 @@ import { RISK_SCALES } from "../../models/risk-scale-types";
 import { calculateRiskValues } from "../../services/risk-calculation-service";
 import { resolveMitigationDrafts, resolveVerificationDrafts } from "../../../threats/services/threat-catalog-service";
 import type { AssetReference } from "shared";
-import { feasibilityLevelToRiskScale } from "shared";
+import { feasibilityLevelToRiskScale, hasEn50742Overlay } from "shared";
 import { calculateGatedRiskValues, resolveEN50742Severity } from "../../services/en50742-risk-calculation";
 import type { ExposureLevel, AttackerCapability } from "../../models/en50742-approach-a-core";
 import { en50742LevelFromRating, mandatedRequirementsForThreat, formatMandatedControlLabel, EN50742_SRSL_FACTOR_IDS, EXPOSURE_LEVEL_SCORE, ATTACKER_CAPABILITY_SCORE } from "../../models/en50742-approach-a-core";
@@ -40,7 +40,7 @@ export function useRiskDialogDerived({
 
   // §11.2: WoO/AC/EL feed AP/SRSL, not the standard weighted mean — gates
   // both the severity lookup below and the factor-list split further down.
-  const isEN50742 = configuration.likelihoodMethod === "en-50742-a";
+  const isEN50742 = hasEn50742Overlay(configuration);
   // ISO 21434: likelihood comes from the attack tree (attack_tree_likelihood,
   // rendered read-only below), never from likelihood factors rated on the risk.
   // Hide the editable likelihood factors so the analyst rates feasibility on the
@@ -87,11 +87,18 @@ export function useRiskDialogDerived({
   // an EL was resolved (EL0..EL4 map to 1..5; 0 = no anchor). Internal elements
   // (Process / DataStore) carry no EL → no SRSL, so the whole section is hidden
   // rather than shown as an eternal "not determined".
+  // O18: an anchor that is not EN 50742 relevant has no SRSL section either
+  // (a manual EL from before stays in the ratings, it no longer counts).
+  const en50742NotRelevant = isEN50742 && currentThreatRef?.en50742?.relevant === false;
+  const en50742Reason = currentThreatRef?.en50742?.reason;
+  /** What makes the safety function reachable — why SRSL0 was raised (patch 22). */
+  const en50742IsolationReason = currentThreatRef?.en50742?.isolationReason;
   const hasExposureAnchor = useMemo(
     () =>
+      !en50742NotRelevant &&
       (local?.factorRatings.find((r) => r.factorId === "exposure_level")
         ?.value ?? 0) > 0,
-    [local],
+    [local, en50742NotRelevant],
   );
 
   // Resolved multiplicands for the AP formula tooltip (AP box) — display
@@ -128,9 +135,17 @@ export function useRiskDialogDerived({
             local.factorRatings,
             configuration,
             linkedAssets,
+            currentThreatRef?.en50742?.relevant,
+            currentThreatRef?.en50742?.functionIsolated,
           )
         : { impact: 0, likelihood: 0, risk: 0 },
-    [local?.factorRatings, configuration, linkedAssets],
+    [
+      local?.factorRatings,
+      configuration,
+      linkedAssets,
+      currentThreatRef?.en50742?.relevant,
+      currentThreatRef?.en50742?.functionIsolated,
+    ],
   );
   // mitigatedFactorRatings NEVER go through the §11.2 gate — SRSL is a target
   // level satisfied by controls, not "mitigated down" (§3.8); the After lens
@@ -355,6 +370,9 @@ export function useRiskDialogDerived({
     linkedAssets,
     en50742Severity,
     hasExposureAnchor,
+    en50742NotRelevant,
+    en50742Reason,
+    en50742IsolationReason,
     srslFormula,
     beforeValues,
     afterValues,

@@ -23,7 +23,7 @@ import {
   type RiskFactorDefinition,
   ALL_PREDEFINED_FACTORS,
 } from "../models/risk-factor-types";
-import { REGULATION_PRESETS, type RegulationPresetId } from "shared";
+import { EN50742_OVERLAY_FACTOR_IDS, REGULATION_PRESETS, type RegulationPresetId } from "shared";
 
 // BUGFIX (reported: en-50742-a locked off ALL standard likelihood factors,
 // not just the norm-competing ones): "standard" (OWASP-style skill_level,
@@ -147,6 +147,11 @@ export function applyRegulationPreset(
   activeFactors: ActiveFactor[],
   presetId: RegulationPresetId,
   factorDefs: RiskFactorDefinition[] = ALL_PREDEFINED_FACTORS,
+  /**
+   * EN 50742 A on another base method (ETSI TVRA, 0.20): EL and AC are
+   * targets too — the exclusive TVRA pool would otherwise switch them off.
+   */
+  en50742Overlay = false,
 ): RegulationPresetApplyResult {
   const preset = REGULATION_PRESETS[presetId];
 
@@ -161,11 +166,16 @@ export function applyRegulationPreset(
     };
   }
 
-  const target = new Set(preset.likelihoodFactorIds);
+  const target = new Set([
+    ...preset.likelihoodFactorIds,
+    ...(en50742Overlay ? EN50742_OVERLAY_FACTOR_IDS : []),
+  ]);
   const pool = regimeLikelihoodPool(
     factorDefs,
     EXCLUSIVE_METHODS.has(preset.likelihoodMethod),
   );
+  // a preset's own extra factors to switch off (none since O16 was revoked)
+  for (const id of preset.disabledFactorIds ?? []) pool.add(id);
 
   const enabled: string[] = [];
   const disabled: string[] = [];

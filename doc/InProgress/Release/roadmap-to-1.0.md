@@ -1,6 +1,8 @@
 # TARAflow — roadmap to 1.0.0
 
-**Status:** v0.8 · 2026-11-20 · v0.8: the Audit SSH key field without effect (review 2026-11-20) · v0.7: 0.20 also hardens git:rawInDir and shows a component's boundary interfaces (review / user 2026-11-19/20) · v0.6: acknowledged audit findings in 0.20 (user 2026-11-17) · v0.5: snapshot hash test from 0.20 (reference 0.19, re-based in 0.21); where R-6 / R-7 go if decided for 1.0; the deliberate exception of 0.23 to rule 2 (review of cb0eabe5, second instance) · v0.4: review of the order against the design documents and
+**Status:** v0.10 · 2026-11-21 · v0.10: EN 50742 B done (0.20 patches 09 – 19), tag rules (one base method, A as an overlay — user 2026-11-21) · v0.9: results dump of 0.19 done (0.20 patch 01); four small
+items from the 0.19 manual test and review in 0.20; EN 40000-1-4 with EN 18031 in 0.22 (user
+2026-11-20) · v0.8: the Audit SSH key field without effect (review 2026-11-20) · v0.7: 0.20 also hardens git:rawInDir and shows a component's boundary interfaces (review / user 2026-11-19/20) · v0.6: acknowledged audit findings in 0.20 (user 2026-11-17) · v0.5: snapshot hash test from 0.20 (reference 0.19, re-based in 0.21); where R-6 / R-7 go if decided for 1.0; the deliberate exception of 0.23 to rule 2 (review of cb0eabe5, second instance) · v0.4: review of the order against the design documents and
 the code (second instance, user 2026-11-14) — guard rails first in 0.20 (results dump,
 catalogue stamp, field register + guard test, `no-feature-to-feature` with a baseline);
 the ISO/SAE 21434 risk model as a release of its own (0.23), two releases before the RC;
@@ -93,7 +95,7 @@ once released); the design of each item stays in its own design document.
 | **0.19.0-beta** | Component import — **released 2026-11-14** | Polarion listed "planned" | file: yes (schema 14, retired asset fields) |
 | **0.20** | **Guard rails** (rule 3) and **EN 50742 Approach B** | EN 50742 A SRSL0 guard (after the stamp); repair of raw i18n keys saved as threat / risk text | results: yes (SRSL0 guard); file: additive (retention field), repair |
 | **0.21** | **Threat results correct** — physical attacks and sensors / actuators | **the one batch of field retirements** (D2, old values kept as text — R-5); DFD graph builder without side effects; typed `linkedElement` / `dataFlow` | results: yes (on regeneration); file: yes (snapshot hash — "Refresh stored state" once) |
-| **0.22** | **EN 18031-1 / -2 / -3** | model coverage stage 2 (threats and matrix react to `updateEncryption`, `keyRenewal`; F-7 certificate management); time source | results: yes (stage 2 threats); file: additive |
+| **0.22** | **EN 18031-1 / -2 / -3** and **EN 40000-1-4** (shared mechanism catalogue) | model coverage stage 2 (threats and matrix react to `updateEncryption`, `keyRenewal`; F-7 certificate management); time source | results: yes (stage 2 threats); file: additive |
 | **0.23** | **ISO/SAE 21434 risk model** — alone | phase 2 (damage scenarios as objects) and 3b under R-10; ISO safety impact (Se4); methodology sentences; manual ISO test with a component import | file: yes (schema — last structural change); ISO results: where several damage scenarios exist |
 | **0.24** | **EN 303 645** | rating context display (model field purpose phase 2); `DataFlow.frequency: once`; rest of phase 4; audit round model | file: additive (`frequency: once`); config / commits: yes (round field) |
 | **0.25** | **ISO/SAE 21434 compliance module** | ISO phase 5 (cybersecurity requirements, additive) | file: additive |
@@ -121,25 +123,56 @@ Order inside the release: results dump → catalogue stamp → register + guard 
 depcruise rule → snapshot hash test (rule 5, reference: a component saved with 0.19) →
 everything else.
 
+**Snapshot hash test done** (0.20 patch 06): `src/tests/regression/component-snapshot-hash-0-19.test.ts`
+— the example component `SmokeDetectorCase` as committed in TARAflow_Examples (e68d84da)
+loads, and saved again loads, with the content hash 0.19 recorded at its import
+(`ac3ab72ad377`); a failure names the changed snapshot places. Re-based in 0.21.
+
 - **Results dump of 0.19** (rule 3.1) on the shipped example projects — the reference the
   stamp and every later release is compared with. Customer projects only locally (rule 8).
+  **Done** (0.20 patch 01): `npm run dump:results`, reference in
+  `doc/Testing/results-dump/0.19/`, what it holds and what it showed in its README.
 - **Threat catalogue version stamp** (catalogue divergence design, phase A).
+  **Done** (0.20 patches 02 + 03): stamp per method, guard test, audit diff, banner,
+  phase tooltip, methodology. Every later catalogue change bumps `THREAT_CATALOG_VERSION`.
 - **Field purpose register + guard test** (`model-field-purpose-and-rating-context-design.md`
   phase 1) — infrastructure, no effect on files or results.
+  **Done** (0.20 patch 04): 246 fields — 155 calculation, 45 documentation, 46 pending
+  (frozen, may only shrink).
 - **`no-feature-to-feature`** depcruise rule in CI with a baseline list (rule 3.4).
+  **Done** (0.20 patch 05): `utils/depcruise-features.cjs`, `npm run depcruise:features` in
+  CI, baseline `utils/depcruise-features-baseline.json` with the 80 edges of 0.20 (type-only
+  imports included) — documentation 66 (→ dfd 24, risks 21, assets 10, attack tree 6,
+  threats 4, overview 1), audit 6, risks → threats 4, attack tree 2, dfd ↔ threats 2. A test
+  pins its size; it only shrinks.
 - **EN 50742 Approach B** — coverage done (`en-50742-rq-coverage.md` §6, patch 112,
   decisions O13 – O16): component role (Table 4, fixed SL-T, 26 counted rows + 12
   recommended by analogy), system role (8.2) as a statement row (R-9), scope = the
   elements on a path to a safety function, preset `en-50742-b` without `motive`, one
   retention field for 8.5 and 7.3.4 (O8; optional, rule 5). Text: prEN 50742:2025 enquiry
   draft in `Standards/`; on publication of the final EN remap the IDs first (O1).
-- Module in the Compliance tab like `en-50742-a`; switch the tag on
-  (`shared/utils/tag-categories.ts`, disabled with the outdated reason "no IEC 62443-4-2
-  support yet"); update `regulation-presets-design.md` (stale).
-- **EN 50742 A:** SRSL 0 only when every interface is EL0 (no guard today — changes risk
-  results; after the stamp).
+- **EN 50742 relevance** (O17 / O18, user 2026-11-20): a trust boundary marked as the
+  safety zone (`safetyZone`, revised 2026-11-21 — before: a boundary type) marks the yellow area; the flows crossing it and their interfaces are what A and B
+  assess (fallback: the path to the safety functions). Approach A rates EL / AC / WoO /
+  SRSL only for those risks — changes A results (release note; no customer uses EN 50742
+  yet).
+- **Done (0.20 patches 09 – 19):**
+  - Patches 09 – 14: data, evaluation, retention field, preset, tag (brings "IEC 62443"
+    along), sub-tab and report.
+  - Patch 15: the safety zone as a mark with crossing warning.
+  - Patch 16: EL badges and the zone in the diagram.
+  - Patch 17: tag combinations (user 2026-11-21). One base method (standard, ETSI TVRA,
+    ISO 21434). A and B exclude each other; ISO 21434 excludes EN 50742 and TVRA.
+  - Patch 18: Approach A as an overlay on the base method (TVRA + A); results unchanged.
+  - Patch 19: docs and the manual test `doc/Testing/manual/en-50742.md`. Its last section
+    makes the two example projects with a safety zone for the examples repository.
+- **EN 50742 A:** SRSL 0 only when every interface is EL0. **Done.** Patch 21 applies it
+  per interface; patch 22 per safety function — every interface on its paths EL0, the
+  stricter reading, user 2026-11-21. This can change results, but no example changes (no
+  rated AP0 there; results dump SAME).
 - **Raw i18n keys** can end up as saved threat / risk text — repair on load
   (`persisted-threat-text-fix.md`; its schema numbers are stale: 6 → 7 there, 14 now).
+  **Done (0.20 patch 30):** resolver guard, repair on load without a schema bump.
 - **Acknowledged audit findings** (user 2026-11-17, manual test of 0.19): old findings
   — unsigned commits before signing was set up, files a script wrote — show on every
   verification. An acknowledgement takes exactly one (code, commit, path) with a
@@ -156,6 +189,14 @@ everything else.
   uses (rev-parse, merge-base, cat-file, show, ls-files, status, tag, log, rev-list,
   symbolic-ref); `-c` and `--config-env` refused; `core.hooksPath` set only through its
   own IPC channel without free arguments.
+  **Done** (0.20 patch 07, user 2026-11-20: `git:raw` — the bound audit repository, also
+  free arguments from the renderer — gets the same rule): `electron/ipc/git-arg-policy.ts`
+  allows read-only subcommands only (the list above plus check-attr, check-ignore,
+  `config [--get] <key>`, `remote get-url`, `tag` listing only), refuses global options
+  before the subcommand and options that run a program or write a file; init, the hooks
+  path, untracking the hook file and the component fetch run through `git:fixedOp` with
+  arguments fixed in the main process (`git-fixed-ops.ts`); `allowUnsafeHooksPath` only for
+  the fixed `.tara/hooks`.
 - **The user's git environment** (review 2026-11-20): simple-git 4 removes every `GIT_*`
   variable (and editor / pager) from the environment of the app's git calls unless named
   in `allowEnvironment` — GIT_SSH_COMMAND, GIT_SSL_CAINFO, GIT_ASKPASS, GIT_CONFIG_* do
@@ -163,6 +204,22 @@ everything else.
   passes them since 0.19. Decide with the rawInDir hardening: a fixed list for the main
   process's calls with fixed arguments (GitService, Resolve); none for rawInDir, whose
   arguments come from the renderer.
+  **Done** (0.20 patch 07): `electron/services/git-environment.ts` — GitService (commit,
+  push), Resolve and the component fetch inherit GIT_SSH_COMMAND, GIT_SSH(_VARIANT),
+  GIT_ASKPASS, SSH_ASKPASS, GIT_SSL_CAINFO/CAPATH/CERT/KEY, GIT_CONFIG_GLOBAL/SYSTEM/NOSYSTEM,
+  GIT_CONFIG_COUNT with its KEY/VALUE pairs, and GIT_TERMINAL_PROMPT=0; nothing else of the
+  guarded set (exec path, proxy command, template dir, external diff, editor, pager). Resolve
+  allowed every variable before. The read-only channels get none.
+- **The PAT is written into the remote URL** (found 2026-11-20 with patch 07): `push` with a
+  personal access token sets `remote set-url origin https://<token>@…` and never restores
+  it — the token stays in `.git/config` of the audit repository. To fix with the SSH key
+  field (pass the credential per call, e.g. an askpass helper or `http.extraHeader` via
+  `-c`, never in the stored URL).
+  **Fixed** (0.20 patch 08): the token goes into the one push as
+  `-c http.extraHeader="Authorization: Basic …"` (the same credentials the URL carried);
+  a remote URL that still carries a token from an earlier push is cleaned before the
+  push. A token that was stored is still in `.git/config` backups and must be revoked —
+  release note.
 - **The SSH key field of the Audit settings** (`auth.sshKeyPath`, review 2026-11-20) never
   reaches git: it is shown, stored and remembered per project, but no code in the main
   process reads it — push and fetch use the default key, ssh-agent and `~/.ssh/config`,
@@ -171,9 +228,28 @@ everything else.
   the git environment: bind it (`-c core.sshCommand="ssh -i <path> -o IdentitiesOnly=yes"`
   per call in the main process; simple-git 4 needs allowUnsafeSshCommand) or remove it and
   point to `~/.ssh/config`.
+  **Bound** (0.20 patch 08, user 2026-11-20): a push with auth method "ssh" and a key path
+  runs with `-c core.sshCommand="ssh -i '<path>' -o IdentitiesOnly=yes"` for that call
+  (`electron/services/git-push-auth.ts`); GIT_SSH_COMMAND / GIT_SSH of the environment win;
+  help texts say so.
 - **Interfaces of an imported component on its physical boundary** (user 2026-11-19) appear
   on the machine's top page as attached reference copies on the border of the case copy,
   where the boundary flows cross them, set again on an update.
+- **Small items** (user / review 2026-11-19/20, manual test of 0.19):
+  - the status chip of the Risks tab says "In Progress" without a reason: a tooltip naming
+    the risks to reduce whose mitigations are not implemented yet (capped list, en / de),
+    like the phase tooltips (0.19); the Risk phase tooltip checked for the same gap;
+  - `project-mitigation-usage` and `copy-ratings` compare with `JSON.stringify`, so an
+    object rebuilt with another key order counts as changed — the canonical compare
+    instead, as the DiffService does since 0.19 (characterization test first);
+  - audit diff gaps: each field named by a "Changes the audit diff does not list" commit
+    (`unlisted-changes.ts`) and seen in practice is covered in the DiffService —
+    done differently (0.20 patch 38): every field the DiffService does not compare is
+    named in every commit, a register (`audit-field-register.ts`) names the fields left
+    out on purpose, a coverage test checks every field of the fixtures;
+  - smaller notes: a label for the rationale of a "not fulfilled" AoU; boundary prefix
+    variant A; the window title shows the project file; the signing key from the git
+    config shown in its field.
 
 ### 3.2 0.21 — physical attacks, sensors and actuators, field retirements
 
@@ -208,8 +284,49 @@ Designs: `doc/Open/Threat/transducer-threat-catalogue-design.md` (phase 0) and
   retirements, so it falls into the one planned refresh.
 - Release note: threats on physical edges and on "physical world" entities disappear on
   regeneration.
+- **Moved from 0.20** (scope freeze 2026-11-22): the acknowledged audit findings
+  (`.taraflow/audit-acknowledged.json`, §3.1); a component's interfaces on its physical
+  boundary as attached reference copies on the machine's top page; the signing key from
+  the git configuration shown in its field.
+- **From the 0.20 manual test** (2026-11-25):
+  - audit commit: a change item names the record as the analyst knows it
+    (`R-P1-T-1 (T)`), not with its internal id in front (`R-fded5d2a-…: R-P1-T-1 (T)`)
+    — the audit verification reads the message, so with a test of it;
+  - the risk register follows a threat or DFD change in the same save: today a risk
+    removed for a threat set to *not relevant*, or an EL dropped because a flow left the
+    safety zone, reaches the file only with the next risk sync — and the commit of a
+    later, unrelated change;
+  - a DFD image missing in the file (the report shows no diagram) is rendered once the
+    DFD tab is shown, without the 10 s limit at opening, and the Doc tab says why it is
+    missing — unless done in 0.20.
+  - **Two files with the same project id** (a copied `.tara.json`): the app knows a project
+    by the id in the file, so opening the copy replaced the open original in the project
+    list, and the local values kept per id (tracker status, audit settings) are shared. At
+    least a notice dialog when a file with the id of an open project is opened ("the same
+    project id as the open project X — opening it replaces it"); whether to offer "open as a
+    copy with a new id" is to decide — the project id is also the `componentId` machines
+    import a component by.
+  - Audit tab: **discard the changes** of the project file — restore its committed state
+    (git checkout of the file, after a confirmation naming what is lost; the project is
+    reloaded). For changes one does not want to keep, also when only timestamps differ
+    from the commit (a value set and set back).
+- **Asset tab grouped by system asset** (idea 2026-11-26): in a machine TARA with
+  components, show the assets as *system → functions → data*, derived from the existing
+  asset-to-asset relations. A view only — no new field, no change of threat or risk
+  results, except one additive relation type `held_by` (data → system, decided
+  2026-11-26). Design and open decisions G1, G3–G7 (first: is it more than the D20
+  grouping by multiprocess?): `doc/Open/Assets/asset-tab-system-grouping-design.md`.
 
-### 3.3 0.22 — EN 18031
+### 3.3 0.22 — EN 18031 and EN 40000-1-4
+
+- **EN 40000-1-4** (user 2026-11-20, after a talk with TÜV Süd): its technical controls are
+  the mechanisms of the EN 18031 series (ACM, AUM, SUM, SSM, SCM, LGM, DLM, UNM, RLM, NMM,
+  TCM, CCK, GEC, CRY) plus own ones — the table of contents shows DTM (data minimisation),
+  MON (monitoring of security activities), SPD (secure processed data) and LIM (limitation
+  of negative impact on external systems); TÜV speaks of six more, to be checked against
+  the text. One mechanism catalogue for both standards, the additional controls as a module
+  of their own. Only a table of contents so far — no matrix from headings: the draft text
+  is needed first.
 
 - Licensed texts: FprEN 18031-1 / -2 / -3 (May 2024) in `Standards/`. Coverage document
   per part (requirement IDs exist: `[XXX-n]`), K-points first, then the modules — gate in

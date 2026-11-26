@@ -1,0 +1,4593 @@
+{
+  "format": 1,
+  "header": {
+    "inputFile": "en50742/EN50742-A-SafetyZone.tara.json",
+    "inputSha256": "05c9043297b0350f137ee10bdee52fca5a2ba1894950ad3fa0f9cc45d303421d",
+    "taraflowCommit": "75e40d9fecf539291ba0bbb2b70388f20af04125+modified",
+    "taraflowVersion": "0.20.0-beta",
+    "threatCatalogVersion": 1
+  },
+  "project": {
+    "name": "TARAflow Example – EN 50742 Approach A (safety zone)",
+    "schemaVersion": 14,
+    "tags": {
+      "custom": [],
+      "domain": [
+        "Industrial"
+      ],
+      "platform": [
+        "Embedded"
+      ],
+      "regulation": [
+        "EN 50742 A"
+      ]
+    }
+  },
+  "compliance": {
+    "en-50742-a": {
+      "achieved": {
+        "component": {
+          "DC": 4,
+          "IAC": 4,
+          "RA": 4,
+          "RDF": 4,
+          "SI": 4,
+          "TRE": 4,
+          "UC": 4
+        },
+        "rows": {
+          "EN-4.3/217": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "threat-assessment",
+            "label": "EN-4.3/217",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "unknown",
+            "reason": {
+              "code": "noHazardData"
+            },
+            "reasoning": "no hazard data imported",
+            "status": "unknown",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-4.3/220": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "threat-assessment",
+            "label": "EN-4.3/220",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "unknown",
+            "reason": {
+              "code": "notSetYet",
+              "items": [
+                "systemBoundary",
+                "operationalEnvironment"
+              ]
+            },
+            "reasoning": "not set yet: system boundary, operational environment",
+            "status": "unknown",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-4.3/229": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "information-for-use",
+            "label": "EN-4.3/229",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "needs-statement",
+            "reason": {
+              "code": "nameInInformation"
+            },
+            "reasoning": "name these risks in the information for use",
+            "risks": [
+              "R-DF3-T-1"
+            ],
+            "status": "needs-statement",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-4.3/238 + EN-7.2.1/272": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "threat-assessment",
+            "label": "EN-4.3/238 + EN-7.2.1/272",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "needs-statement",
+            "status": "needs-statement",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-7.1/260": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "threat-assessment",
+            "label": "EN-7.1/260",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "unknown",
+            "reason": {
+              "code": "threatsOpen"
+            },
+            "reasoning": "threats not assessed yet — rate them, or dismiss them with a reason",
+            "risks": [
+              "DB-IF1-S-1",
+              "DB-IF1-T-1",
+              "DB-IF1-R-1",
+              "DB-IF1-I-1",
+              "DB-IF1-D-1",
+              "DB-IF1-E-1",
+              "DB-IF1-S-IN-1",
+              "DB-IF1-T-IN-1",
+              "DB-IF1-R-IN-1",
+              "DB-IF1-I-IN-1",
+              "DB-IF1-D-IN-1",
+              "DB-IF1-E-IN-1",
+              "MTB-DF3-S-OUT-1",
+              "MTB-DF3-T-OUT-1",
+              "MTB-DF3-R-OUT-1",
+              "MTB-DF3-I-OUT-1",
+              "MTB-DF3-D-OUT-1",
+              "MTB-DF3-E-OUT-1",
+              "MTB-DF3-S-IN-1",
+              "MTB-DF3-T-IN-1",
+              "MTB-DF3-R-IN-1",
+              "MTB-DF3-I-IN-1",
+              "MTB-DF3-D-IN-1",
+              "MTB-DF3-E-IN-1"
+            ],
+            "status": "unknown",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": [
+              "9",
+              "7"
+            ]
+          },
+          "EN-7.3.1/281": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "information-collection",
+            "label": "EN-7.3.1/281",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "needs-statement",
+            "status": "needs-statement",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-7.3.2/295–296": {
+            "checklist": [
+              "each record holds the minimum content (what, when, by whom)"
+            ],
+            "claimIds": [],
+            "failing": [],
+            "group": "information-collection",
+            "label": "EN-7.3.2/295–296",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "met",
+            "source": "supporting-measure",
+            "status": "met",
+            "supportingElements": [
+              "11"
+            ],
+            "supportingMeasuresAllowed": false,
+            "unknown": [
+              "3"
+            ],
+            "unsetFields": {
+              "3": [
+                "nonRepudiation"
+              ]
+            }
+          },
+          "EN-7.3.3/304–311": {
+            "checklist": [
+              "the evidence can be read",
+              "the access to it is documented",
+              "it is collected automatically"
+            ],
+            "claimIds": [],
+            "failing": [],
+            "group": "information-collection",
+            "label": "EN-7.3.3/304–311",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "met",
+            "source": "supporting-measure",
+            "status": "met",
+            "supportingElements": [
+              "11"
+            ],
+            "supportingMeasuresAllowed": false,
+            "unknown": [
+              "3"
+            ],
+            "unsetFields": {
+              "3": [
+                "nonRepudiation"
+              ]
+            }
+          },
+          "EN-7.3.4/317–319": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "information-collection",
+            "label": "EN-7.3.4/317–319",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "met",
+            "source": "supporting-measure",
+            "status": "met",
+            "supportingElements": [
+              "11"
+            ],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-7.3.5/321–322": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "information-collection",
+            "label": "EN-7.3.5/321–322",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "n/a",
+            "reason": {
+              "code": "noApplicable",
+              "types": [
+                "DataStore"
+              ]
+            },
+            "reasoning": "no applicable DataStore in the component",
+            "status": "n/a",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-7.4.2/334": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "threat-assessment",
+            "label": "EN-7.4.2/334",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "met",
+            "source": "model",
+            "status": "met",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-7.4.2/344": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "threat-assessment",
+            "label": "EN-7.4.2/344",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "met",
+            "source": "model",
+            "status": "met",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-7.4.3.1/347–349": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "protection-measures",
+            "label": "EN-7.4.3.1/347–349",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "gap",
+            "reason": {
+              "code": "mandatedMissing"
+            },
+            "reasoning": "mandated control missing or not done",
+            "risks": [
+              "R-DF3-T-1"
+            ],
+            "status": "gap",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-7.4.3.2.1/356–360": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "protection-measures",
+            "label": "EN-7.4.3.2.1/356–360",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "n/a",
+            "reason": {
+              "code": "noMandateClause"
+            },
+            "reasoning": "no risk mandates the clause at its SRSL",
+            "status": "n/a",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-7.4.3.3.1/370–374": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "protection-measures",
+            "label": "EN-7.4.3.3.1/370–374",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "n/a",
+            "reason": {
+              "code": "noMandateClause"
+            },
+            "reasoning": "no risk mandates the clause at its SRSL",
+            "status": "n/a",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-7.4.3.4.1/380–386": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "protection-measures",
+            "label": "EN-7.4.3.4.1/380–386",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "n/a",
+            "reason": {
+              "code": "noMandateClause"
+            },
+            "reasoning": "no risk mandates the clause at its SRSL",
+            "status": "n/a",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-7.4.3.4.2/392–396": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "protection-measures",
+            "label": "EN-7.4.3.4.2/392–396",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "n/a",
+            "reason": {
+              "code": "noMandateClause"
+            },
+            "reasoning": "no risk mandates the clause at its SRSL",
+            "status": "n/a",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-7.4.3.4.3/402–406": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "protection-measures",
+            "label": "EN-7.4.3.4.3/402–406",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "gap",
+            "reason": {
+              "code": "mandatedMissing"
+            },
+            "reasoning": "mandated control missing or not done",
+            "risks": [
+              "R-DF3-T-1"
+            ],
+            "status": "gap",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-7.4.3.4.4/412–421": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "protection-measures",
+            "label": "EN-7.4.3.4.4/412–421",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "n/a",
+            "reason": {
+              "code": "noMandateClause"
+            },
+            "reasoning": "no risk mandates the clause at its SRSL",
+            "status": "n/a",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-7.4.3.4.5/426–430": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "protection-measures",
+            "label": "EN-7.4.3.4.5/426–430",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "n/a",
+            "reason": {
+              "code": "noMandateClause"
+            },
+            "reasoning": "no risk mandates the clause at its SRSL",
+            "status": "n/a",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-7.4.3.5.1/438–441": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "protection-measures",
+            "label": "EN-7.4.3.5.1/438–441",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "unknown",
+            "status": "unknown",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": [
+              "3"
+            ],
+            "unsetFields": {
+              "3": [
+                "updateMechanism"
+              ]
+            }
+          },
+          "EN-7.5/444–445": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "software-identification",
+            "label": "EN-7.5/444–445",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "needs-statement",
+            "status": "needs-statement",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-9/491–496": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "information-for-use",
+            "label": "EN-9/491–496",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "needs-statement",
+            "status": "needs-statement",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          }
+        },
+        "srsl": {
+          "safetyFunctions": [
+            {
+              "id": "ac70a321-b04e-4df2-bc51-1fd5b5179857",
+              "interfaces": [
+                "9"
+              ],
+              "name": "Config Data",
+              "srsl": 2
+            }
+          ],
+          "windowOfOpportunity": "moderately_restricted"
+        },
+        "withSupport": {
+          "DC": 4,
+          "IAC": 4,
+          "RA": 4,
+          "RDF": 4,
+          "SI": 4,
+          "TRE": 4,
+          "UC": 4
+        }
+      },
+      "planned": {
+        "component": {
+          "DC": 4,
+          "IAC": 4,
+          "RA": 4,
+          "RDF": 4,
+          "SI": 4,
+          "TRE": 4,
+          "UC": 4
+        },
+        "rows": {
+          "EN-4.3/217": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "threat-assessment",
+            "label": "EN-4.3/217",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "unknown",
+            "reason": {
+              "code": "noHazardData"
+            },
+            "reasoning": "no hazard data imported",
+            "status": "unknown",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-4.3/220": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "threat-assessment",
+            "label": "EN-4.3/220",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "unknown",
+            "reason": {
+              "code": "notSetYet",
+              "items": [
+                "systemBoundary",
+                "operationalEnvironment"
+              ]
+            },
+            "reasoning": "not set yet: system boundary, operational environment",
+            "status": "unknown",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-4.3/229": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "information-for-use",
+            "label": "EN-4.3/229",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "n/a",
+            "reason": {
+              "code": "noRemaining"
+            },
+            "reasoning": "no remaining requirement",
+            "status": "n/a",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-4.3/238 + EN-7.2.1/272": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "threat-assessment",
+            "label": "EN-4.3/238 + EN-7.2.1/272",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "needs-statement",
+            "status": "needs-statement",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-7.1/260": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "threat-assessment",
+            "label": "EN-7.1/260",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "unknown",
+            "reason": {
+              "code": "threatsOpen"
+            },
+            "reasoning": "threats not assessed yet — rate them, or dismiss them with a reason",
+            "risks": [
+              "DB-IF1-S-1",
+              "DB-IF1-T-1",
+              "DB-IF1-R-1",
+              "DB-IF1-I-1",
+              "DB-IF1-D-1",
+              "DB-IF1-E-1",
+              "DB-IF1-S-IN-1",
+              "DB-IF1-T-IN-1",
+              "DB-IF1-R-IN-1",
+              "DB-IF1-I-IN-1",
+              "DB-IF1-D-IN-1",
+              "DB-IF1-E-IN-1",
+              "MTB-DF3-S-OUT-1",
+              "MTB-DF3-T-OUT-1",
+              "MTB-DF3-R-OUT-1",
+              "MTB-DF3-I-OUT-1",
+              "MTB-DF3-D-OUT-1",
+              "MTB-DF3-E-OUT-1",
+              "MTB-DF3-S-IN-1",
+              "MTB-DF3-T-IN-1",
+              "MTB-DF3-R-IN-1",
+              "MTB-DF3-I-IN-1",
+              "MTB-DF3-D-IN-1",
+              "MTB-DF3-E-IN-1"
+            ],
+            "status": "unknown",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": [
+              "9",
+              "7"
+            ]
+          },
+          "EN-7.3.1/281": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "information-collection",
+            "label": "EN-7.3.1/281",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "needs-statement",
+            "status": "needs-statement",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-7.3.2/295–296": {
+            "checklist": [
+              "each record holds the minimum content (what, when, by whom)"
+            ],
+            "claimIds": [],
+            "failing": [],
+            "group": "information-collection",
+            "label": "EN-7.3.2/295–296",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "met",
+            "source": "supporting-measure",
+            "status": "met",
+            "supportingElements": [
+              "11"
+            ],
+            "supportingMeasuresAllowed": false,
+            "unknown": [
+              "3"
+            ],
+            "unsetFields": {
+              "3": [
+                "nonRepudiation"
+              ]
+            }
+          },
+          "EN-7.3.3/304–311": {
+            "checklist": [
+              "the evidence can be read",
+              "the access to it is documented",
+              "it is collected automatically"
+            ],
+            "claimIds": [],
+            "failing": [],
+            "group": "information-collection",
+            "label": "EN-7.3.3/304–311",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "met",
+            "source": "supporting-measure",
+            "status": "met",
+            "supportingElements": [
+              "11"
+            ],
+            "supportingMeasuresAllowed": false,
+            "unknown": [
+              "3"
+            ],
+            "unsetFields": {
+              "3": [
+                "nonRepudiation"
+              ]
+            }
+          },
+          "EN-7.3.4/317–319": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "information-collection",
+            "label": "EN-7.3.4/317–319",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "met",
+            "source": "supporting-measure",
+            "status": "met",
+            "supportingElements": [
+              "11"
+            ],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-7.3.5/321–322": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "information-collection",
+            "label": "EN-7.3.5/321–322",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "n/a",
+            "reason": {
+              "code": "noApplicable",
+              "types": [
+                "DataStore"
+              ]
+            },
+            "reasoning": "no applicable DataStore in the component",
+            "status": "n/a",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-7.4.2/334": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "threat-assessment",
+            "label": "EN-7.4.2/334",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "met",
+            "source": "model",
+            "status": "met",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-7.4.2/344": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "threat-assessment",
+            "label": "EN-7.4.2/344",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "met",
+            "source": "model",
+            "status": "met",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-7.4.3.1/347–349": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "protection-measures",
+            "label": "EN-7.4.3.1/347–349",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "met",
+            "source": "model",
+            "status": "met",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-7.4.3.2.1/356–360": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "protection-measures",
+            "label": "EN-7.4.3.2.1/356–360",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "n/a",
+            "reason": {
+              "code": "noMandateClause"
+            },
+            "reasoning": "no risk mandates the clause at its SRSL",
+            "status": "n/a",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-7.4.3.3.1/370–374": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "protection-measures",
+            "label": "EN-7.4.3.3.1/370–374",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "n/a",
+            "reason": {
+              "code": "noMandateClause"
+            },
+            "reasoning": "no risk mandates the clause at its SRSL",
+            "status": "n/a",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-7.4.3.4.1/380–386": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "protection-measures",
+            "label": "EN-7.4.3.4.1/380–386",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "n/a",
+            "reason": {
+              "code": "noMandateClause"
+            },
+            "reasoning": "no risk mandates the clause at its SRSL",
+            "status": "n/a",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-7.4.3.4.2/392–396": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "protection-measures",
+            "label": "EN-7.4.3.4.2/392–396",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "n/a",
+            "reason": {
+              "code": "noMandateClause"
+            },
+            "reasoning": "no risk mandates the clause at its SRSL",
+            "status": "n/a",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-7.4.3.4.3/402–406": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "protection-measures",
+            "label": "EN-7.4.3.4.3/402–406",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "met",
+            "source": "model",
+            "status": "met",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-7.4.3.4.4/412–421": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "protection-measures",
+            "label": "EN-7.4.3.4.4/412–421",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "n/a",
+            "reason": {
+              "code": "noMandateClause"
+            },
+            "reasoning": "no risk mandates the clause at its SRSL",
+            "status": "n/a",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-7.4.3.4.5/426–430": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "protection-measures",
+            "label": "EN-7.4.3.4.5/426–430",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "n/a",
+            "reason": {
+              "code": "noMandateClause"
+            },
+            "reasoning": "no risk mandates the clause at its SRSL",
+            "status": "n/a",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-7.4.3.5.1/438–441": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "protection-measures",
+            "label": "EN-7.4.3.5.1/438–441",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "unknown",
+            "status": "unknown",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": [
+              "3"
+            ],
+            "unsetFields": {
+              "3": [
+                "updateMechanism"
+              ]
+            }
+          },
+          "EN-7.5/444–445": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "software-identification",
+            "label": "EN-7.5/444–445",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "needs-statement",
+            "status": "needs-statement",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          },
+          "EN-9/491–496": {
+            "checklist": [],
+            "claimIds": [],
+            "failing": [],
+            "group": "information-for-use",
+            "label": "EN-9/491–496",
+            "minSl": null,
+            "mitigationIds": [],
+            "modelStatus": "needs-statement",
+            "status": "needs-statement",
+            "supportingElements": [],
+            "supportingMeasuresAllowed": false,
+            "unknown": []
+          }
+        },
+        "srsl": {
+          "safetyFunctions": [
+            {
+              "id": "ac70a321-b04e-4df2-bc51-1fd5b5179857",
+              "interfaces": [
+                "9"
+              ],
+              "name": "Config Data",
+              "srsl": 2
+            }
+          ],
+          "windowOfOpportunity": "moderately_restricted"
+        },
+        "withSupport": {
+          "DC": 4,
+          "IAC": 4,
+          "RA": 4,
+          "RDF": 4,
+          "SI": 4,
+          "TRE": 4,
+          "UC": 4
+        }
+      },
+      "scope": [
+        "15",
+        "16",
+        "3",
+        "5",
+        "7",
+        "9"
+      ]
+    }
+  },
+  "risks": {
+    "count": 13,
+    "findings": [],
+    "progress": {
+      "done": 1,
+      "percent": 7.6923076923076925,
+      "srslOpen": 1,
+      "total": 13
+    },
+    "risks": {
+      "R-3e884df4-4b5d-4afe-953e-89f2630e5c65": {
+        "apBand": null,
+        "apScore": null,
+        "en50742Relevant": false,
+        "impact": 2,
+        "likelihood": 2,
+        "method": "per-element",
+        "riskAfter": 2,
+        "riskBefore": 4,
+        "srsl": null,
+        "stride": "S",
+        "threat": "DB-S-1",
+        "treatment": "reduce"
+      },
+      "R-4a3e5cda-0e17-4e33-9b72-b17a58f65821": {
+        "apBand": null,
+        "apScore": null,
+        "en50742Relevant": false,
+        "impact": 2,
+        "likelihood": 3,
+        "method": "per-element",
+        "riskAfter": 4,
+        "riskBefore": 6,
+        "srsl": null,
+        "stride": "D",
+        "threat": "DF4-D-1",
+        "treatment": "reduce"
+      },
+      "R-6cbf13bb-d9da-4d78-8856-08a0478adb7f": {
+        "apBand": null,
+        "apScore": null,
+        "en50742Relevant": false,
+        "impact": 2,
+        "likelihood": 3,
+        "method": "per-element",
+        "riskAfter": 4,
+        "riskBefore": 6,
+        "srsl": null,
+        "stride": "I",
+        "threat": "DF4-I-1",
+        "treatment": "reduce"
+      },
+      "R-7323dad1-8b91-45f9-9ab6-a459417d5be0": {
+        "apBand": null,
+        "apScore": null,
+        "en50742Relevant": false,
+        "impact": 2.2,
+        "likelihood": 2,
+        "method": "per-element",
+        "riskAfter": 2.2,
+        "riskBefore": 4.3,
+        "srsl": null,
+        "stride": "S",
+        "threat": "P1-S-1",
+        "treatment": "reduce"
+      },
+      "R-7c60946a-04df-4996-9bf9-bcc833a0e7be": {
+        "apBand": null,
+        "apScore": null,
+        "en50742Relevant": false,
+        "impact": 2,
+        "likelihood": 2,
+        "method": "per-element",
+        "riskAfter": 2,
+        "riskBefore": 4,
+        "srsl": null,
+        "stride": "D",
+        "threat": "P1-D-1",
+        "treatment": "reduce"
+      },
+      "R-81df64f7-0638-40e6-b2a5-a926105118c3": {
+        "apBand": "AP3",
+        "apScore": 16.8,
+        "en50742Relevant": true,
+        "impact": 2.2,
+        "likelihood": 3,
+        "method": "per-element",
+        "riskAfter": 4.3,
+        "riskBefore": 6.5,
+        "srsl": "SRSL2",
+        "stride": "D",
+        "threat": "DF3-D-1",
+        "treatment": "reduce"
+      },
+      "R-97c656be-6bba-49c2-9768-b87d363aae1e": {
+        "apBand": "AP3",
+        "apScore": 16.8,
+        "en50742Relevant": true,
+        "impact": 2.2,
+        "likelihood": 3,
+        "method": "per-element",
+        "riskAfter": 4.3,
+        "riskBefore": 6.5,
+        "srsl": "SRSL2",
+        "stride": "T",
+        "threat": "DF3-T-1",
+        "treatment": "reduce"
+      },
+      "R-AT-at-1784807920186-rbg7dh3g2-0f50241382b2-T": {
+        "apBand": "AP1",
+        "apScore": 7,
+        "en50742Relevant": true,
+        "impact": 2.2,
+        "likelihood": 2,
+        "method": "attack-path",
+        "riskAfter": 2.2,
+        "riskBefore": 4.3,
+        "srsl": "SRSL1",
+        "stride": "T",
+        "threat": "AT-1.2",
+        "treatment": "reduce"
+      },
+      "R-cea7007d-b4b9-4a34-b3cf-11b1729cb15f": {
+        "apBand": null,
+        "apScore": null,
+        "en50742Relevant": false,
+        "impact": 2.2,
+        "likelihood": 2,
+        "method": "per-element",
+        "riskAfter": 2.2,
+        "riskBefore": 4.3,
+        "srsl": null,
+        "stride": "R",
+        "threat": "P1-R-1",
+        "treatment": "reduce"
+      },
+      "R-e3296e2d-2806-4e3c-9581-81785b0e5e3c": {
+        "apBand": null,
+        "apScore": null,
+        "en50742Relevant": false,
+        "impact": 2,
+        "likelihood": 3,
+        "method": "per-element",
+        "riskAfter": 4,
+        "riskBefore": 6,
+        "srsl": null,
+        "stride": "T",
+        "threat": "DF4-T-1",
+        "treatment": "reduce"
+      },
+      "R-e6a55d89-9e0a-4cce-92f9-902e73a97be7": {
+        "apBand": "AP3",
+        "apScore": 16.8,
+        "en50742Relevant": true,
+        "impact": 2.2,
+        "likelihood": 3,
+        "method": "per-element",
+        "riskAfter": 4.3,
+        "riskBefore": 6.5,
+        "srsl": "SRSL2",
+        "stride": "I",
+        "threat": "DF3-I-1",
+        "treatment": "reduce"
+      },
+      "R-f46fe30c-2149-4eae-8e2d-ad6f25d4633b": {
+        "apBand": null,
+        "apScore": null,
+        "en50742Relevant": false,
+        "impact": 2.2,
+        "likelihood": 2,
+        "method": "per-element",
+        "riskAfter": 2.2,
+        "riskBefore": 4.3,
+        "srsl": null,
+        "stride": "I",
+        "threat": "P1-I-1",
+        "treatment": "reduce"
+      },
+      "R-fded5d2a-e9c9-47b5-914a-4da5fd4e41e0": {
+        "apBand": null,
+        "apScore": null,
+        "en50742Relevant": false,
+        "impact": 2.2,
+        "likelihood": 2,
+        "method": "per-element",
+        "riskAfter": 2.2,
+        "riskBefore": 4.3,
+        "srsl": null,
+        "stride": "T",
+        "threat": "P1-T-1",
+        "treatment": "reduce"
+      }
+    }
+  },
+  "threats": {
+    "activeMethod": "per-element",
+    "configuration": "stored",
+    "methods": {
+      "per-element": {
+        "count": 37,
+        "drift": {
+          "added": 0,
+          "obsolete": [
+            {
+              "displayId": "DB-S-1",
+              "element": "DB",
+              "stride": "S"
+            },
+            {
+              "displayId": "DB-R-1",
+              "element": "DB",
+              "stride": "R"
+            }
+          ]
+        },
+        "stored": {
+          "generated": 39,
+          "manual": 4
+        },
+        "threats": {
+          "11::D": {
+            "attackDescription": "Attacker fills the data store to capacity or corrupts its index causing all operations to fail",
+            "causeDescription": "No redundancy for data store access — single point of failure",
+            "dataFlow": null,
+            "displayId": "DS1-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DS-1",
+              "elementId": "11",
+              "elementName": "Flash",
+              "elementType": "DataStore"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-002"
+              },
+              {
+                "id": "M-D-004"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-004"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[MTB]",
+            "templateId": "D-004",
+            "threatActor": "external",
+            "threatDescription": "Data store unavailability — attacker makes the data store inaccessible",
+            "trustBoundaryDisplayId": "MTB",
+            "trustBoundaryId": "2",
+            "trustBoundaryName": "My Trust Boundary [MTB]",
+            "workflowStatus": "open"
+          },
+          "11::I": {
+            "attackDescription": "Attacker reads non-volatile memory to extract firmware, cryptographic keys, or sensitive configuration",
+            "causeDescription": "Flash/EEPROM/NVRAM lacks readback protection — stored keys and credentials are readable",
+            "dataFlow": null,
+            "displayId": "DS1-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DS-1",
+              "elementId": "11",
+              "elementName": "Flash",
+              "elementType": "DataStore"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-CB-I-001"
+              },
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-I-003"
+              },
+              {
+                "id": "M-I-006"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-CB-I-001"
+              },
+              {
+                "id": "V-I-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[MTB]",
+            "templateId": "I-003",
+            "threatActor": "external",
+            "threatDescription": "Embedded storage information disclosure — attacker reads sensitive data from non-volatile memory",
+            "trustBoundaryDisplayId": "MTB",
+            "trustBoundaryId": "2",
+            "trustBoundaryName": "My Trust Boundary [MTB]",
+            "workflowStatus": "open"
+          },
+          "11::R": {
+            "attackDescription": "Attacker accesses the data store and denies having done so because no log entry exists",
+            "causeDescription": "No access logging on the data store",
+            "dataFlow": null,
+            "displayId": "DS1-R-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DS-1",
+              "elementId": "11",
+              "elementName": "Flash",
+              "elementType": "DataStore"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-R-001"
+              },
+              {
+                "id": "M-R-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-R-001"
+              },
+              {
+                "id": "V-R-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "R",
+            "table": "[MTB]",
+            "templateId": "R-004",
+            "threatActor": "external",
+            "threatDescription": "Data store access repudiation — access to the data store cannot be attributed",
+            "trustBoundaryDisplayId": "MTB",
+            "trustBoundaryId": "2",
+            "trustBoundaryName": "My Trust Boundary [MTB]",
+            "workflowStatus": "open"
+          },
+          "11::T": {
+            "attackDescription": "Attacker uses debug interface to modify firmware, configuration, or calibration data",
+            "causeDescription": "Flash/EEPROM/NVRAM storage lacks access control or integrity protection",
+            "dataFlow": null,
+            "displayId": "DS1-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DS-1",
+              "elementId": "11",
+              "elementName": "Flash",
+              "elementType": "DataStore"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-CB-T-002"
+              },
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-T-003"
+              },
+              {
+                "id": "M-I-008"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-CB-T-002"
+              },
+              {
+                "id": "V-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[MTB]",
+            "templateId": "T-005",
+            "threatActor": "external",
+            "threatDescription": "Embedded storage tampering — attacker modifies data in non-volatile memory",
+            "trustBoundaryDisplayId": "MTB",
+            "trustBoundaryId": "2",
+            "trustBoundaryName": "My Trust Boundary [MTB]",
+            "workflowStatus": "open"
+          },
+          "13::D": {
+            "attackDescription": "Attacker blocks or corrupts the data flow causing dependent components to lose communication",
+            "causeDescription": "No redundancy or timeout protection — disruption causes loss of communication",
+            "dataFlow": null,
+            "displayId": "DF2-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-2",
+              "elementId": "13",
+              "elementName": "write config data",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[MTB]",
+            "templateId": "D-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow disruption — attacker blocks or delays the data flow",
+            "trustBoundaryDisplayId": "MTB",
+            "trustBoundaryId": "2",
+            "trustBoundaryName": "My Trust Boundary [MTB]",
+            "workflowStatus": "open"
+          },
+          "13::I": {
+            "attackDescription": "Attacker passively monitors the data flow and captures sensitive data",
+            "causeDescription": "Data flow is unencrypted — sensitive payload is transmitted in plaintext",
+            "dataFlow": null,
+            "displayId": "DF2-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-2",
+              "elementId": "13",
+              "elementName": "write config data",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-I-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-I-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[MTB]",
+            "templateId": "I-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow eavesdropping — attacker intercepts sensitive data on the data flow",
+            "trustBoundaryDisplayId": "MTB",
+            "trustBoundaryId": "2",
+            "trustBoundaryName": "My Trust Boundary [MTB]",
+            "workflowStatus": "open"
+          },
+          "13::T": {
+            "attackDescription": "Attacker intercepts and modifies values before they reach the destination",
+            "causeDescription": "Data flow is unprotected — no integrity check or encryption prevents modification",
+            "dataFlow": null,
+            "displayId": "DF2-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-2",
+              "elementId": "13",
+              "elementName": "write config data",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-T-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-T-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[MTB]",
+            "templateId": "T-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow tampering — attacker modifies data in transit between components",
+            "trustBoundaryDisplayId": "MTB",
+            "trustBoundaryId": "2",
+            "trustBoundaryName": "My Trust Boundary [MTB]",
+            "workflowStatus": "open"
+          },
+          "15::D": {
+            "attackDescription": "Attacker physically damages the device or cuts power, causing immediate loss of availability",
+            "causeDescription": "No physical protection or anchoring — device can be damaged, unplugged, or destroyed",
+            "dataFlow": null,
+            "displayId": "DB-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DB",
+              "elementId": "15",
+              "elementName": "Device Boundary [DB]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-002"
+              },
+              {
+                "id": "M-PB-D-001"
+              },
+              {
+                "id": "M-PB-T-006"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-IF-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[DB]",
+            "templateId": "D-007",
+            "threatActor": "external",
+            "threatDescription": "Physical destruction or power disruption — device rendered unavailable by physical attack",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": "15",
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          },
+          "15::E": {
+            "attackDescription": "Attacker opens the physical boundary and connects to internal debug interface, bypassing all software authentication",
+            "causeDescription": "Physical access to device interior grants debug/hardware access — logical security can be bypassed",
+            "dataFlow": null,
+            "displayId": "DB-E-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DB",
+              "elementId": "15",
+              "elementName": "Device Boundary [DB]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-E-001"
+              },
+              {
+                "id": "M-CB-E-001"
+              },
+              {
+                "id": "M-PB-T-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-E-001"
+              },
+              {
+                "id": "V-CB-E-001"
+              },
+              {
+                "id": "V-PB-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "E",
+            "table": "[DB]",
+            "templateId": "E-010",
+            "threatActor": "external",
+            "threatDescription": "Physical privilege escalation — attacker gains elevated system access via physical boundary breach",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": "15",
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          },
+          "15::I": {
+            "attackDescription": "Attacker measures power consumption or EM emissions and extracts cryptographic keys",
+            "causeDescription": "Physical boundary provides no electromagnetic shielding — internal operations are observable",
+            "dataFlow": null,
+            "displayId": "DB-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DB",
+              "elementId": "15",
+              "elementName": "Device Boundary [DB]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-IF-I-001"
+              },
+              {
+                "id": "M-CB-I-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-IF-I-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[DB]",
+            "templateId": "I-005",
+            "threatActor": "external",
+            "threatDescription": "Side-channel observation — sensitive data extracted via physical measurements",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": "15",
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          },
+          "15::T": {
+            "attackDescription": "Attacker opens the enclosure without triggering any alarm, gaining access to internal components",
+            "causeDescription": "No tamper detection mechanism — unauthorized opening is undetected",
+            "dataFlow": null,
+            "displayId": "DB-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DB",
+              "elementId": "15",
+              "elementName": "Device Boundary [DB]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-IF-T-001"
+              },
+              {
+                "id": "M-IF-T-003"
+              },
+              {
+                "id": "M-PB-T-001"
+              },
+              {
+                "id": "M-PB-T-006"
+              },
+              {
+                "id": "M-PB-T-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-IF-T-001"
+              },
+              {
+                "id": "V-PB-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[DB]",
+            "templateId": "T-001",
+            "threatActor": "external",
+            "threatDescription": "Physical boundary tampering — unauthorized physical access to boundary interior",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": "15",
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          },
+          "16::E": {
+            "attackDescription": "Attacker exploits embedded process debug interface to execute code with elevated privileges",
+            "causeDescription": "Debug interface or privileged API accessible without proper authentication",
+            "dataFlow": null,
+            "displayId": "STM-E-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "STM",
+              "elementId": "16",
+              "elementName": "STM32F4 [STM]",
+              "elementType": "ChipBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-CB-E-001"
+              },
+              {
+                "id": "M-CB-E-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-CB-E-001"
+              },
+              {
+                "id": "V-CB-E-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:properties",
+            "strideCategory": "E",
+            "table": "[STM]",
+            "templateId": "E-003",
+            "threatActor": "external",
+            "threatDescription": "Embedded process privilege escalation — attacker gains elevated access on embedded process",
+            "trustBoundaryDisplayId": "STM",
+            "trustBoundaryId": "16",
+            "trustBoundaryName": "STM32F4 [STM]",
+            "workflowStatus": "open"
+          },
+          "16::I": {
+            "attackDescription": "Attacker captures power traces during cryptographic operations and recovers the secret key via DPA",
+            "causeDescription": "No power analysis countermeasures on chip — key-correlated power signature is measurable",
+            "dataFlow": null,
+            "displayId": "STM-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "STM",
+              "elementId": "16",
+              "elementName": "STM32F4 [STM]",
+              "elementType": "ChipBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-CB-I-001"
+              },
+              {
+                "id": "M-CB-SCA-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-CB-I-001"
+              },
+              {
+                "id": "V-CB-SCA-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:properties",
+            "strideCategory": "I",
+            "table": "[STM]",
+            "templateId": "I-013",
+            "threatActor": "external",
+            "threatDescription": "Power side-channel attack — cryptographic key extracted via differential power analysis",
+            "trustBoundaryDisplayId": "STM",
+            "trustBoundaryId": "16",
+            "trustBoundaryName": "STM32F4 [STM]",
+            "workflowStatus": "open"
+          },
+          "16::T": {
+            "attackDescription": "Attacker targets weak or deprecated cryptographic algorithms not identified during design",
+            "causeDescription": "Crypto standard compliance has not been assessed — algorithms in use may not meet current requirements",
+            "dataFlow": null,
+            "displayId": "STM-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "STM",
+              "elementId": "16",
+              "elementName": "STM32F4 [STM]",
+              "elementType": "ChipBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-012"
+              },
+              {
+                "id": "M-CB-T-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-CB-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:properties",
+            "strideCategory": "T",
+            "table": "[STM]",
+            "templateId": "T-005",
+            "threatActor": "external",
+            "threatDescription": "Cryptographic standard not assessed — non-compliant or weak algorithms may be in use",
+            "trustBoundaryDisplayId": "STM",
+            "trustBoundaryId": "16",
+            "trustBoundaryName": "STM32F4 [STM]",
+            "workflowStatus": "open"
+          },
+          "17::D": {
+            "attackDescription": "Attacker applies excessive electrical input or flooding signals to the interface causing it to fail",
+            "causeDescription": "Interface has no protection against electrical stress or signal flooding — it can be disabled by physical or signal attack",
+            "dataFlow": null,
+            "displayId": "DB-IF2-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-2",
+              "elementId": "17",
+              "elementName": "JTAG",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-D-001"
+              },
+              {
+                "id": "M-IF-D-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-D-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[DB]",
+            "templateId": "D-006",
+            "threatActor": "external",
+            "threatDescription": "Interface denial of service — attacker renders the interface unavailable",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": "15",
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          },
+          "17::E": {
+            "attackDescription": "Attacker exploits the interface to run privileged commands and bypass access controls, or uploads unsigned malicious firmware that disables security controls or installs a persistent backdoor",
+            "causeDescription": "Interface exposes privileged functions without sufficient authentication and accepts firmware updates without signature verification",
+            "dataFlow": null,
+            "displayId": "DB-IF2-E-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-2",
+              "elementId": "17",
+              "elementName": "JTAG",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-E-006"
+              },
+              {
+                "id": "M-IF-E-001"
+              },
+              {
+                "id": "M-IF-E-002"
+              },
+              {
+                "id": "M-IF-E-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-E-004"
+              },
+              {
+                "id": "V-IF-E-001"
+              },
+              {
+                "id": "V-IF-E-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "E",
+            "table": "[DB]",
+            "templateId": "E-004",
+            "threatActor": "external",
+            "threatDescription": "Interface privilege escalation — attacker uses the interface to gain elevated access or inject unauthorized firmware",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": "15",
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          },
+          "17::I": {
+            "attackDescription": "Attacker attaches monitoring equipment to the physical interface and captures transmitted data",
+            "causeDescription": "Physical interface transmits data without encryption — signals are readable with basic test equipment",
+            "dataFlow": null,
+            "displayId": "DB-IF2-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-2",
+              "elementId": "17",
+              "elementName": "JTAG",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-I-001"
+              },
+              {
+                "id": "M-IF-I-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-I-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[DB]",
+            "templateId": "I-007",
+            "threatActor": "external",
+            "threatDescription": "Interface eavesdropping — attacker intercepts data on the physical interface",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": "15",
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          },
+          "17::R": {
+            "attackDescription": "Attacker connects to the physical interface and denies having accessed it because no log record exists",
+            "causeDescription": "No logging of physical interface connections — who connected and when is unknown",
+            "dataFlow": null,
+            "displayId": "DB-IF2-R-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-2",
+              "elementId": "17",
+              "elementName": "JTAG",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-R-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-R-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "R",
+            "table": "[DB]",
+            "templateId": "R-005",
+            "threatActor": "external",
+            "threatDescription": "Interface access repudiation — physical interface access cannot be attributed",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": "15",
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          },
+          "17::S": {
+            "attackDescription": "Attacker connects a rogue device to the interface and impersonates a legitimate system, gaining unauthorized access",
+            "causeDescription": "No hardware authentication on the interface — any device connecting is trusted without verification",
+            "dataFlow": null,
+            "displayId": "DB-IF2-S-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-2",
+              "elementId": "17",
+              "elementName": "JTAG",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-S-001"
+              },
+              {
+                "id": "M-S-008"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-S-001"
+              },
+              {
+                "id": "V-IF-S-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "S",
+            "table": "[DB]",
+            "templateId": "S-005",
+            "threatActor": "external",
+            "threatDescription": "Interface identity spoofing — attacker impersonates a legitimate device on the interface",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": "15",
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          },
+          "17::T": {
+            "attackDescription": "Attacker modifies the interface hardware or firmware to intercept, inject, or block communications",
+            "causeDescription": "Interface lacks tamper detection and physical protection — unauthorized modification is possible without detection",
+            "dataFlow": null,
+            "displayId": "DB-IF2-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-2",
+              "elementId": "17",
+              "elementName": "JTAG",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-T-001"
+              },
+              {
+                "id": "M-IF-T-002"
+              },
+              {
+                "id": "M-IF-T-003"
+              },
+              {
+                "id": "M-IF-T-004"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[DB]",
+            "templateId": "T-007",
+            "threatActor": "external",
+            "threatDescription": "Interface tampering — attacker physically or logically tampers with the interface",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": "15",
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          },
+          "19::R": {
+            "attackDescription": "External entity denies having sent a command that the system received and acted upon",
+            "causeDescription": "No non-repudiation mechanism — requests from external entities are not cryptographically bound to the sender",
+            "dataFlow": null,
+            "displayId": "EE2-R-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "EE-2",
+              "elementId": "19",
+              "elementName": "Debugger",
+              "elementType": "ExternalEntity"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-R-001"
+              },
+              {
+                "id": "M-R-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-R-001"
+              },
+              {
+                "id": "V-R-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "R",
+            "table": "[EE]",
+            "templateId": "R-001",
+            "threatActor": "external",
+            "threatDescription": "External entity repudiation — external entity denies having sent a request",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "External Entities",
+            "workflowStatus": "open"
+          },
+          "19::S": {
+            "attackDescription": "Attacker crafts requests that appear to originate from a legitimate external entity",
+            "causeDescription": "No authentication mechanism enforced for external entities",
+            "dataFlow": null,
+            "displayId": "EE2-S-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "EE-2",
+              "elementId": "19",
+              "elementName": "Debugger",
+              "elementType": "ExternalEntity"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-S-001"
+              },
+              {
+                "id": "M-S-002"
+              },
+              {
+                "id": "M-S-004"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-S-001"
+              },
+              {
+                "id": "V-S-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "S",
+            "table": "[EE]",
+            "templateId": "S-001",
+            "threatActor": "external",
+            "threatDescription": "External entity identity spoofing — attacker impersonates a legitimate external entity",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "External Entities",
+            "workflowStatus": "open"
+          },
+          "21::D": {
+            "attackDescription": "Attacker blocks or corrupts the data flow causing dependent components to lose communication",
+            "causeDescription": "No redundancy or timeout protection — disruption causes loss of communication",
+            "dataFlow": null,
+            "displayId": "DF4-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-4",
+              "elementId": "21",
+              "elementName": "push register data [cmd]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[DF]",
+            "templateId": "D-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow disruption — attacker blocks or delays the data flow",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Data Flows",
+            "workflowStatus": "open"
+          },
+          "21::I": {
+            "attackDescription": "Attacker passively monitors the data flow and captures sensitive data",
+            "causeDescription": "Data flow is unencrypted — sensitive payload is transmitted in plaintext",
+            "dataFlow": null,
+            "displayId": "DF4-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-4",
+              "elementId": "21",
+              "elementName": "push register data [cmd]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-I-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-I-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[DF]",
+            "templateId": "I-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow eavesdropping — attacker intercepts sensitive data on the data flow",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Data Flows",
+            "workflowStatus": "open"
+          },
+          "21::T": {
+            "attackDescription": "Attacker attaches a hardware probe to the embedded bus and injects or modifies transmitted data",
+            "causeDescription": "Embedded bus communication carries no integrity protection or authentication",
+            "dataFlow": null,
+            "displayId": "DF4-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DF-4",
+              "elementId": "21",
+              "elementName": "push register data [cmd]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-T-002"
+              },
+              {
+                "id": "M-T-008"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-T-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[DF]",
+            "templateId": "T-014",
+            "threatActor": "external",
+            "threatDescription": "Embedded bus data tampering — attacker modifies communication on internal bus",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Data Flows",
+            "workflowStatus": "open"
+          },
+          "3::D": {
+            "attackDescription": "Attacker sends high volume of requests consuming all available CPU, memory, or file handles",
+            "causeDescription": "No resource limits or rate limiting — process allocates unbounded resources in response to requests",
+            "dataFlow": null,
+            "displayId": "P1-D-1",
+            "initialImpact": "high",
+            "isTextCustomized": false,
+            "linkedAssetIds": [
+              "ac70a321-b04e-4df2-bc51-1fd5b5179857",
+              "56fe0b45-9bfc-457b-8637-ce529dc92038"
+            ],
+            "linkedElement": {
+              "displayId": "P-1",
+              "elementId": "3",
+              "elementName": "MyProcess",
+              "elementType": "Process"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-002"
+              },
+              {
+                "id": "M-D-005"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-002"
+              },
+              {
+                "id": "V-D-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:cianaaa",
+            "strideCategory": "D",
+            "table": "[MTB]",
+            "templateId": "D-001",
+            "threatActor": "external",
+            "threatDescription": "Process resource exhaustion — attacker exhausts process resources causing denial of service",
+            "trustBoundaryDisplayId": "MTB",
+            "trustBoundaryId": "2",
+            "trustBoundaryName": "My Trust Boundary [MTB]",
+            "workflowStatus": "open"
+          },
+          "3::R": {
+            "attackDescription": "Process or its operator denies having executed a command that affected the system",
+            "causeDescription": "Audit log is absent, incomplete, or not tamper-proof",
+            "dataFlow": null,
+            "displayId": "P1-R-1",
+            "initialImpact": "low",
+            "isTextCustomized": false,
+            "linkedAssetIds": [
+              "ac70a321-b04e-4df2-bc51-1fd5b5179857",
+              "56fe0b45-9bfc-457b-8637-ce529dc92038"
+            ],
+            "linkedElement": {
+              "displayId": "P-1",
+              "elementId": "3",
+              "elementName": "MyProcess",
+              "elementType": "Process"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-R-001"
+              },
+              {
+                "id": "M-R-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-R-001"
+              },
+              {
+                "id": "V-R-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:cianaaa",
+            "strideCategory": "R",
+            "table": "[MTB]",
+            "templateId": "R-002",
+            "threatActor": "external",
+            "threatDescription": "Process action repudiation — process denies having performed an action",
+            "trustBoundaryDisplayId": "MTB",
+            "trustBoundaryId": "2",
+            "trustBoundaryName": "My Trust Boundary [MTB]",
+            "workflowStatus": "open"
+          },
+          "3::T": {
+            "attackDescription": "Attacker disrupts communication; without a defined fail-safe state, outputs may drive actuators dangerously",
+            "causeDescription": "No deterministic fail-safe output state defined — actuator outputs are unpredictable under fault",
+            "dataFlow": null,
+            "displayId": "P1-T-1",
+            "initialImpact": "high",
+            "isTextCustomized": false,
+            "linkedAssetIds": [
+              "ac70a321-b04e-4df2-bc51-1fd5b5179857",
+              "56fe0b45-9bfc-457b-8637-ce529dc92038"
+            ],
+            "linkedElement": {
+              "displayId": "P-1",
+              "elementId": "3",
+              "elementName": "MyProcess",
+              "elementType": "Process"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-FSAFE-001"
+              },
+              {
+                "id": "M-T-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-FSAFE-001"
+              },
+              {
+                "id": "V-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:cianaaa",
+            "strideCategory": "T",
+            "table": "[MTB]",
+            "templateId": "T-001",
+            "threatActor": "external",
+            "threatDescription": "Undefined fail-safe output state — process outputs reach arbitrary values on communication loss",
+            "trustBoundaryDisplayId": "MTB",
+            "trustBoundaryId": "2",
+            "trustBoundaryName": "My Trust Boundary [MTB]",
+            "workflowStatus": "open"
+          },
+          "5::R": {
+            "attackDescription": "External entity denies having sent a command that the system received and acted upon",
+            "causeDescription": "No non-repudiation mechanism — requests from external entities are not cryptographically bound to the sender",
+            "dataFlow": null,
+            "displayId": "EE1-R-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "EE-1",
+              "elementId": "5",
+              "elementName": "MyExternal",
+              "elementType": "ExternalEntity"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-R-001"
+              },
+              {
+                "id": "M-R-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-R-001"
+              },
+              {
+                "id": "V-R-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "R",
+            "table": "[EE]",
+            "templateId": "R-001",
+            "threatActor": "external",
+            "threatDescription": "External entity repudiation — external entity denies having sent a request",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "External Entities",
+            "workflowStatus": "open"
+          },
+          "5::S": {
+            "attackDescription": "Attacker crafts requests that appear to originate from a legitimate external entity",
+            "causeDescription": "No authentication mechanism enforced for external entities",
+            "dataFlow": null,
+            "displayId": "EE1-S-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "EE-1",
+              "elementId": "5",
+              "elementName": "MyExternal",
+              "elementType": "ExternalEntity"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-S-001"
+              },
+              {
+                "id": "M-S-002"
+              },
+              {
+                "id": "M-S-004"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-S-001"
+              },
+              {
+                "id": "V-S-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "S",
+            "table": "[EE]",
+            "templateId": "S-001",
+            "threatActor": "external",
+            "threatDescription": "External entity identity spoofing — attacker impersonates a legitimate external entity",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "External Entities",
+            "workflowStatus": "open"
+          },
+          "7::T": {
+            "attackDescription": "Attacker intercepts and modifies values before they reach the destination",
+            "causeDescription": "Data flow is unprotected — no integrity check or encryption prevents modification",
+            "dataFlow": null,
+            "displayId": "DF3-T-1",
+            "initialImpact": "high",
+            "isTextCustomized": false,
+            "linkedAssetIds": [
+              "ac70a321-b04e-4df2-bc51-1fd5b5179857"
+            ],
+            "linkedElement": {
+              "displayId": "DF-3",
+              "elementId": "7",
+              "elementName": "push control command [cmd]",
+              "elementType": "DataFlow"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-T-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-T-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:cianaaa",
+            "strideCategory": "T",
+            "table": "[DF]",
+            "templateId": "T-003",
+            "threatActor": "external",
+            "threatDescription": "Data flow tampering — attacker modifies data in transit between components",
+            "trustBoundaryDisplayId": "",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Data Flows",
+            "workflowStatus": "open"
+          },
+          "9::D": {
+            "attackDescription": "Attacker applies excessive electrical input or flooding signals to the interface causing it to fail",
+            "causeDescription": "Interface has no protection against electrical stress or signal flooding — it can be disabled by physical or signal attack",
+            "dataFlow": null,
+            "displayId": "DB-IF1-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-1",
+              "elementId": "9",
+              "elementName": "USB",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-D-001"
+              },
+              {
+                "id": "M-IF-D-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-D-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[DB]",
+            "templateId": "D-006",
+            "threatActor": "external",
+            "threatDescription": "Interface denial of service — attacker renders the interface unavailable",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": "15",
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          },
+          "9::E": {
+            "attackDescription": "Attacker exploits the interface to run privileged commands and bypass access controls, or uploads unsigned malicious firmware that disables security controls or installs a persistent backdoor",
+            "causeDescription": "Interface exposes privileged functions without sufficient authentication and accepts firmware updates without signature verification",
+            "dataFlow": null,
+            "displayId": "DB-IF1-E-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-1",
+              "elementId": "9",
+              "elementName": "USB",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-E-006"
+              },
+              {
+                "id": "M-IF-E-001"
+              },
+              {
+                "id": "M-IF-E-002"
+              },
+              {
+                "id": "M-IF-E-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-E-004"
+              },
+              {
+                "id": "V-IF-E-001"
+              },
+              {
+                "id": "V-IF-E-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "E",
+            "table": "[DB]",
+            "templateId": "E-004",
+            "threatActor": "external",
+            "threatDescription": "Interface privilege escalation — attacker uses the interface to gain elevated access or inject unauthorized firmware",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": "15",
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          },
+          "9::I": {
+            "attackDescription": "Attacker attaches monitoring equipment to the physical interface and captures transmitted data",
+            "causeDescription": "Physical interface transmits data without encryption — signals are readable with basic test equipment",
+            "dataFlow": null,
+            "displayId": "DB-IF1-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-1",
+              "elementId": "9",
+              "elementName": "USB",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-I-001"
+              },
+              {
+                "id": "M-IF-I-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-I-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[DB]",
+            "templateId": "I-007",
+            "threatActor": "external",
+            "threatDescription": "Interface eavesdropping — attacker intercepts data on the physical interface",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": "15",
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          },
+          "9::R": {
+            "attackDescription": "Attacker connects to the physical interface and denies having accessed it because no log record exists",
+            "causeDescription": "No logging of physical interface connections — who connected and when is unknown",
+            "dataFlow": null,
+            "displayId": "DB-IF1-R-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-1",
+              "elementId": "9",
+              "elementName": "USB",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-R-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-R-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "R",
+            "table": "[DB]",
+            "templateId": "R-005",
+            "threatActor": "external",
+            "threatDescription": "Interface access repudiation — physical interface access cannot be attributed",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": "15",
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          },
+          "9::S": {
+            "attackDescription": "Attacker connects a rogue device to the interface and impersonates a legitimate system, gaining unauthorized access",
+            "causeDescription": "No hardware authentication on the interface — any device connecting is trusted without verification",
+            "dataFlow": null,
+            "displayId": "DB-IF1-S-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-1",
+              "elementId": "9",
+              "elementName": "USB",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-S-001"
+              },
+              {
+                "id": "M-S-008"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-S-001"
+              },
+              {
+                "id": "V-IF-S-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "S",
+            "table": "[DB]",
+            "templateId": "S-005",
+            "threatActor": "external",
+            "threatDescription": "Interface identity spoofing — attacker impersonates a legitimate device on the interface",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": "15",
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          },
+          "9::T": {
+            "attackDescription": "Attacker modifies the interface hardware or firmware to intercept, inject, or block communications",
+            "causeDescription": "Interface lacks tamper detection and physical protection — unauthorized modification is possible without detection",
+            "dataFlow": null,
+            "displayId": "DB-IF1-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-1",
+              "elementId": "9",
+              "elementName": "USB",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-T-001"
+              },
+              {
+                "id": "M-IF-T-002"
+              },
+              {
+                "id": "M-IF-T-003"
+              },
+              {
+                "id": "M-IF-T-004"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[DB]",
+            "templateId": "T-007",
+            "threatActor": "external",
+            "threatDescription": "Interface tampering — attacker physically or logically tampers with the interface",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": "15",
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          }
+        }
+      },
+      "per-interaction": {
+        "count": 32,
+        "drift": {
+          "added": 0,
+          "obsolete": [
+            {
+              "displayId": "MTB-DF3-S-IN-1",
+              "element": "DF-3",
+              "stride": "S"
+            },
+            {
+              "displayId": "MTB-DF3-S-OUT-1",
+              "element": "DF-3",
+              "stride": "S"
+            },
+            {
+              "displayId": "MTB-DF3-I-IN-1",
+              "element": "DF-3",
+              "stride": "I"
+            },
+            {
+              "displayId": "MTB-DF3-I-OUT-1",
+              "element": "DF-3",
+              "stride": "I"
+            },
+            {
+              "displayId": "MTB-DF3-D-IN-1",
+              "element": "DF-3",
+              "stride": "D"
+            },
+            {
+              "displayId": "MTB-DF3-D-OUT-1",
+              "element": "DF-3",
+              "stride": "D"
+            },
+            {
+              "displayId": "MTB-DF3-E-IN-1",
+              "element": "DF-3",
+              "stride": "E"
+            },
+            {
+              "displayId": "MTB-DF3-E-OUT-1",
+              "element": "DF-3",
+              "stride": "E"
+            },
+            {
+              "displayId": "DB-IFDB-S-IN-1",
+              "element": "DB",
+              "stride": "S"
+            },
+            {
+              "displayId": "DB-IFDB-R-IN-1",
+              "element": "DB",
+              "stride": "R"
+            }
+          ]
+        },
+        "stored": {
+          "generated": 42,
+          "manual": 0
+        },
+        "threats": {
+          "df::13::D::outgoing": {
+            "attackDescription": "Attacker disrupts or delays the response channel from Flash, causing MyProcess to stall or fail",
+            "causeDescription": "No redundancy or timeout protection — MyProcess depends on responses from Flash to continue operation",
+            "dataFlow": {
+              "connectionId": "13",
+              "dataFlowId": "DF-2",
+              "dataFlowName": "write config data",
+              "sourceId": "3",
+              "sourceName": "MyProcess",
+              "sourceType": "Process",
+              "targetId": "11",
+              "targetName": "Flash",
+              "targetType": "DataStore"
+            },
+            "displayId": "MTB-DF2-D-OUT-1",
+            "initialImpact": "high",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": false,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [
+              "ac70a321-b04e-4df2-bc51-1fd5b5179857",
+              "56fe0b45-9bfc-457b-8637-ce529dc92038"
+            ],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:cianaaa",
+            "strideCategory": "D",
+            "table": "[MTB]",
+            "templateId": "D-002",
+            "threatActor": "external",
+            "threatDescription": "Response blocking: Attacker prevents MyProcess from receiving responses from Flash",
+            "trustBoundaryDisplayId": "MTB",
+            "trustBoundaryId": "2",
+            "trustBoundaryName": "My Trust Boundary [MTB]",
+            "workflowStatus": "open"
+          },
+          "df::13::E::outgoing": {
+            "attackDescription": "Attacker modifies the response from Flash to include elevated roles or permissions, causing MyProcess to grant unauthorized access",
+            "causeDescription": "MyProcess trusts response data from Flash without integrity verification, enabling privilege decisions based on forged responses",
+            "dataFlow": {
+              "connectionId": "13",
+              "dataFlowId": "DF-2",
+              "dataFlowName": "write config data",
+              "sourceId": "3",
+              "sourceName": "MyProcess",
+              "sourceType": "Process",
+              "targetId": "11",
+              "targetName": "Flash",
+              "targetType": "DataStore"
+            },
+            "displayId": "MTB-DF2-E-OUT-1",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": false,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [
+              "ac70a321-b04e-4df2-bc51-1fd5b5179857",
+              "56fe0b45-9bfc-457b-8637-ce529dc92038"
+            ],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-E-001"
+              },
+              {
+                "id": "M-E-002"
+              },
+              {
+                "id": "M-E-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-E-001"
+              },
+              {
+                "id": "V-E-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:cianaaa",
+            "strideCategory": "E",
+            "table": "[MTB]",
+            "templateId": "E-002",
+            "threatActor": "external",
+            "threatDescription": "Response manipulation for privilege escalation: Attacker manipulates response to gain elevated access in MyProcess",
+            "trustBoundaryDisplayId": "MTB",
+            "trustBoundaryId": "2",
+            "trustBoundaryName": "My Trust Boundary [MTB]",
+            "workflowStatus": "open"
+          },
+          "df::13::I::outgoing": {
+            "attackDescription": "Attacker intercepts the response from Flash to MyProcess and reads sensitive information",
+            "causeDescription": "Unencrypted or weakly protected response channel — response data is readable in transit",
+            "dataFlow": {
+              "connectionId": "13",
+              "dataFlowId": "DF-2",
+              "dataFlowName": "write config data",
+              "sourceId": "3",
+              "sourceName": "MyProcess",
+              "sourceType": "Process",
+              "targetId": "11",
+              "targetName": "Flash",
+              "targetType": "DataStore"
+            },
+            "displayId": "MTB-DF2-I-OUT-1",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": false,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [
+              "ac70a321-b04e-4df2-bc51-1fd5b5179857",
+              "56fe0b45-9bfc-457b-8637-ce529dc92038"
+            ],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-I-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-I-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:cianaaa",
+            "strideCategory": "I",
+            "table": "[MTB]",
+            "templateId": "I-002",
+            "threatActor": "external",
+            "threatDescription": "Eavesdropping on response: Attacker intercepts sensitive response data from Flash",
+            "trustBoundaryDisplayId": "MTB",
+            "trustBoundaryId": "2",
+            "trustBoundaryName": "My Trust Boundary [MTB]",
+            "workflowStatus": "open"
+          },
+          "df::13::R::outgoing": {
+            "attackDescription": "Flash claims it never received the data from MyProcess, or denies having processed it",
+            "causeDescription": "No delivery confirmation or cryptographic receipt — MyProcess has no proof that Flash received its data",
+            "dataFlow": {
+              "connectionId": "13",
+              "dataFlowId": "DF-2",
+              "dataFlowName": "write config data",
+              "sourceId": "3",
+              "sourceName": "MyProcess",
+              "sourceType": "Process",
+              "targetId": "11",
+              "targetName": "Flash",
+              "targetType": "DataStore"
+            },
+            "displayId": "MTB-DF2-R-OUT-1",
+            "initialImpact": "low",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": false,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [
+              "ac70a321-b04e-4df2-bc51-1fd5b5179857",
+              "56fe0b45-9bfc-457b-8637-ce529dc92038"
+            ],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-R-001"
+              },
+              {
+                "id": "M-R-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-R-001"
+              },
+              {
+                "id": "V-R-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:cianaaa",
+            "strideCategory": "R",
+            "table": "[MTB]",
+            "templateId": "R-002",
+            "threatActor": "external",
+            "threatDescription": "Receiver repudiation: Flash denies receiving or processing the request",
+            "trustBoundaryDisplayId": "MTB",
+            "trustBoundaryId": "2",
+            "trustBoundaryName": "My Trust Boundary [MTB]",
+            "workflowStatus": "open"
+          },
+          "df::13::S::outgoing": {
+            "attackDescription": "Attacker sets up a rogue endpoint pretending to be Flash, causing MyProcess to send sensitive data to the attacker",
+            "causeDescription": "Missing endpoint validation before data transmission — MyProcess cannot verify the true identity of the receiving endpoint",
+            "dataFlow": {
+              "connectionId": "13",
+              "dataFlowId": "DF-2",
+              "dataFlowName": "write config data",
+              "sourceId": "3",
+              "sourceName": "MyProcess",
+              "sourceType": "Process",
+              "targetId": "11",
+              "targetName": "Flash",
+              "targetType": "DataStore"
+            },
+            "displayId": "MTB-DF2-S-OUT-1",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": false,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [
+              "ac70a321-b04e-4df2-bc51-1fd5b5179857",
+              "56fe0b45-9bfc-457b-8637-ce529dc92038"
+            ],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-S-001"
+              },
+              {
+                "id": "M-S-002"
+              },
+              {
+                "id": "M-S-005"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-S-001"
+              },
+              {
+                "id": "V-S-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:cianaaa",
+            "strideCategory": "S",
+            "table": "[MTB]",
+            "templateId": "S-002",
+            "threatActor": "external",
+            "threatDescription": "Receiver spoofing: Attacker impersonates Flash to intercept data from MyProcess",
+            "trustBoundaryDisplayId": "MTB",
+            "trustBoundaryId": "2",
+            "trustBoundaryName": "My Trust Boundary [MTB]",
+            "workflowStatus": "open"
+          },
+          "df::13::T::outgoing": {
+            "attackDescription": "Attacker intercepts the response from Flash and modifies data, causing MyProcess to process falsified information",
+            "causeDescription": "Missing integrity protection on the response flow from Flash — MyProcess cannot detect modified responses",
+            "dataFlow": {
+              "connectionId": "13",
+              "dataFlowId": "DF-2",
+              "dataFlowName": "write config data",
+              "sourceId": "3",
+              "sourceName": "MyProcess",
+              "sourceType": "Process",
+              "targetId": "11",
+              "targetName": "Flash",
+              "targetType": "DataStore"
+            },
+            "displayId": "MTB-DF2-T-OUT-1",
+            "initialImpact": "high",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": false,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [
+              "ac70a321-b04e-4df2-bc51-1fd5b5179857",
+              "56fe0b45-9bfc-457b-8637-ce529dc92038"
+            ],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-T-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-T-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:cianaaa",
+            "strideCategory": "T",
+            "table": "[MTB]",
+            "templateId": "T-002",
+            "threatActor": "external",
+            "threatDescription": "Response tampering: Attacker modifies response data before it reaches MyProcess",
+            "trustBoundaryDisplayId": "MTB",
+            "trustBoundaryId": "2",
+            "trustBoundaryName": "My Trust Boundary [MTB]",
+            "workflowStatus": "open"
+          },
+          "df::21::D::incoming": {
+            "attackDescription": "Attacker sends a high volume of requests via the data flow, exhausting the processing capacity of STM32F4 [STM]",
+            "causeDescription": "No rate limiting or request throttling protecting STM32F4 [STM] from high-volume input via Debugger",
+            "dataFlow": {
+              "connectionId": "21",
+              "dataFlowId": "DF-4",
+              "dataFlowName": "push register data [cmd]",
+              "sourceId": "19",
+              "sourceName": "Debugger",
+              "sourceType": "ExternalEntity",
+              "targetId": "16",
+              "targetName": "STM32F4 [STM]",
+              "targetType": "ChipBoundary"
+            },
+            "displayId": "STM-DF4-D-IN-1",
+            "interactionContext": {
+              "attackedRole": "source",
+              "crossesTrustBoundary": false,
+              "direction": "incoming",
+              "victimRole": "target"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-D-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:properties",
+            "strideCategory": "D",
+            "table": "[STM]",
+            "templateId": "D-001",
+            "threatActor": "external",
+            "threatDescription": "Request flooding: Attacker overwhelms STM32F4 [STM] with excessive incoming requests",
+            "trustBoundaryDisplayId": "STM",
+            "trustBoundaryId": "16",
+            "trustBoundaryName": "STM32F4 [STM]",
+            "workflowStatus": "open"
+          },
+          "df::21::E::incoming": {
+            "attackDescription": "Attacker injects malicious commands or payloads into the data flow, which STM32F4 [STM] executes with its own privilege level",
+            "causeDescription": "Insufficient input validation in STM32F4 [STM] — incoming data from Debugger is processed with elevated trust",
+            "dataFlow": {
+              "connectionId": "21",
+              "dataFlowId": "DF-4",
+              "dataFlowName": "push register data [cmd]",
+              "sourceId": "19",
+              "sourceName": "Debugger",
+              "sourceType": "ExternalEntity",
+              "targetId": "16",
+              "targetName": "STM32F4 [STM]",
+              "targetType": "ChipBoundary"
+            },
+            "displayId": "STM-DF4-E-IN-1",
+            "interactionContext": {
+              "attackedRole": "source",
+              "crossesTrustBoundary": false,
+              "direction": "incoming",
+              "victimRole": "target"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-E-001"
+              },
+              {
+                "id": "M-E-002"
+              },
+              {
+                "id": "M-E-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-E-001"
+              },
+              {
+                "id": "V-E-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:properties",
+            "strideCategory": "E",
+            "table": "[STM]",
+            "templateId": "E-001",
+            "threatActor": "external",
+            "threatDescription": "Command injection: Attacker injects commands via data flow to escalate privileges in STM32F4 [STM]",
+            "trustBoundaryDisplayId": "STM",
+            "trustBoundaryId": "16",
+            "trustBoundaryName": "STM32F4 [STM]",
+            "workflowStatus": "open"
+          },
+          "df::21::I::incoming": {
+            "attackDescription": "Attacker passively monitors the data flow and reads sensitive payload transmitted from Debugger to STM32F4 [STM]",
+            "causeDescription": "Unencrypted or weakly protected communication channel between Debugger and STM32F4 [STM]",
+            "dataFlow": {
+              "connectionId": "21",
+              "dataFlowId": "DF-4",
+              "dataFlowName": "push register data [cmd]",
+              "sourceId": "19",
+              "sourceName": "Debugger",
+              "sourceType": "ExternalEntity",
+              "targetId": "16",
+              "targetName": "STM32F4 [STM]",
+              "targetType": "ChipBoundary"
+            },
+            "displayId": "STM-DF4-I-IN-1",
+            "interactionContext": {
+              "attackedRole": "source",
+              "crossesTrustBoundary": false,
+              "direction": "incoming",
+              "victimRole": "target"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-I-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-I-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:properties",
+            "strideCategory": "I",
+            "table": "[STM]",
+            "templateId": "I-001",
+            "threatActor": "external",
+            "threatDescription": "Eavesdropping on incoming data: Attacker intercepts sensitive data flowing to STM32F4 [STM]",
+            "trustBoundaryDisplayId": "STM",
+            "trustBoundaryId": "16",
+            "trustBoundaryName": "STM32F4 [STM]",
+            "workflowStatus": "open"
+          },
+          "df::21::R::incoming": {
+            "attackDescription": "Debugger claims it never sent the command or data that STM32F4 [STM] received and acted upon",
+            "causeDescription": "No non-repudiation mechanism on the data flow — requests from Debugger are not signed or cryptographically bound to the sender",
+            "dataFlow": {
+              "connectionId": "21",
+              "dataFlowId": "DF-4",
+              "dataFlowName": "push register data [cmd]",
+              "sourceId": "19",
+              "sourceName": "Debugger",
+              "sourceType": "ExternalEntity",
+              "targetId": "16",
+              "targetName": "STM32F4 [STM]",
+              "targetType": "ChipBoundary"
+            },
+            "displayId": "STM-DF4-R-IN-1",
+            "interactionContext": {
+              "attackedRole": "source",
+              "crossesTrustBoundary": false,
+              "direction": "incoming",
+              "victimRole": "target"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-R-001"
+              },
+              {
+                "id": "M-R-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-R-001"
+              },
+              {
+                "id": "V-R-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:properties",
+            "strideCategory": "R",
+            "table": "[STM]",
+            "templateId": "R-001",
+            "threatActor": "external",
+            "threatDescription": "Sender repudiation: Debugger denies sending the request or data",
+            "trustBoundaryDisplayId": "STM",
+            "trustBoundaryId": "16",
+            "trustBoundaryName": "STM32F4 [STM]",
+            "workflowStatus": "open"
+          },
+          "df::21::S::incoming": {
+            "attackDescription": "Attacker forges the identity of Debugger and sends malicious data to STM32F4 [STM], which processes it as legitimate",
+            "causeDescription": "Missing sender authentication on incoming data flow — STM32F4 [STM] cannot verify the true origin of received data",
+            "dataFlow": {
+              "connectionId": "21",
+              "dataFlowId": "DF-4",
+              "dataFlowName": "push register data [cmd]",
+              "sourceId": "19",
+              "sourceName": "Debugger",
+              "sourceType": "ExternalEntity",
+              "targetId": "16",
+              "targetName": "STM32F4 [STM]",
+              "targetType": "ChipBoundary"
+            },
+            "displayId": "STM-DF4-S-IN-1",
+            "interactionContext": {
+              "attackedRole": "source",
+              "crossesTrustBoundary": false,
+              "direction": "incoming",
+              "victimRole": "target"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-S-001"
+              },
+              {
+                "id": "M-S-002"
+              },
+              {
+                "id": "M-S-004"
+              },
+              {
+                "id": "M-S-008"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-S-001"
+              },
+              {
+                "id": "V-S-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:properties",
+            "strideCategory": "S",
+            "table": "[STM]",
+            "templateId": "S-001",
+            "threatActor": "external",
+            "threatDescription": "Sender spoofing: Attacker impersonates Debugger to deceive STM32F4 [STM]",
+            "trustBoundaryDisplayId": "STM",
+            "trustBoundaryId": "16",
+            "trustBoundaryName": "STM32F4 [STM]",
+            "workflowStatus": "open"
+          },
+          "df::21::T::incoming": {
+            "attackDescription": "Attacker intercepts the data flow from Debugger and modifies commands or payload before delivery to STM32F4 [STM]",
+            "causeDescription": "Missing integrity protection on the data flow from Debugger — data arrives without tamper evidence",
+            "dataFlow": {
+              "connectionId": "21",
+              "dataFlowId": "DF-4",
+              "dataFlowName": "push register data [cmd]",
+              "sourceId": "19",
+              "sourceName": "Debugger",
+              "sourceType": "ExternalEntity",
+              "targetId": "16",
+              "targetName": "STM32F4 [STM]",
+              "targetType": "ChipBoundary"
+            },
+            "displayId": "STM-DF4-T-IN-1",
+            "interactionContext": {
+              "attackedRole": "source",
+              "crossesTrustBoundary": false,
+              "direction": "incoming",
+              "victimRole": "target"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-T-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-T-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:properties",
+            "strideCategory": "T",
+            "table": "[STM]",
+            "templateId": "T-001",
+            "threatActor": "external",
+            "threatDescription": "Data tampering on incoming flow: Attacker modifies data before it reaches STM32F4 [STM]",
+            "trustBoundaryDisplayId": "STM",
+            "trustBoundaryId": "16",
+            "trustBoundaryName": "STM32F4 [STM]",
+            "workflowStatus": "open"
+          },
+          "df::7::R::incoming": {
+            "attackDescription": "MyExternal claims it never sent the command or data that MyProcess received and acted upon",
+            "causeDescription": "No non-repudiation mechanism on the data flow — requests from MyExternal are not signed or cryptographically bound to the sender",
+            "dataFlow": {
+              "connectionId": "7",
+              "dataFlowId": "DF-3",
+              "dataFlowName": "push control command [cmd]",
+              "sourceId": "5",
+              "sourceName": "MyExternal",
+              "sourceType": "ExternalEntity",
+              "targetId": "3",
+              "targetName": "MyProcess",
+              "targetType": "Process"
+            },
+            "displayId": "MTB-DF3-R-IN-1",
+            "initialImpact": "low",
+            "interactionContext": {
+              "attackedRole": "source",
+              "crossesTrustBoundary": true,
+              "direction": "incoming",
+              "victimRole": "target"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [
+              "ac70a321-b04e-4df2-bc51-1fd5b5179857",
+              "56fe0b45-9bfc-457b-8637-ce529dc92038"
+            ],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-R-001"
+              },
+              {
+                "id": "M-R-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-R-001"
+              },
+              {
+                "id": "V-R-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:cianaaa",
+            "strideCategory": "R",
+            "table": "[MTB]",
+            "templateId": "R-001",
+            "threatActor": "external",
+            "threatDescription": "Sender repudiation: MyExternal denies sending the request or data",
+            "trustBoundaryDisplayId": "MTB",
+            "trustBoundaryId": "2",
+            "trustBoundaryName": "My Trust Boundary [MTB]",
+            "workflowStatus": "open"
+          },
+          "df::7::R::outgoing": {
+            "attackDescription": "MyProcess claims it never received the data from MyExternal, or denies having processed it",
+            "causeDescription": "No delivery confirmation or cryptographic receipt — MyExternal has no proof that MyProcess received its data",
+            "dataFlow": {
+              "connectionId": "7",
+              "dataFlowId": "DF-3",
+              "dataFlowName": "push control command [cmd]",
+              "sourceId": "5",
+              "sourceName": "MyExternal",
+              "sourceType": "ExternalEntity",
+              "targetId": "3",
+              "targetName": "MyProcess",
+              "targetType": "Process"
+            },
+            "displayId": "MTB-DF3-R-OUT-1",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": true,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [
+              "ac70a321-b04e-4df2-bc51-1fd5b5179857",
+              "56fe0b45-9bfc-457b-8637-ce529dc92038"
+            ],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-R-001"
+              },
+              {
+                "id": "M-R-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-R-001"
+              },
+              {
+                "id": "V-R-003"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "R",
+            "table": "[MTB]",
+            "templateId": "R-002",
+            "threatActor": "external",
+            "threatDescription": "Receiver repudiation: MyProcess denies receiving or processing the request",
+            "trustBoundaryDisplayId": "MTB",
+            "trustBoundaryId": "2",
+            "trustBoundaryName": "My Trust Boundary [MTB]",
+            "workflowStatus": "open"
+          },
+          "df::7::T::incoming": {
+            "attackDescription": "Attacker intercepts the data flow from MyExternal and modifies commands or payload before delivery to MyProcess",
+            "causeDescription": "Missing integrity protection on the data flow from MyExternal — data arrives without tamper evidence",
+            "dataFlow": {
+              "connectionId": "7",
+              "dataFlowId": "DF-3",
+              "dataFlowName": "push control command [cmd]",
+              "sourceId": "5",
+              "sourceName": "MyExternal",
+              "sourceType": "ExternalEntity",
+              "targetId": "3",
+              "targetName": "MyProcess",
+              "targetType": "Process"
+            },
+            "displayId": "MTB-DF3-T-IN-1",
+            "initialImpact": "high",
+            "interactionContext": {
+              "attackedRole": "source",
+              "crossesTrustBoundary": true,
+              "direction": "incoming",
+              "victimRole": "target"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [
+              "ac70a321-b04e-4df2-bc51-1fd5b5179857",
+              "56fe0b45-9bfc-457b-8637-ce529dc92038"
+            ],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-T-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-T-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:cianaaa",
+            "strideCategory": "T",
+            "table": "[MTB]",
+            "templateId": "T-001",
+            "threatActor": "external",
+            "threatDescription": "Data tampering on incoming flow: Attacker modifies data before it reaches MyProcess",
+            "trustBoundaryDisplayId": "MTB",
+            "trustBoundaryId": "2",
+            "trustBoundaryName": "My Trust Boundary [MTB]",
+            "workflowStatus": "open"
+          },
+          "df::7::T::outgoing": {
+            "attackDescription": "Attacker intercepts the response from MyProcess and modifies data, causing MyExternal to process falsified information",
+            "causeDescription": "Missing integrity protection on the response flow from MyProcess — MyExternal cannot detect modified responses",
+            "dataFlow": {
+              "connectionId": "7",
+              "dataFlowId": "DF-3",
+              "dataFlowName": "push control command [cmd]",
+              "sourceId": "5",
+              "sourceName": "MyExternal",
+              "sourceType": "ExternalEntity",
+              "targetId": "3",
+              "targetName": "MyProcess",
+              "targetType": "Process"
+            },
+            "displayId": "MTB-DF3-T-OUT-1",
+            "interactionContext": {
+              "attackedRole": "target",
+              "crossesTrustBoundary": true,
+              "direction": "outgoing",
+              "victimRole": "source"
+            },
+            "isTextCustomized": false,
+            "linkedAssetIds": [
+              "ac70a321-b04e-4df2-bc51-1fd5b5179857",
+              "56fe0b45-9bfc-457b-8637-ce529dc92038"
+            ],
+            "linkedElement": null,
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-T-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-T-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[MTB]",
+            "templateId": "T-002",
+            "threatActor": "external",
+            "threatDescription": "Response tampering: Attacker modifies response data before it reaches MyExternal",
+            "trustBoundaryDisplayId": "MTB",
+            "trustBoundaryId": "2",
+            "trustBoundaryName": "My Trust Boundary [MTB]",
+            "workflowStatus": "open"
+          },
+          "el::15::D": {
+            "attackDescription": "Attacker physically damages the device or cuts power, causing immediate loss of availability",
+            "causeDescription": "No physical protection or anchoring — device can be damaged, unplugged, or destroyed",
+            "dataFlow": null,
+            "displayId": "DB-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DB",
+              "elementId": "15",
+              "elementName": "Device Boundary [DB]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-D-001"
+              },
+              {
+                "id": "M-D-002"
+              },
+              {
+                "id": "M-PB-D-001"
+              },
+              {
+                "id": "M-PB-T-006"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-D-001"
+              },
+              {
+                "id": "V-IF-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[DB]",
+            "templateId": "D-007",
+            "threatActor": "external",
+            "threatDescription": "Physical destruction or power disruption — device rendered unavailable by physical attack",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": "15",
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          },
+          "el::15::E": {
+            "attackDescription": "Attacker opens the physical boundary and connects to internal debug interface, bypassing all software authentication",
+            "causeDescription": "Physical access to device interior grants debug/hardware access — logical security can be bypassed",
+            "dataFlow": null,
+            "displayId": "DB-E-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DB",
+              "elementId": "15",
+              "elementName": "Device Boundary [DB]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-E-001"
+              },
+              {
+                "id": "M-CB-E-001"
+              },
+              {
+                "id": "M-PB-T-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-E-001"
+              },
+              {
+                "id": "V-CB-E-001"
+              },
+              {
+                "id": "V-PB-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "E",
+            "table": "[DB]",
+            "templateId": "E-010",
+            "threatActor": "external",
+            "threatDescription": "Physical privilege escalation — attacker gains elevated system access via physical boundary breach",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": "15",
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          },
+          "el::15::I": {
+            "attackDescription": "Attacker measures power consumption or EM emissions and extracts cryptographic keys",
+            "causeDescription": "Physical boundary provides no electromagnetic shielding — internal operations are observable",
+            "dataFlow": null,
+            "displayId": "DB-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DB",
+              "elementId": "15",
+              "elementName": "Device Boundary [DB]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-I-001"
+              },
+              {
+                "id": "M-IF-I-001"
+              },
+              {
+                "id": "M-CB-I-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-I-001"
+              },
+              {
+                "id": "V-IF-I-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[DB]",
+            "templateId": "I-005",
+            "threatActor": "external",
+            "threatDescription": "Side-channel observation — sensitive data extracted via physical measurements",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": "15",
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          },
+          "el::15::T": {
+            "attackDescription": "Attacker opens the enclosure without triggering any alarm, gaining access to internal components",
+            "causeDescription": "No tamper detection mechanism — unauthorized opening is undetected",
+            "dataFlow": null,
+            "displayId": "DB-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "DB",
+              "elementId": "15",
+              "elementName": "Device Boundary [DB]",
+              "elementType": "PhysicalBoundary"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-T-001"
+              },
+              {
+                "id": "M-IF-T-001"
+              },
+              {
+                "id": "M-IF-T-003"
+              },
+              {
+                "id": "M-PB-T-001"
+              },
+              {
+                "id": "M-PB-T-006"
+              },
+              {
+                "id": "M-PB-T-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-T-001"
+              },
+              {
+                "id": "V-IF-T-001"
+              },
+              {
+                "id": "V-PB-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[DB]",
+            "templateId": "T-001",
+            "threatActor": "external",
+            "threatDescription": "Physical boundary tampering — unauthorized physical access to boundary interior",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": "15",
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          },
+          "el::17::D": {
+            "attackDescription": "Attacker applies excessive electrical input or flooding signals to the interface causing it to fail",
+            "causeDescription": "Interface has no protection against electrical stress or signal flooding — it can be disabled by physical or signal attack",
+            "dataFlow": null,
+            "displayId": "DB-IF2-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-2",
+              "elementId": "17",
+              "elementName": "JTAG",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-D-001"
+              },
+              {
+                "id": "M-IF-D-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-D-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[DB]",
+            "templateId": "D-006",
+            "threatActor": "external",
+            "threatDescription": "Interface denial of service — attacker renders the interface unavailable",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          },
+          "el::17::E": {
+            "attackDescription": "Attacker exploits the interface to run privileged commands and bypass access controls, or uploads unsigned malicious firmware that disables security controls or installs a persistent backdoor",
+            "causeDescription": "Interface exposes privileged functions without sufficient authentication and accepts firmware updates without signature verification",
+            "dataFlow": null,
+            "displayId": "DB-IF2-E-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-2",
+              "elementId": "17",
+              "elementName": "JTAG",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-E-006"
+              },
+              {
+                "id": "M-IF-E-001"
+              },
+              {
+                "id": "M-IF-E-002"
+              },
+              {
+                "id": "M-IF-E-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-E-004"
+              },
+              {
+                "id": "V-IF-E-001"
+              },
+              {
+                "id": "V-IF-E-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "E",
+            "table": "[DB]",
+            "templateId": "E-004",
+            "threatActor": "external",
+            "threatDescription": "Interface privilege escalation — attacker uses the interface to gain elevated access or inject unauthorized firmware",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          },
+          "el::17::I": {
+            "attackDescription": "Attacker attaches monitoring equipment to the physical interface and captures transmitted data",
+            "causeDescription": "Physical interface transmits data without encryption — signals are readable with basic test equipment",
+            "dataFlow": null,
+            "displayId": "DB-IF2-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-2",
+              "elementId": "17",
+              "elementName": "JTAG",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-I-001"
+              },
+              {
+                "id": "M-IF-I-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-I-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[DB]",
+            "templateId": "I-007",
+            "threatActor": "external",
+            "threatDescription": "Interface eavesdropping — attacker intercepts data on the physical interface",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          },
+          "el::17::R": {
+            "attackDescription": "Attacker connects to the physical interface and denies having accessed it because no log record exists",
+            "causeDescription": "No logging of physical interface connections — who connected and when is unknown",
+            "dataFlow": null,
+            "displayId": "DB-IF2-R-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-2",
+              "elementId": "17",
+              "elementName": "JTAG",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-R-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-R-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "R",
+            "table": "[DB]",
+            "templateId": "R-005",
+            "threatActor": "external",
+            "threatDescription": "Interface access repudiation — physical interface access cannot be attributed",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          },
+          "el::17::S": {
+            "attackDescription": "Attacker connects a rogue device to the interface and impersonates a legitimate system, gaining unauthorized access",
+            "causeDescription": "No hardware authentication on the interface — any device connecting is trusted without verification",
+            "dataFlow": null,
+            "displayId": "DB-IF2-S-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-2",
+              "elementId": "17",
+              "elementName": "JTAG",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-S-001"
+              },
+              {
+                "id": "M-S-008"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-S-001"
+              },
+              {
+                "id": "V-IF-S-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "S",
+            "table": "[DB]",
+            "templateId": "S-005",
+            "threatActor": "external",
+            "threatDescription": "Interface identity spoofing — attacker impersonates a legitimate device on the interface",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          },
+          "el::17::T": {
+            "attackDescription": "Attacker modifies the interface hardware or firmware to intercept, inject, or block communications",
+            "causeDescription": "Interface lacks tamper detection and physical protection — unauthorized modification is possible without detection",
+            "dataFlow": null,
+            "displayId": "DB-IF2-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-2",
+              "elementId": "17",
+              "elementName": "JTAG",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-T-001"
+              },
+              {
+                "id": "M-IF-T-002"
+              },
+              {
+                "id": "M-IF-T-003"
+              },
+              {
+                "id": "M-IF-T-004"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[DB]",
+            "templateId": "T-007",
+            "threatActor": "external",
+            "threatDescription": "Interface tampering — attacker physically or logically tampers with the interface",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          },
+          "el::9::D": {
+            "attackDescription": "Attacker applies excessive electrical input or flooding signals to the interface causing it to fail",
+            "causeDescription": "Interface has no protection against electrical stress or signal flooding — it can be disabled by physical or signal attack",
+            "dataFlow": null,
+            "displayId": "DB-IF1-D-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-1",
+              "elementId": "9",
+              "elementName": "USB",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-D-001"
+              },
+              {
+                "id": "M-IF-D-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-D-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "D",
+            "table": "[DB]",
+            "templateId": "D-006",
+            "threatActor": "external",
+            "threatDescription": "Interface denial of service — attacker renders the interface unavailable",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          },
+          "el::9::E": {
+            "attackDescription": "Attacker exploits the interface to run privileged commands and bypass access controls, or uploads unsigned malicious firmware that disables security controls or installs a persistent backdoor",
+            "causeDescription": "Interface exposes privileged functions without sufficient authentication and accepts firmware updates without signature verification",
+            "dataFlow": null,
+            "displayId": "DB-IF1-E-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-1",
+              "elementId": "9",
+              "elementName": "USB",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-E-006"
+              },
+              {
+                "id": "M-IF-E-001"
+              },
+              {
+                "id": "M-IF-E-002"
+              },
+              {
+                "id": "M-IF-E-003"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-E-004"
+              },
+              {
+                "id": "V-IF-E-001"
+              },
+              {
+                "id": "V-IF-E-002"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "E",
+            "table": "[DB]",
+            "templateId": "E-004",
+            "threatActor": "external",
+            "threatDescription": "Interface privilege escalation — attacker uses the interface to gain elevated access or inject unauthorized firmware",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          },
+          "el::9::I": {
+            "attackDescription": "Attacker attaches monitoring equipment to the physical interface and captures transmitted data",
+            "causeDescription": "Physical interface transmits data without encryption — signals are readable with basic test equipment",
+            "dataFlow": null,
+            "displayId": "DB-IF1-I-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-1",
+              "elementId": "9",
+              "elementName": "USB",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-I-001"
+              },
+              {
+                "id": "M-IF-I-002"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-I-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "I",
+            "table": "[DB]",
+            "templateId": "I-007",
+            "threatActor": "external",
+            "threatDescription": "Interface eavesdropping — attacker intercepts data on the physical interface",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          },
+          "el::9::R": {
+            "attackDescription": "Attacker connects to the physical interface and denies having accessed it because no log record exists",
+            "causeDescription": "No logging of physical interface connections — who connected and when is unknown",
+            "dataFlow": null,
+            "displayId": "DB-IF1-R-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-1",
+              "elementId": "9",
+              "elementName": "USB",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-R-001"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-R-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "R",
+            "table": "[DB]",
+            "templateId": "R-005",
+            "threatActor": "external",
+            "threatDescription": "Interface access repudiation — physical interface access cannot be attributed",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          },
+          "el::9::S": {
+            "attackDescription": "Attacker connects a rogue device to the interface and impersonates a legitimate system, gaining unauthorized access",
+            "causeDescription": "No hardware authentication on the interface — any device connecting is trusted without verification",
+            "dataFlow": null,
+            "displayId": "DB-IF1-S-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-1",
+              "elementId": "9",
+              "elementName": "USB",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-S-001"
+              },
+              {
+                "id": "M-S-008"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-S-001"
+              },
+              {
+                "id": "V-IF-S-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "S",
+            "table": "[DB]",
+            "templateId": "S-005",
+            "threatActor": "external",
+            "threatDescription": "Interface identity spoofing — attacker impersonates a legitimate device on the interface",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          },
+          "el::9::T": {
+            "attackDescription": "Attacker modifies the interface hardware or firmware to intercept, inject, or block communications",
+            "causeDescription": "Interface lacks tamper detection and physical protection — unauthorized modification is possible without detection",
+            "dataFlow": null,
+            "displayId": "DB-IF1-T-1",
+            "isTextCustomized": false,
+            "linkedAssetIds": [],
+            "linkedElement": {
+              "displayId": "IF-1",
+              "elementId": "9",
+              "elementName": "USB",
+              "elementType": "Interface"
+            },
+            "proposedMitigations": [
+              {
+                "id": "M-IF-T-001"
+              },
+              {
+                "id": "M-IF-T-002"
+              },
+              {
+                "id": "M-IF-T-003"
+              },
+              {
+                "id": "M-IF-T-004"
+              }
+            ],
+            "proposedVerifications": [
+              {
+                "id": "V-IF-T-001"
+              }
+            ],
+            "relevance": "unrated",
+            "relevanceOverridden": false,
+            "sequenceNumber": 1,
+            "source": "generated:classic",
+            "strideCategory": "T",
+            "table": "[DB]",
+            "templateId": "T-007",
+            "threatActor": "external",
+            "threatDescription": "Interface tampering — attacker physically or logically tampers with the interface",
+            "trustBoundaryDisplayId": "DB",
+            "trustBoundaryId": null,
+            "trustBoundaryName": "Device Boundary [DB]",
+            "workflowStatus": "open"
+          }
+        }
+      }
+    }
+  }
+}

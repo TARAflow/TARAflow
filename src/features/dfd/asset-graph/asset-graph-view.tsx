@@ -83,6 +83,8 @@ import {
   type AssetGraphLane,
   NODE_SPACING,
   NODE_RADIUS,
+  nodeHalfWidth,
+  borderDistance,
   layoutAssetGraph,
   moveNode,
   type Point,
@@ -558,6 +560,11 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
       ? new Map(layout.positions).set(moving.id, { x: moving.x, y: moving.y })
       : layout.positions;
   }, [layout, moving]);
+  // Edges end at the node's border — wider for an asset with a long display id
+  const halfWidthById = useMemo(
+    () => new Map(graph.nodes.filter((n) => n.kind === "asset").map((n) => [n.id, nodeHalfWidth(n.displayId)] as const)),
+    [graph.nodes],
+  );
   const sideColumnNode = (id: string) => {
     const node = graph.nodes.find((n) => n.id === id);
     if (node?.kind === "hazard") return true;
@@ -1815,15 +1822,16 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
               const bend = e.kind === "anchor" ? Math.min(90, len * 0.3) : 0;
               const cx = (a.x + b.x) / 2 + (-dy / len) * bend;
               const cy = (a.y + b.y) / 2 + (dx / len) * bend;
-              const r = NODE_RADIUS + 2;
-              const toward = (from: Point, to: { x: number; y: number }) => {
+              // to the node's border: a circle, or a stadium for a long display id
+              const toward = (from: Point, to: { x: number; y: number }, halfWidth: number) => {
                 const ux = to.x - from.x;
                 const uy = to.y - from.y;
                 const l = Math.hypot(ux, uy) || 1;
+                const r = borderDistance(ux, uy, halfWidth) + 2;
                 return { x: from.x + (ux / l) * r, y: from.y + (uy / l) * r };
               };
-              const p1 = toward(a, { x: cx, y: cy });
-              const p2 = toward(b, { x: cx, y: cy });
+              const p1 = toward(a, { x: cx, y: cy }, halfWidthById.get(e.source) ?? NODE_RADIUS);
+              const p2 = toward(b, { x: cx, y: cy }, halfWidthById.get(e.target) ?? NODE_RADIUS);
               // Point on the curve at t = 0.5.
               const mx = 0.25 * p1.x + 0.5 * cx + 0.25 * p2.x;
               const my = 0.25 * p1.y + 0.5 * cy + 0.25 * p2.y;
@@ -2040,6 +2048,15 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                 );
               }
               const { color, colorLight } = groupColor(String(n.group));
+              // a circle for a short id, a stadium (straight top and bottom) for a long one
+              const hw = nodeHalfWidth(n.displayId);
+              const shape = (pad: number) => ({
+                x: -hw - pad,
+                y: -NODE_RADIUS - pad,
+                width: 2 * (hw + pad),
+                height: 2 * (NODE_RADIUS + pad),
+                rx: NODE_RADIUS + pad,
+              });
               const selected = n.id === selectedAssetId;
               const hit = !selected && searchHit?.assetId === n.id;
               // While dragging a connection: valid / reverse-only / invalid.
@@ -2080,8 +2097,8 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                   onBlur={() => setFocusedNodeId((f) => (f === n.id ? null : f))}
                 >
                   {(focusedNodeId === n.id || moving?.id === n.id) && (
-                    <circle
-                      r={NODE_RADIUS + 10}
+                    <rect
+                      {...shape(10)}
                       fill="none"
                       stroke={darkMode ? "#90caf9" : "#1976d2"}
                       strokeWidth={2}
@@ -2090,28 +2107,29 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                     />
                   )}
                   {freshIds.has(n.id) && !selected && (
-                    <circle r={NODE_RADIUS} fill="none" stroke={color} strokeWidth={2} data-testid={`asset-graph-fresh-${n.id}`}>
-                      <animate attributeName="r" from={NODE_RADIUS} to={NODE_RADIUS + 16} dur="0.8s" repeatCount="3" />
+                    <rect {...shape(0)} fill="none" stroke={color} strokeWidth={2} data-testid={`asset-graph-fresh-${n.id}`}>
+                      <animate attributeName="stroke-width" from="2" to="14" dur="0.8s" repeatCount="3" />
                       <animate attributeName="opacity" from="0.9" to="0" dur="0.8s" repeatCount="3" />
-                    </circle>
+                    </rect>
                   )}
                   {hit && (
-                    <circle r={NODE_RADIUS + 7} fill="none" stroke="#f9a825" strokeWidth={3} data-testid={`asset-graph-hit-${n.id}`} />
+                    <rect {...shape(7)} fill="none" stroke="#f9a825" strokeWidth={3} data-testid={`asset-graph-hit-${n.id}`} />
                   )}
                   {targetClass === "valid" && (
-                    <circle r={NODE_RADIUS + 6} fill="none" stroke="#2e7d32" strokeWidth={3} />
+                    <rect {...shape(6)} fill="none" stroke="#2e7d32" strokeWidth={3} />
                   )}
                   {targetClass === "reverse_only" && (
-                    <circle r={NODE_RADIUS + 6} fill="none" stroke="#ed6c02" strokeWidth={2.5} strokeDasharray="6 4">
+                    <rect {...shape(6)} fill="none" stroke="#ed6c02" strokeWidth={2.5} strokeDasharray="6 4">
                       <title>
                         {t("tabs.dfd.assetGraph.connect.reverseOnly", {
                           defaultValue: "Only the other direction is allowed",
                         })}
                       </title>
-                    </circle>
+                    </rect>
                   )}
-                  <circle
-                    r={NODE_RADIUS}
+                  <rect
+                    {...shape(0)}
+                    data-testid={`asset-graph-shape-${n.id}`}
                     fill={darkMode ? color : colorLight}
                     stroke={selected ? (darkMode ? "#fff" : "#000") : color}
                     strokeWidth={selected ? 3.5 : 2}
@@ -2124,7 +2142,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                   </text>
                   {editing && !drag && (
                     <circle
-                      cx={NODE_RADIUS}
+                      cx={hw}
                       cy={0}
                       r={7}
                       fill={darkMode ? "#2a2a2a" : "#fff"}
@@ -2144,7 +2162,7 @@ export const AssetGraphView: React.FC<AssetGraphViewProps> = ({
                     </circle>
                   )}
                   {nodesWithFindings.has(n.id) && (
-                    <g transform={`translate(${-NODE_RADIUS * 0.75},${-NODE_RADIUS * 0.75})`} data-testid={`asset-graph-finding-${n.id}`}>
+                    <g transform={`translate(${-(hw - NODE_RADIUS) - NODE_RADIUS * 0.75},${-NODE_RADIUS * 0.75})`} data-testid={`asset-graph-finding-${n.id}`}>
                       <title>
                         {t("tabs.dfd.assetGraph.findingNode", {
                           defaultValue: "Has asset links that are not allowed — see the notifications.",

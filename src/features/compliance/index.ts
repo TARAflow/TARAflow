@@ -37,6 +37,7 @@ export type {
 export type { En50742Risk, En50742SafetyFunction, En50742View, MandatedControl, SrslLevel, SrslSummary } from "./models/en50742-view";
 export {
   EN50742_A_REQUIREMENT_IDS,
+  EN50742_B_REQUIREMENT_IDS,
   FOUNDATIONAL_REQUIREMENTS,
   parseRequirementId,
   qualifyRequirementId,
@@ -50,6 +51,9 @@ export { EDITION_2019 } from "./data/edition-iec-62443-4-2-2019";
 export { EDITION_EN50742_A, EN50742_A_GROUPS, type En50742Group } from "./data/edition-en-50742-a";
 export { EN50742_A_RULES } from "./data/en50742-a-rules";
 export { EN50742_A_TEXTS } from "./data/en50742-a-texts";
+export { EDITION_EN50742_B, EN50742_B_GROUPS, EN50742_B_TABLE_4, type En50742BGroup } from "./data/edition-en-50742-b";
+export { EN50742_B_RULES } from "./data/en50742-b-rules";
+export { EN50742_B_TEXTS } from "./data/en50742-b-texts";
 export { RULES_BY_ID, TEXTS_BY_ID } from "./data/requirement-registry";
 export { EDITION_PRAA_2026 } from "./data/edition-en-iec-62443-4-2-praa-2026";
 
@@ -70,7 +74,7 @@ export type {
   ViewElement,
   ViewFlow,
 } from "./models/evaluation-types";
-export { externalOutcome, srslReached, srslSummary, type ExternalOutcome } from "./services/evaluate-en50742";
+export { externalOutcome, srslOpenRiskIds, srslReached, srslSummary, type ExternalOutcome } from "./services/evaluate-en50742";
 export {
   countsForComponent,
   countsWithSupport,

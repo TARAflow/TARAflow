@@ -182,3 +182,45 @@ describe("SRSL Assessment chapter — html + strictdoc", () => {
     expect(srsl(gen as never).hasContent).toBe(false);
   });
 });
+
+// 0.20 manual test en-50742 3.6 (2026-11-25): a risk set to *won't* vanished
+// from the SRSL chapter and the Accepted Risks table did not name its SRSL —
+// while the Compliance tab still requires its mandated controls. And WoO and
+// severity came out as stored values ("moderatelyrestricted" in Markdown).
+describe("SRSL Assessment — won't risks and labels", () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const withWont = (): any => {
+    const p = project("en-50742-a");
+    p.risks.risks[0].moscowPriority = "wont";
+    p.risks.risks[0].wontJustification = "Accepted by the operator";
+    p.risks.risks[0].calculatedRiskBeforeMitigation = 6.5;
+    return p;
+  };
+  const labels: Record<string, string> = {
+    "tabs.doc.compliance.wooLevel.moderately_restricted": "moderately restricted",
+    "safetySeverity.reversible_major": "Reversible, major",
+  };
+  const realT = ((k: string, d?: string) => labels[k] ?? d ?? k) as never;
+
+  it("a won't risk keeps its SRSL row and mandated controls", () => {
+    const chapter = srsl(new MarkdownGenerator(withWont(), config, realT) as never);
+    expect(chapter.content).toContain("DF-3-T-1");
+    expect(chapter.content).toContain("SRSL3");
+    expect(chapter.content).toContain("Information exchange integrity (7.4.3.4.3)");
+  });
+
+  it("the Accepted Risks table names the SRSL of a won't risk", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const gen: any = new MarkdownGenerator(withWont(), config, realT);
+    const chapter = gen.generateAcceptedRisks("Accepted Risks");
+    expect(chapter.content).toMatch(/DF-3-T-1[^\n]*· SRSL3[^\n]*Accepted by the operator/);
+  });
+
+  it("WoO and severity are labels, not stored values", () => {
+    const chapter = srsl(new MarkdownGenerator(withWont(), config, realT) as never);
+    expect(chapter.content).toContain("moderately restricted");
+    expect(chapter.content).toContain("Reversible, major");
+    expect(chapter.content).not.toContain("moderately_restricted");
+    expect(chapter.content).not.toContain("reversible_major");
+  });
+});

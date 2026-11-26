@@ -434,4 +434,22 @@ describe("prepareForDisk — audit.config credential/path stripping", () => {
     expect(result.sourceBindings[0]).not.toHaveProperty("currentDriftStatus");
     expect(result.sourceBindings[0].driftEvents).toEqual(driftEvents);
   });
+
+  // 0.20 manual test (SmokeDetectorCase, 2026-11-23): a stored dialog flag
+  // outlived its cause. It is runtime state — never written.
+  it("does not write the pending 'safety source removed' question", () => {
+    const risks = {
+      configuration: { activeFactors: [], pendingSafetySourceRemoval: true, showIndividualFactors: true },
+      risks: [],
+      lastModified: "x",
+    };
+    const result = prepareForDisk(makeProject({ risks } as unknown as Partial<Project>)) as unknown as {
+      risks: { configuration: Record<string, unknown> };
+    };
+    expect(result.risks.configuration).not.toHaveProperty("pendingSafetySourceRemoval");
+    expect(result.risks.configuration.showIndividualFactors).toBe(true);
+    // nothing to strip → the same object (no churn for files without it)
+    const clean = { ...risks, configuration: { activeFactors: [] } };
+    expect(prepareForDisk(makeProject({ risks: clean } as unknown as Partial<Project>)).risks).toBe(clean);
+  });
 });

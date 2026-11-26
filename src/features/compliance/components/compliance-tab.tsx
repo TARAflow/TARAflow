@@ -196,6 +196,12 @@ export interface ComplianceTabProps {
   onShowElement?: (elementId: string) => void;
   /** Element / flow id → type, for the properties of the to-do list. */
   typeOf?: (id: string) => string | undefined;
+  /**
+   * EN 50742 (O17): what the matrix covers — the relevant interfaces and flows
+   * of the safety zone ("zone") or of the paths to a safety function ("path"),
+   * and the elements they reach directly; "none": not known yet.
+   */
+  en50742Scope?: { mode: "zone" | "path" | "none"; zones: readonly string[] };
   /** Goals and claims of the project — the supporting claims cover matrix rows (D-5, IEC-6). */
   concept?: CybersecurityConcept;
   /** Stores claim changes; absent = the info dialog shows no claims. */
@@ -268,6 +274,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
   onShowElement,
   mitigationSuggestions,
   typeOf,
+  en50742Scope,
   concept,
   onConceptChange,
   componentClaims,
@@ -292,12 +299,27 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
   const family = edition.family;
   const familyData = familyCompliance(data, family);
   const hasComponent = familyHasComponent(family);
+  const scopeLabel =
+    family === "en-50742" && en50742Scope
+      ? en50742Scope.mode === "zone"
+        ? t("scopeZone", "Scope: safety zone {{zones}} — its interfaces, flows and what they reach", {
+            zones: en50742Scope.zones.join(", "),
+          })
+        : en50742Scope.mode === "path"
+          ? t("scopePath", "Scope: the interfaces and flows on the paths to the safety functions")
+          : t("scopeUnknown", "Scope not known yet — mark a safety zone or give an asset a physical impact")
+      : t("wholeMachine", "Scope: the whole machine");
   // D-31: one statement per requirement, shared by the editions of the family.
-  const statements = useMemo(() => editionStatements(edition, familyData.statements), [edition, familyData.statements]);
+  // EN 50742 B: the IEC 62443-4-2 rows read and write the statements of their own family (K-6).
+  const statements = useMemo(
+    () => editionStatements(edition, familyData.statements, (f) => familyCompliance(data, f).statements),
+    [edition, familyData.statements, data],
+  );
   const keyOf = (label: string) => {
     const row = rowDef.get(label);
     return row ? statementKeyOf(row) : label;
   };
+  const familyOf = (label: string) => rowDef.get(label)?.family ?? family;
   const rowDef = useMemo(() => new Map(edition.rows.map((r) => [r.label, r])), [edition]);
 
   const rows = useMemo(() => achieved.rows.filter((r) => matchesFilter(r, filter)), [achieved.rows, filter]);
@@ -306,7 +328,9 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
     [achieved.rows],
   );
 
-  const target = useMemo(() => familyData.target ?? {}, [familyData.target]);
+  // EN 50742 B fixes the SL-T (Table 4, B-F5) — nothing to enter.
+  const fixedTarget = edition.fixedSlTarget;
+  const target = useMemo(() => fixedTarget ?? familyData.target ?? {}, [fixedTarget, familyData.target]);
   // Without levels there is no target: every open row is to do.
   const hasTarget = !levels || Object.keys(target).length > 0;
   const todo = useMemo(
@@ -321,7 +345,8 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
   };
   const statusCounts = useMemo(() => {
     const counts = new Map<RowStatus, number>();
-    for (const r of achieved.rows) counts.set(r.status, (counts.get(r.status) ?? 0) + 1);
+    // recommended rows (O14) are shown, not counted
+    for (const r of achieved.rows) if (!r.recommended) counts.set(r.status, (counts.get(r.status) ?? 0) + 1);
     return counts;
   }, [achieved.rows]);
   const rowByLabel = useMemo(() => new Map(achieved.rows.map((r) => [r.label, r])), [achieved.rows]);
@@ -386,7 +411,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
               {levels ? (
                 <li>{t("guide2", "Set the SL-T per foundational requirement: what the operator, the zone or your customer requires.")}</li>
               ) : (
-                <li>{t("guideSrsl", "There is no target to set: the SRSL comes from the rated risks in the risk tab, and the requirements apply to the whole machine.")}</li>
+                <li>{t("guideSrsl", "There is no target to set: the SRSL comes from the rated risks in the risk tab. The requirements apply to the relevant interfaces and flows — those of the safety zone, or on a path to a safety function — and to the elements they reach directly.")}</li>
               )}
               <li>{t("guide3", "Work through the to-do list: set the missing properties in the DFD, and choose mitigations in the risk treatment where the model shows a requirement not met.")}</li>
               <li>{t("guide4", "Rows the model cannot show need a statement: reasoning and where the evidence is (manual, test report). Click a requirement number for everything about it.")}</li>
@@ -402,7 +427,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
           <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
             <Typography variant="h6">{edition.title}</Typography>
             {edition.draft && <Chip size="small" color="warning" label={t("draft", "draft")} />}
-            {!hasComponent && <Chip size="small" variant="outlined" label={t("wholeMachine", "Scope: the whole machine")} />}
+            {!hasComponent && <Chip size="small" variant="outlined" label={scopeLabel} data-testid="compliance-scope" />}
             {hasComponent && (
               <TextField
                 select
@@ -550,6 +575,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                   <TableCell sx={{ whiteSpace: "nowrap" }}>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <span>{t("target", "SL-T (requirement)")}</span>
+                      {!fixedTarget && (
                       <TextField
                         select
                         size="small"
@@ -571,10 +597,20 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                           </MenuItem>
                         ))}
                       </TextField>
+                      )}
                     </Stack>
                   </TableCell>
                   {FOUNDATIONAL_REQUIREMENTS.map((fr) => {
                     const target = familyData.target?.[fr];
+                    if (fixedTarget) {
+                      return (
+                        <TableCell key={fr} align="center" data-testid={`compliance-target-fixed-${fr}`}>
+                          <Tooltip title={t("targetFixed", "Fixed by the standard (EN 50742 Table 4)")}>
+                            <Chip size="small" variant="outlined" label={fixedTarget[fr]} />
+                          </Tooltip>
+                        </TableCell>
+                      );
+                    }
                     return (
                       <TableCell key={fr} align="center">
                         <TextField
@@ -608,7 +644,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                     <TableCell sx={{ whiteSpace: "nowrap" }}>{label}</TableCell>
                     {FOUNDATIONAL_REQUIREMENTS.map((fr) => (
                       <TableCell key={fr} align="center">
-                        <LevelChip value={values[fr]} target={compare ? familyData.target?.[fr] : undefined} />
+                        <LevelChip value={values[fr]} target={compare ? (fixedTarget?.[fr] ?? familyData.target?.[fr]) : undefined} />
                       </TableCell>
                     ))}
                   </TableRow>
@@ -813,6 +849,11 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
                   <TableRow key={row.label} data-testid={`compliance-row-${row.label}`}>
                     <TableCell sx={{ whiteSpace: "nowrap" }}>
                       {requirementLink(row.label, `compliance-req-${row.label}`)}
+                      {row.recommended && (
+                        <Tooltip title={t("recommendedTooltip", "Recommended by analogy — Table 4 names only the embedded-device variant (O14). Shown, not counted.")}>
+                          <Chip size="small" variant="outlined" sx={{ ml: 0.5 }} label={t("recommended", "recommended")} data-testid={`compliance-recommended-${row.label}`} />
+                        </Tooltip>
+                      )}
                     </TableCell>
                     <TableCell>{levels ? (row.minSl ?? "—") : t(`group.${row.group}`, row.group)}</TableCell>
                     {cra && <TableCell>{(rowDef.get(row.label)?.cra ?? []).join(", ") || "—"}</TableCell>}
@@ -854,7 +895,7 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
       </Stack>
 
       {info && (() => {
-        const infoRequirements = (rowDef.get(info.label)?.requirementIds ?? []).map((id) => qualifyRequirementId(family, id));
+        const infoRequirements = (rowDef.get(info.label)?.requirementIds ?? []).map((id) => qualifyRequirementId(familyOf(info.label), id));
         return (
           <RequirementInfoDialog
             row={info}
@@ -897,11 +938,11 @@ export const ComplianceTab: React.FC<ComplianceTabProps> = ({
           existing={statements[editing.label]}
           onClose={() => setEditing(null)}
           onSave={(statement) => {
-            onChange(withComplianceStatement(data, family, keyOf(editing.label), statement));
+            onChange(withComplianceStatement(data, familyOf(editing.label), keyOf(editing.label), statement));
             setEditing(null);
           }}
           onRemove={() => {
-            onChange(withoutComplianceStatement(data, family, keyOf(editing.label)));
+            onChange(withoutComplianceStatement(data, familyOf(editing.label), keyOf(editing.label)));
             setEditing(null);
           }}
           today={today}

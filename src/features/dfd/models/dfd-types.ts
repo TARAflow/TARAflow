@@ -423,7 +423,11 @@ export interface DFDProjectData {
   settings: {
     autoSave: boolean;
     autoSaveInterval?: number;
+    /** EL badges in the diagram (0.20) — absent = on in EN 50742 projects (dfdBadgesShown). */
+    dfdBadges?: boolean;
   };
+  /** The project follows EN 50742 (its tags) — asks for the safety zone (O18). */
+  en50742?: boolean;
   lastModified: string;
 }
 
@@ -498,6 +502,12 @@ export interface ComponentMultiprocessInfo {
   updateIsRefresh?: boolean;
   /** "Discard update" while not saved: the project as before, through the same runner path. */
   discardRunner?: ComponentImportRunner;
+  /**
+   * "Change prefix…" (0.20 manual test E3): why a prefix cannot be taken (in
+   * the UI language, undefined = fine), and the runner that inserts the
+   * instance again with it. Absent = not available.
+   */
+  renamePrefix?: { check: (prefix: string) => string | undefined; runnerFor: (prefix: string) => ComponentImportRunner };
   /** Assumptions of use still open in this instance — counted on the tab "Component". */
   openAssumptions?: number;
   /** Decisions to review after an update (derived), each with its confirm action. */

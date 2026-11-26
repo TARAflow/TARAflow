@@ -58,6 +58,34 @@ export const LANE_HEIGHT = ROW_HEIGHT * ROWS_PER_LANE;
 export const SPREAD_FROM = 7;
 export const NODE_SPACING = 150;
 export const NODE_RADIUS = 34;
+
+/**
+ * Half the width of an asset node (0.20 manual test, 2026-11-26): a circle
+ * for a short display id, a stadium — straight top and bottom, round ends,
+ * like the process symbol — as wide as a longer one needs ("C1:SDC1:DA-001"
+ * of a nested component import did not fit into the circle).
+ */
+export function nodeHalfWidth(displayId: string | undefined): number {
+  const text = (displayId ?? "").length * 7.4 + 20; // 12 px bold, with a margin
+  return Math.max(NODE_RADIUS, Math.ceil(text / 2));
+}
+
+/**
+ * Distance from a node's centre to its border toward (ux, uy): a stadium of
+ * half width `halfWidth` and radius `radius` (halfWidth = radius: a circle).
+ * Edges end there instead of inside a wide node.
+ */
+export function borderDistance(ux: number, uy: number, halfWidth: number, radius = NODE_RADIUS): number {
+  const l = Math.hypot(ux, uy) || 1;
+  const x = Math.abs(ux / l);
+  const y = Math.abs(uy / l);
+  const c = halfWidth - radius;
+  if (c <= 0) return radius;
+  // through the straight top / bottom
+  if (y > 0 && (radius / y) * x <= c) return radius / y;
+  // through a round end: |t·u − (c, 0)| = radius
+  return c * x + Math.sqrt(Math.max(0, c * c * x * x - c * c + radius * radius));
+}
 /** Gap between the widest vertical lane and the side column. */
 const COLUMN_GAP = 2 * NODE_SPACING;
 const TICKS = 300;
@@ -180,6 +208,8 @@ interface SimNode extends SimulationNodeDatum {
   targetX?: number;
   /** Start slot in a vertical lane — a mild pull, so lanes stay spread. */
   slotX?: number;
+  /** Half its width (a stadium for a long display id) — keeps neighbours apart. */
+  halfWidth?: number;
 }
 
 /** A lane with three rows (vertical lanes, anchors, free rows); the side column has one per lane. */
@@ -271,6 +301,11 @@ function spreadOverRows(
  * Positions for all nodes of `graph`. Nodes found in `previous` keep their
  * position exactly; the others are placed and settled around them.
  */
+/** Asset nodes are as wide as their display id needs; the other kinds keep their size. */
+function halfWidthOf(n: { kind?: string; displayId?: string }): number {
+  return n.kind === "asset" ? nodeHalfWidth(n.displayId) : NODE_RADIUS;
+}
+
 export function layoutAssetGraph(
   graph: Pick<AssetGraph, "nodes" | "edges">,
   previous: Positions = new Map(),
@@ -326,7 +361,7 @@ export function layoutAssetGraph(
       // A node of a lane with rows keeps its row inside the lane; a
       // side-column node keeps its row. Older remembered positions snap.
       const y = sideColumn ? snapToRow(known.y, lanes) : rowY;
-      return { id: n.id, targetX: slot.targetX, x: known.x, y, fx: known.x, fy: y };
+      return { id: n.id, targetX: slot.targetX, x: known.x, y, fx: known.x, fy: y, halfWidth: halfWidthOf(n) };
     }
     const placedNeighbour = (neighbours.get(n.id) ?? [])
       .map((id) => previous.get(id))
@@ -339,6 +374,7 @@ export function layoutAssetGraph(
         : i * NODE_SPACING;
     return {
       id: n.id,
+      halfWidth: halfWidthOf(n),
       targetX: slot.targetX,
       slotX: slot.targetX === undefined ? x : undefined,
       x,
@@ -368,7 +404,7 @@ export function layoutAssetGraph(
           .distance(NODE_SPACING)
           .strength(0.05),
       )
-      .force("collide", forceCollide<SimNode>(NODE_RADIUS + 12))
+      .force("collide", forceCollide<SimNode>((n) => (n.halfWidth ?? NODE_RADIUS) + 12))
       .stop();
     for (let i = 0; i < TICKS; i++) sim.tick();
   }

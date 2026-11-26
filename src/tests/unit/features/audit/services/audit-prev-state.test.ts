@@ -102,12 +102,12 @@ describe("fileDiffersFromHead / derived values only", () => {
 
   it("the unlisted-change list gives a commit message the hook accepts, with the places", () => {
     for (const derivedOnly of [true, false]) {
-      const changes = unlistedChangeList({ derivedOnly, paths: ["/risks/risks/0/threatDisplayId"] });
+      const changes = unlistedChangeList({ derivedOnly, changes: [{ path: "risks.risks[r0].threatDisplayId", before: "DF-9-T-1", after: "DF-6-T-1" }] });
       const data = new DiffService().generateCommitMessageData(changes, "Detail Review", "Ann", { projectFile: "m.tara.json" });
       const message = generateCommitMessage({ ...data, date: "2026-11-17T00:00:00.000Z" } as never);
       expect(validateAuditMessage(message)).toEqual([]);
       expect(message).toContain(derivedOnly ? "Derived values" : "Changes the audit diff does not list");
-      expect(message).toContain("/risks/risks/0/threatDisplayId");
+      expect(message).toContain("risks.risks[r0].threatDisplayId");
     }
   });
 });

@@ -10,7 +10,7 @@
 
 import type { Project } from "../models/project-types";
 import type { RegulationPresetId, WindowOfOpportunity } from "shared";
- import { regulationPresetFromTags, EMPTY_PROJECT_TAGS } from "shared";
+ import { regulationPresetFromTags, en50742ApproachFromTags, EMPTY_PROJECT_TAGS } from "shared";
 import { getRegulationPreset, getRequiredImpactScale, requiresHazardAnalysis } from "shared";
 import { applyRegulationPreset } from "features/risks/services/regulation-preset-service";
 import { isAssetImpactMandatory } from "features/risks/services/regulation-preset-service";
@@ -70,9 +70,25 @@ function enforceMandatoryImpactFactors(
   return changed ? { activeFactors: next, changed: true } : { activeFactors, changed: false };
 }
 
+/**
+ * The configuration's en50742Overlay as the preset and the A tag want it:
+ * true only for EN 50742 A on another base method than en-50742-a (whose
+ * method already is the overlay) — absent otherwise, so projects of the
+ * standard method + A keep their stored form. Same object when equal.
+ */
+function withOverlay<C extends { en50742Overlay?: boolean }>(configuration: C, overlay: boolean): C {
+  if ((configuration.en50742Overlay === true) === overlay) return configuration;
+  if (overlay) return { ...configuration, en50742Overlay: true };
+  const rest = { ...configuration };
+  delete rest.en50742Overlay;
+  return rest;
+}
+
 export function applyRegulationPresetToProject(
   project: Project,
   presetId: RegulationPresetId,
+  /** The project has EN 50742 A (its tags) — see withOverlay. */
+  en50742A = false,
 ): RegulationPresetProjectResult {
   // Project-level source of truth — always recorded.
   const settings = { ...project.settings, regulationPreset: presetId };
@@ -81,9 +97,12 @@ export function applyRegulationPresetToProject(
     return { project: { ...project, settings }, conflicts: [], changed: false };
   }
 
+  const overlay = en50742A && presetId !== "en-50742-a";
   const preset = applyRegulationPreset(
     project.risks.configuration.activeFactors,
     presetId,
+    undefined,
+    overlay,
   );
   const conflicts = preset.conflicts;
   // Fold in the mandatory-impact enforcement so exclusive-mode presets always
@@ -96,16 +115,12 @@ export function applyRegulationPresetToProject(
     // Factor config untouched, but the method may still differ (e.g. a preset
     // that manages no factors). Set it without a rating migration.
     const method = getRegulationPreset(presetId).likelihoodMethod;
-    const risks =
-      project.risks.configuration.likelihoodMethod === method
-        ? project.risks
-        : {
-            ...project.risks,
-            configuration: {
-              ...project.risks.configuration,
-              likelihoodMethod: method,
-            },
-          };
+    const current = project.risks.configuration;
+    const configuration = withOverlay(
+      current.likelihoodMethod === method ? current : { ...current, likelihoodMethod: method },
+      overlay,
+    );
+    const risks = configuration === current ? project.risks : { ...project.risks, configuration };
     return {
       project: { ...project, settings, risks },
       conflicts,
@@ -117,13 +132,13 @@ export function applyRegulationPresetToProject(
   // method on the result (independent of whether updateConfiguration preserves
   // unknown config fields).
   const method = getRegulationPreset(presetId).likelihoodMethod;
-  const migrated = riskService.updateConfiguration(project.risks, {
-    ...project.risks.configuration,
-    activeFactors,
-  });
+  const migrated = riskService.updateConfiguration(
+    project.risks,
+    withOverlay({ ...project.risks.configuration, activeFactors }, overlay),
+  );
   const risks = {
     ...migrated,
-    configuration: { ...migrated.configuration, likelihoodMethod: method },
+    configuration: withOverlay({ ...migrated.configuration, likelihoodMethod: method }, overlay),
   };
 
   return {
@@ -330,7 +345,8 @@ export function applyRegulationFromTags(
   const presetId = regulationPresetFromTags(
     project.info?.tags ?? EMPTY_PROJECT_TAGS,
   );
-  const applied = applyRegulationPresetToProject(project, presetId);
+  const tags = project.info?.tags ?? EMPTY_PROJECT_TAGS;
+  const applied = applyRegulationPresetToProject(project, presetId, en50742ApproachFromTags(tags) === "A");
   const withWoo = threadWindowOfOpportunity(applied.project, woo);
   const withImpact = threadUseAssetImpact(withWoo, presetId);
   const withCriteria = threadImpactCriteria(withImpact, presetId);

@@ -50,6 +50,8 @@ const WORDS = {
       machinePasswordUse: "where software processes or devices log in with a password",
       blackBox: "without child page (black box)",
       usesKeys: "that holds keys (secure channel or certificate)",
+      storesAuditRecords: "that holds audit logs",
+      safetyZoneAsked: "that can be the EN 50742 safety zone",
     },
   },
   de: {
@@ -83,6 +85,8 @@ const WORDS = {
       machinePasswordUse: "bei dem sich Software-Prozesse oder Geräte mit Passwort anmelden",
       blackBox: "ohne Unterseite (Black Box)",
       usesKeys: "das Schlüssel hält (sicherer Kanal oder Zertifikat)",
+      storesAuditRecords: "der Audit-Logs speichert",
+      safetyZoneAsked: "die die EN-50742-Safety-Zone sein kann",
     },
   },
 } as const;

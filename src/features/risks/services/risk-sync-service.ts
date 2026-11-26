@@ -33,6 +33,7 @@ import {
   hasSafetyData,
   hasDFDSafetyAnnotations,
   getWorstCriterionValue,
+  hasEn50742Overlay,
 } from "shared";
  import {
    applyAssetCriteriaToFactorRatings,
@@ -81,6 +82,14 @@ export interface RiskSyncStatus {
    * which after a renumber can be the label of a DIFFERENT threat.
    */
   changedDisplayIds: number;
+  /**
+   * Risks whose stored threatRelevance no longer matches the relevance of their
+   * threat — e.g. an uncertain threat confirmed in the Threats tab. Without this
+   * count the sync never lit up, the risk kept "uncertain" and the banner and
+   * findings kept asking to confirm what was confirmed (0.20 manual test,
+   * 2026-11-24).
+   */
+  changedRelevance: number;
   needsSync: boolean;
   /** Safety factor was auto-enabled during this sync check */
   safetyAutoEnabled: boolean;
@@ -415,6 +424,31 @@ export function applySafetyRemovalDecision(
 
 // ==================== SYNC STATUS ====================
 
+/**
+ * The stored SRSL no longer matches what the gate computes from the current
+ * ratings, relevance and isolation of the safety functions (O18, patches 21 /
+ * 22) — or the overlay is off and an SRSL is still stored. null and
+ * undefined count as the same (as the results dump compares them), so files
+ * written before the gate never all count as changed.
+ */
+function srslStale(
+  risk: Risk,
+  ratings: FactorRating[],
+  configuration: RiskConfiguration,
+  linkedAssets: AssetReference[],
+  threat: ThreatReference,
+): boolean {
+  if (!hasEn50742Overlay(configuration)) return risk.calculatedSrsl !== undefined;
+  const now = calculateGatedRiskValues(
+    ratings,
+    configuration,
+    linkedAssets,
+    threat.en50742?.relevant,
+    threat.en50742?.functionIsolated,
+  ).srsl;
+  return (risk.calculatedSrsl ?? null) !== (now ?? null);
+}
+
 export function checkRiskSyncStatus(
   riskData: RiskData,
   allThreats: ThreatReference[],
@@ -453,7 +487,16 @@ export function checkRiskSyncStatus(
       threat,
       dfd,
     );
-    return !sameContent(withEl, risk.factorRatings);
+    // O18 / patches 21 – 22: the stored SRSL differs from what the gate
+    // computes now (relevance, isolation of the safety functions, the A tag
+    // removed). Needs the assets for the severity; without them the
+    // relevance rule as before.
+    const srslGatedAway = assetDataRef
+      ? srslStale(risk, withEl, riskData.configuration, resolveLinkedAssets(threat.linkedAssetIds, assetDataRef), threat)
+      : hasEn50742Overlay(riskData.configuration)
+        ? threat.en50742?.relevant === false && risk.calculatedSrsl != null
+        : risk.calculatedSrsl !== undefined;
+    return srslGatedAway || !sameContent(withEl, risk.factorRatings);
   }).length;
 
   // Asset-link drift: the risk's linkedAssetIds no longer match what the DFD
@@ -475,9 +518,17 @@ export function checkRiskSyncStatus(
     return threat !== undefined && threat.displayId !== risk.threatDisplayId;
   }).length;
 
-  const uncertainRisks = riskData.risks.filter(
-    (r) => r.threatRelevance === "uncertain",
-  ).length;
+  const changedRelevance = riskData.risks.filter((risk) => {
+    const threat = allThreats.find((t) => t.id === risk.threatId);
+    return threat !== undefined && eligibleIds.has(threat.id) && threat.relevance !== risk.threatRelevance;
+  }).length;
+
+  // Counted from the threat's relevance now, not the stored copy: a threat
+  // confirmed in the Threats tab no longer asks for confirmation here.
+  const uncertainRisks = riskData.risks.filter((risk) => {
+    const threat = allThreats.find((t) => t.id === risk.threatId);
+    return (threat?.relevance ?? risk.threatRelevance) === "uncertain";
+  }).length;
 
   const hasSafety = projectHasSafetyData(dfd, assetDataRef);
   const { safetyAutoEnabled, safetySourceRemoved } =
@@ -505,6 +556,7 @@ export function checkRiskSyncStatus(
     changedExposureLevels,
     changedLinkedAssets,
     changedDisplayIds,
+    changedRelevance,
     needsSync:
       newThreats > 0 ||
       orphanedRisks > 0 ||
@@ -512,6 +564,7 @@ export function checkRiskSyncStatus(
       changedExposureLevels > 0 ||
       changedLinkedAssets > 0 ||
       changedDisplayIds > 0 ||
+      changedRelevance > 0 ||
       impactAutoEnabledCount > 0 ||
       impactAutoDisabledCount > 0,
     safetyAutoEnabled,
@@ -541,11 +594,17 @@ export function recalculateRiskValues(
   risk: Risk,
   configuration: RiskConfiguration,
   assetDataRef?: AssetDataReference,
+  /** O18: the EN 50742 relevance of the risk's anchor (undefined = no decision). */
+  en50742Relevant?: boolean,
+  /** Patch 22: its safety functions are completely isolated (undefined = none linked). */
+  functionIsolated?: boolean,
 ): Risk {
   const before = calculateGatedRiskValues(
     risk.factorRatings,
     configuration,
     resolveLinkedAssets(risk.linkedAssetIds, assetDataRef),
+    en50742Relevant,
+    functionIsolated,
   );
   return {
     ...risk,
@@ -730,7 +789,14 @@ export function syncRisksFromThreats(
       JSON.stringify([...(risk.linkedAssetIds ?? [])].sort()) !==
       JSON.stringify([...(threat.linkedAssetIds ?? [])].sort());
 
+    // O18: an anchor that is no longer EN 50742 relevant takes its SRSL away
+    // even when no rating changed (a safety zone was drawn, a flow moved).
+    // Without the overlay (the A tag removed) a stored SRSL goes as well;
+    // a change of the safety functions' isolation (patch 22) is caught too.
+    const srslGatedAway = srslStale(risk, updatedFactorRatings, updatedConfiguration, linkedAssets, threat);
+
     if (
+      srslGatedAway ||
       linkedAssetsChanged ||
       descChanged ||
       attackChanged ||
@@ -745,6 +811,8 @@ export function syncRisksFromThreats(
         updatedFactorRatings,
         updatedConfiguration,
         linkedAssets,
+        threat.en50742?.relevant,
+        threat.en50742?.functionIsolated,
       );
       // mitigatedFactorRatings NEVER go through the gate — SRSL is a target
       // level satisfied by controls, not "mitigated down" (§3.8); the After
@@ -819,6 +887,8 @@ export function syncRisksFromThreats(
       factorRatings,
       updatedConfiguration,
       linkedAssets,
+      threat.en50742?.relevant,
+      threat.en50742?.functionIsolated,
     );
 
     return {

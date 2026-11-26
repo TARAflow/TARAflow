@@ -1,6 +1,8 @@
 # TARAflow — Threat Catalog Divergence: Findings & Remediation Plan
 
-**Status:** Draft / analysis complete, implementation not started
+**Status:** Phase A done (0.20 patches 02 + 03, 2026-11-20): stamp, version, guard test,
+audit diff, banner, phase tooltip, methodology. Phases B–D open. See §8 for what changed
+since the analysis.
 **Scope:** `src/features/threats/services/{per-element,per-interaction}/*`, `threat-types`, `ThreatSyncBanner`, `audit`
 **Related work:** debug-interface fix (`stride-modifier.ts` `!== true`), ChipBoundary connectivity fix (`connection-validator.ts`) — both committed
 **Author context:** raised by the question "what happens when users run TARAflow on a real project across tool updates?"
@@ -208,6 +210,8 @@ hygiene upgrades on top.
 
 ## 7. Open questions to resolve before Phase A code
 
+*Answered 2026-11-20 (user decisions in brackets) — §8.*
+
 - **OQ1:** Does any catalog/tool version already persist on the threat set or in
   `audit`/`schemaVersion`? (Reuse vs. add — F5.)
 - **OQ2:** Where exactly does `THREAT_CATALOG_VERSION` belong —
@@ -218,3 +222,50 @@ hygiene upgrades on top.
 - **OQ4:** Does the non-destructive "re-evaluate" path already exist end-to-end
   in `synchronizeThreats`, or does Phase A need to add a regenerate-but-merge
   variant distinct from the structural sync?
+
+---
+
+## 8. Phase A as built (0.20)
+
+Since this analysis, 0.19 added the **generation drift** (`threat-generation-drift.ts`:
+stored generated threats the rules no longer produce, threats they would add — keys only)
+and the **regeneration with preview** (`threat-reconciliation.ts`, leveled DFD 6e: new /
+unchanged / changed / obsolete, analyst data kept, changed threats flagged for review).
+Both cover F4a. F4b — same key, other content — stays invisible to them; the stamp closes
+it.
+
+- **OQ1:** nothing persisted. The risk side has `CalcStamp` (`shared/models/calc-stamp.ts`,
+  `RISK_CALC_VERSION`, bumped by hand, golden-guarded) — the stamp follows that pattern.
+- **OQ2:** `ThreatData.catalogStamp`, **per STRIDE method** (`{ "per-element"?: n,
+  "per-interaction"?: n }`) — each method is generated on its own, so a whole-set stamp
+  would claim a regeneration the other method never had. Type and the default rule in
+  `shared/models/threat-catalog-stamp.ts` (the audit diff reads it), version and stamping
+  in `features/threats/services/threat-catalog-version.ts`. Optional, never written as a
+  default, written by no migration; not in a component snapshot (only the tables cross) —
+  so it leaves the snapshot hash alone (roadmap rule 5, test in `snapshot-builder.test.ts`).
+- **OQ3:** manual bump of `THREAT_CATALOG_VERSION` (1 = the catalogue of 0.19). The guard
+  test `threat-catalog-version.golden.test.ts` hashes a fresh generation of four fixtures
+  (both methods, normalised like the results dump) and fails until the version is bumped
+  and the hashes are updated.
+- **OQ4:** the non-destructive path exists — the regeneration with preview. The stamp is
+  written by a **full (re)generation** of a method only (the hooks' `generateThreats`), not
+  by the incremental DFD sync, not on load, not by resolving a drift; every other update
+  carries the stored stamp.
+- **Absent stamp** (files before 0.20) counts as version 1 (user 2026-11-20): 0.20 does not
+  change the catalogue, so updating to 0.20 shows no banner; from the first bump on, such
+  files are outdated.
+- **Audit (F6):** the DiffService lists a changed stamp ("Threat catalogue (per-element):
+  v1 → v2") — a regeneration that changes no threat is still a listed change, not an
+  "unlisted" one.
+- **Results dump:** the header names `threatCatalogVersion`.
+- **Display (patch 03):** generated threats of the shown method with an outdated stamp →
+  a line in the drift banner of the Threats tab (also with an empty drift) and an info row
+  in its findings panel, both leading to the regeneration with preview; the Threats phase
+  tab counts one warning and names both versions in its tooltip (the oldest outdated
+  method). Manual threats alone are nothing to re-evaluate and show nothing.
+- **Methodology:** the methodology record names the version per method with generated
+  threats and the current one — shown in the Overview's Methodology view (every preset)
+  and as a table in the report's methodology chapter (iso-21434 only, as the chapter).
+  A CRA / IEC 62443 report has no methodology chapter yet, so it does not name the
+  catalogue version.
+

@@ -8,15 +8,17 @@
 // too (D-1). EN 50742 Approach A is shown by its tag and the aliases of the
 // tag normaliser (model coverage plan §8.1).
 
-import { isEn50742ApproachATag, type ProjectTags } from "shared";
+import { isEn50742ApproachATag, isEn50742ApproachBTag, type ProjectTags } from "shared";
 import type { AnyEdition, EditionId, StandardFamilyId } from "../models/compliance-types";
 import { EDITION_2019 } from "../data/edition-iec-62443-4-2-2019";
 import { EDITION_PRAA_2026 } from "../data/edition-en-iec-62443-4-2-praa-2026";
 import { EDITION_EN50742_A } from "../data/edition-en-50742-a";
+import { EDITION_EN50742_B } from "../data/edition-en-50742-b";
 
 export const TAG_IEC_62443 = "IEC 62443";
 export const TAG_EN_IEC_62443_CRA = "EN IEC 62443 (CRA)";
 export const TAG_EN_50742_A = "EN 50742 A";
+export const TAG_EN_50742_B = "EN 50742 B";
 
 /** A standard the Compliance tab can evaluate — data only, no code of its own. */
 export interface StandardModule {
@@ -65,6 +67,16 @@ export const STANDARDS: readonly StandardModule[] = [
     matchesTag: isEn50742ApproachATag,
     edition: EDITION_EN50742_A,
     header: "srsl",
+  },
+  {
+    // Component role of Approach B: Table 4 of IEC 62443-4-2 with a fixed SL-T (0.20)
+    id: EDITION_EN50742_B.id,
+    family: EDITION_EN50742_B.family,
+    label: "EN 50742 B",
+    tags: [TAG_EN_50742_B],
+    matchesTag: isEn50742ApproachBTag,
+    edition: EDITION_EN50742_B,
+    header: "security-levels",
   },
 ];
 

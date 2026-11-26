@@ -56,6 +56,11 @@ export {
 
 // Calculation stamp (ISO/SAE 21434 conformance plan 0c)
 export type { CalcStamp } from "./models/calc-stamp";
+export type { ThreatCatalogStamp } from "./models/threat-catalog-stamp";
+// Field purpose register (model field purpose design, phase 1)
+export { FIELD_PURPOSE_REGISTER, REGISTERED_ELEMENT_TYPES } from "./models/field-purpose-register";
+export type { FieldPurpose, RegisteredInterface } from "./models/field-purpose-register";
+export { UNSTAMPED_CATALOG_VERSION, storedCatalogVersion } from "./models/threat-catalog-stamp";
 
 // CIANAAA
 export type {
@@ -114,6 +119,8 @@ export {
   WINDOW_OF_OPPORTUNITY_MULTIPLIERS,
   getRegulationPreset,
   getDisabledThreatGenerators,
+  hasEn50742Overlay,
+  EN50742_OVERLAY_FACTOR_IDS,
   isThreatGeneratorEnabled,
   getRequiredImpactScale,
   type RegulationPreset,
@@ -243,6 +250,9 @@ export {
   UPDATE_ENCRYPTION_VALUES,
   KEY_RENEWAL_VALUES,
   USER_DATA_DELETION_VALUES,
+  AUDIT_RECORD_RETENTION_VALUES,
+  SAFETY_ZONE_VALUES,
+  safetyZoneIds,
   USER_ACCOUNTS_VALUES,
   modelField,
   NOT_SPECIFIED,
@@ -537,6 +547,7 @@ export {
   EMPTY_PROJECT_TAGS,
   migrateProjectTags,
   addTagToProject,
+  addTagWithOutcome,
   removeTagFromProject,
   flattenProjectTags,
   isProjectTags,
@@ -544,12 +555,17 @@ export {
 
 export {
   regulationPresetFromTags,
+  en50742ApproachFromTags,
   getRegulationConflicts,
   hasTagConflicts,
   getTagWarnings,
   requiresHazardAnalysis,
   tagEffectOf,
   isEn50742ApproachATag,
+  isEn50742ApproachBTag,
+  methodTagOf,
+  methodTagsExclude,
+  type MethodTag,
   MATRIX_TAGS,
 } from "./services/tag-validator";
 
@@ -597,3 +613,6 @@ export {
   compareFingerprints,
   type FingerprintComparison,
 } from "./utils/methodology-fingerprint";
+
+// EL badges in the diagram: shown by choice, else in EN 50742 projects (0.20)
+export { dfdBadgesShown } from "./models/dfd-badges-setting";

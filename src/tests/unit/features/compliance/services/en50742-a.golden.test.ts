@@ -116,11 +116,14 @@ describe("EN 50742 A on the SmokeDetector (own example)", () => {
     expect(row(set.rows, "EN-4.3/220").status).toBe("met");
   });
 
-  it("the other interfaces on a path have no SRSL risk → 7.1 is a gap naming them, not the ones off any path", () => {
+  it("the interfaces on a path with threats not rated yet → 7.1 is open naming them, not the ones off any path (patch 28: per threat)", () => {
     const r = row(evaluate(project([wlanRisk("S", "SRSL2")])).achieved.rows, "EN-7.1/260");
-    expect(r.status).toBe("gap");
-    expect(r.failing).not.toContain("IF-3");
-    expect(r.failing).not.toContain("IF-6");
-    expect(r.failing.length).toBeGreaterThan(0);
+    // the fixture's threats are not rated: open, not a gap — and IF-3 is
+    // open too, its other STRIDE threats are not rated (was: met by one risk)
+    expect(r.status).toBe("unknown");
+    expect(r.reason).toMatchObject({ code: "threatsOpen" });
+    expect(r.unknown).toContain("IF-3");
+    expect(r.unknown).not.toContain("IF-6");
+    expect(r.failing ?? []).toEqual([]);
   });
 });

@@ -100,6 +100,13 @@
           "AuthN": "Authentifizierung (AuthN)",
           "Acc": "Nachvollziehbarkeit (Acc)"
         },
+        "threatCatalog": "Bedrohungskatalog",
+        "threatCatalogIntro": "Die Katalogversion, mit der die generierten Bedrohungen erzeugt wurden. Bedrohungen aus einer älteren Version können von dem abweichen, was die aktuellen Regeln erzeugen; eine Neugenerierung bewertet sie neu und behält die Entscheidungen des Analysten.",
+        "threatMethod": "STRIDE-Methode",
+        "catalogGenerated": "Erzeugt mit",
+        "catalogCurrent": "Aktuell",
+        "perElement": "Pro Element",
+        "perInteraction": "Pro Interaktion",
         "stamps": "Rechenversionen",
         "stampsIntro": "Jetzt berechnete Werte tragen diese Stempel. Ein Risiko oder eine Attack-Tree-Analyse mit anderem Stempel wurde mit einer anderen Version oder anderen Tabellen berechnet.",
         "stamp": "Stempel",

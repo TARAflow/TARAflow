@@ -325,7 +325,7 @@ export function getConnectionPropertiesGrouped(
 // context -> Context column; security/physical/safety -> Security Controls column;
 // documentation -> Meta block. Keep in sync with the forms.
 
-interface FieldLayout {
+export interface FieldLayout {
   segment: string; // i18n: tabs.dfd.element_description.<segment>.fields.*
   context: string[];
   security: string[];
@@ -339,7 +339,7 @@ const SESSION_CONTROL_FIELDS = [
   "sessionControl.maxConcurrentSessions",
 ];
 
-const ELEMENT_FIELD_LAYOUT: Record<string, FieldLayout> = {
+export const ELEMENT_FIELD_LAYOUT: Readonly<Record<string, FieldLayout>> = {
   Process: {
     segment: "process",
     context: ["technology", "processSemantic", "runsAs", "privilegeLevel"],

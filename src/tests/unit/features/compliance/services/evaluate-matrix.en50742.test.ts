@@ -74,9 +74,34 @@ describe("rows on risk and project evidence (until CM-12)", () => {
   });
 
   it("statement rows (type C) need a statement", () => {
-    for (const label of ["EN-7.3.1/281", "EN-7.3.4/317–319", "EN-7.5/444–445", "EN-9/491–496"]) {
+    for (const label of ["EN-7.3.1/281", "EN-7.5/444–445", "EN-9/491–496"]) {
       expect(row(run(model), label).status, label).toBe("needs-statement");
     }
+  });
+
+  it("7.3.4 reads the retention field of the audit-log store (B-F6, 0.20) — no statement row any more", () => {
+    expect(row(run(model), "EN-7.3.4/317–319").status).not.toBe("needs-statement");
+  });
+});
+
+// Manual test en-50742 4.4 (2026-11-25): DS-1 kept the audit logs for ≥ 5
+// years, but lies outside the EN 50742 scope (no relevant flow reaches it).
+// 7.3.2 / 7.3.3 counted it as a supporting measure, 7.3.4 stayed a gap.
+describe("7.3.4 — a store outside the scope that keeps the records", () => {
+  const RETENTION = "EN-7.3.4/317–319";
+  const store = (retention: string) =>
+    el("s", "DataStore", { storedDataTypes: ["audit_logs"], auditRecordRetention: retention });
+
+  it("meets the row as a supporting measure", () => {
+    const r = row(run([el("p", "Process"), store("at_least_5_years")], { scope: new Set(["p"]) }), RETENTION);
+    expect(r.status).toBe("met");
+    expect(r.source).toBe("supporting-measure");
+    expect(r.supportingElements).toEqual(["s"]);
+  });
+
+  it("stays a gap when the store outside keeps them too briefly, or no store keeps them", () => {
+    expect(row(run([el("p", "Process"), store("1_to_5_years")], { scope: new Set(["p"]) }), RETENTION).status).toBe("gap");
+    expect(row(run([el("p", "Process")], { scope: new Set(["p"]) }), RETENTION).status).toBe("gap");
   });
 });
 
@@ -91,7 +116,9 @@ describe("scope: the whole machine", () => {
     const en = context.evaluate(EDITION_EN50742_A);
     const whole = prepareProjectCompliance({ ...project, compliance: undefined })!;
     expect(en.scopeName).toBeUndefined();
-    expect([...en.scope].sort()).toEqual([...whole.scope].sort());
+    // O17 (0.20): the EN 50742 scope is the relevance scope (safety zone /
+    // path to the safety functions), never the IEC 62443 component
+    expect([...en.scope].sort()).toEqual([...whole.evaluate(EDITION_EN50742_A).scope].sort());
     expect(context.scope.size).toBeLessThan(whole.scope.size);
   });
 });

@@ -278,6 +278,7 @@ describe("Overview sub-tabs (A-1)", () => {
           securityProperties: ["C", "I", "A"],
           riskMatrix: true,
           calcStamps: { risk: "iso-21434 · risk-1 · abc", path: "iso-21434 · feasibility-1 · def" },
+          threatCatalog: { current: 2, stored: { "per-element": 1 } },
         }}
         onOpenRiskTab={onOpenRiskTab}
       />,
@@ -287,10 +288,44 @@ describe("Overview sub-tabs (A-1)", () => {
     const view_ = screen.getByTestId("methodology-view");
     expect(view_.textContent).toContain("Avoid · Reduce · Share · Retain");
     expect(view_.textContent).toContain("iso-21434 · risk-1 · abc");
+    // catalogue divergence phase A: the version of the stored threats and the current one
+    expect(view_.textContent).toContain("Per element v1 · Current v2");
     expect(screen.getByTestId("methodology-scale-warning")).toBeTruthy();
     fireEvent.click(screen.getByTestId("methodology-open-risk"));
     expect(onOpenRiskTab).toHaveBeenCalled();
     // The settings stay in this view.
     expect(screen.getByText("settings.title")).toBeTruthy();
+  });
+
+  it("Methodology names the base method and EN 50742 A when A adds AP and SRSL (0.20, rule sheet R1)", () => {
+    render(
+      <GeneralTab
+        data={data}
+        phases={PHASES}
+        progressPhaseIds={[0]}
+        getStatusIcon={() => ""}
+        getStatusColor={() => ""}
+        onUpdate={vi.fn()}
+        projectId="P7"
+        methodology={{
+          presetNameKey: "ETSI TVRA",
+          basisNameKeys: ["ETSI TVRA", "EN 50742 Approach A"],
+          impactScale: "5-level",
+          impactScaleConforms: true,
+          impactCriteriaIds: ["safety"],
+          impactAggregation: "max",
+          likelihoodMethod: "etsi-tvra",
+          feasibilityMethod: "attack-potential",
+          likelihoodModel: "feasibility-only",
+          treatmentOptions: ["Reduce"],
+          securityProperties: ["C"],
+          riskMatrix: false,
+          threatCatalog: { current: 2, stored: {} },
+        }}
+        onOpenRiskTab={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByTestId("overview-view-methodology"));
+    expect(screen.getByTestId("methodology-view").textContent).toContain("ETSI TVRA + EN 50742 Approach A");
   });
 });

@@ -24,6 +24,13 @@ import { i18n } from "i18n";
 import type { Project } from "../models/project-types";
 import { buildAnalysisView, buildDfdGraph, analyseLeveled, isLeveled } from "features/dfd";
 import { withComponentMeasures } from "../utils/component-treatments";
+import {
+  en50742Relevance,
+  en50742Scope,
+  safetyFunctionIsolation,
+  type En50742Relevance,
+  type FunctionIsolation,
+} from "../utils/en50742-relevance";
 import { instanceClaims } from "./component-import/cited-claims";
 import { withComponentThreats } from "../utils/component-threats";
 import { getAllMitigations } from "features/threats";
@@ -56,7 +63,8 @@ import {
   type ViewFlow,
 } from "features/compliance";
 import type { DocCompliance, DocMitigationSuggestion } from "features/documentation";
-import { complianceComponentOf, familyCompliance } from "shared";
+import { EMPTY_PROJECT_TAGS, complianceComponentOf, familyCompliance, safetyZoneIds } from "shared";
+import { buildAttackPathThreatReferences } from "../utils/build-attack-path-threat-references";
 import { controlValuePatch, meetsExpected, readControlValue } from "shared/utils/control-value-semantics";
 import { deriveControlInstances } from "../hooks/use-control-instance-derivation";
 import { attackPathControlTargets } from "../utils/attack-path-control-targets";
@@ -157,6 +165,10 @@ export interface ProjectComplianceContext {
   evaluate: (edition: AnyEdition) => EditionEvaluation;
   /** EN 50742 A: risks, safety functions with their paths, hazards, WoO (CM-12). */
   en50742View: () => En50742View;
+  /** EN 50742 A and B: the relevant interfaces and flows — safety zone, else the path (O17 / O18). */
+  en50742Relevance: () => En50742Relevance;
+  /** Per safety function (asset id): is it isolated — every interface on its paths EL0 (patch 22)? */
+  en50742Isolation: () => ReadonlyMap<string, FunctionIsolation>;
 }
 
 /**
@@ -164,6 +176,15 @@ export interface ProjectComplianceContext {
  * planned overlay) once; the editions are evaluated on demand. Undefined
  * when there is no DFD.
  */
+/**
+ * The project's attack-path threats — every path, also one without a
+ * mitigation yet: a stored path risk must find its threat (and the leaves its
+ * relevance comes from) whatever the Risk tab's emission rule.
+ */
+function attackPathThreatsOf(project: Project) {
+  return buildAttackPathThreatReferences(project.attackTrees, false, project.info?.tags ?? EMPTY_PROJECT_TAGS);
+}
+
 export function prepareProjectCompliance(project: Project): ProjectComplianceContext | undefined {
   const dfd = project.dfd as Any;
   if (!dfd?.elements?.length) return undefined;
@@ -265,27 +286,84 @@ export function prepareProjectCompliance(project: Project): ProjectComplianceCon
         }),
       ),
     ].filter((c) => c.rowLabels.length > 0);
+  let relevance: En50742Relevance | undefined;
+  const en50742RelevanceOf = () =>
+    (relevance ??= en50742Relevance({
+      zoneIds: safetyZoneIds(dfd.elements as Any[]),
+      boundariesOf: (id) => {
+        const flow = graph.dataFlowAnalysis.get(id);
+        return flow ? { from: flow.fromTrustBoundaryIds ?? [], to: flow.toTrustBoundaryIds ?? [] } : undefined;
+      },
+      safetyFunctions: ((project.assets?.assets ?? []) as Any[])
+        .filter((a) => !!a.physicalImpact)
+        .map((a) => ({
+          id: a.id as string,
+          linkedIds: ((a.linkedDFDElements ?? []) as Any[]).map((l) => l.elementId as string).filter(Boolean),
+        })),
+      paths,
+    }));
+  let isolation: Map<string, FunctionIsolation> | undefined;
+  const en50742IsolationOf = () => {
+    if (isolation) return isolation;
+    const items = new Map<string, { type?: string; exposureLevel?: string }>();
+    for (const e of [...(dfd.elements as Any[]), ...((dfd.connections ?? []) as Any[])]) {
+      items.set(e.id, { type: e.type ?? "DataFlow", exposureLevel: e.properties?.exposureLevel });
+    }
+    isolation = new Map(
+      ((project.assets?.assets ?? []) as Any[])
+        .filter((a) => !!a.physicalImpact)
+        .map((a) => [
+          a.id as string,
+          safetyFunctionIsolation(
+            ((a.linkedDFDElements ?? []) as Any[]).map((l) => l.elementId as string).filter(Boolean),
+            paths,
+            (id) => items.get(id),
+          ),
+        ]),
+    );
+    return isolation;
+  };
   let en50742: ReturnType<typeof buildEn50742View> | undefined;
-  const en50742View = () => (en50742 ??= buildEn50742View(project, paths));
+  const en50742View = () =>
+    (en50742 ??= buildEn50742View(project, paths, en50742RelevanceOf(), en50742IsolationOf(), attackPathThreatsOf(project)));
+  // O17: the model rows of EN 50742 (A and B) on the relevant interfaces,
+  // flows and what the flows reach directly.
+  let en50742ScopeSet: Set<string> | undefined;
+  const en50742ScopeOf = () =>
+    (en50742ScopeSet ??= en50742Scope(en50742RelevanceOf(), view.flows, (id) => [
+      ...(graph.elementChipBoundaries.get(id) ?? []),
+      ...(graph.elementPhysicalBoundaries.get(id) ?? []),
+    ]));
 
   return {
     scope,
     scopeName: nameOf(componentId),
     en50742View,
+    en50742Relevance: en50742RelevanceOf,
+    en50742Isolation: en50742IsolationOf,
     evaluate: (edition) => {
       const familyData = familyCompliance(project.compliance, edition.family);
       const familyComponent = complianceComponentOf(project.compliance, edition.family);
-      const familyScope = scopeOf(familyComponent);
+      const isEn50742 = edition.family === "en-50742";
+      const familyScope = isEn50742 ? en50742ScopeOf() : scopeOf(familyComponent);
       const base = {
         edition,
         scope: familyScope,
         componentId: familyComponent,
         // D-31: statements per requirement, found by each row's requirement ids.
-        statements: editionStatements(edition, familyData.statements),
+        statements: editionStatements(
+          edition,
+          familyData.statements,
+          (family) => familyCompliance(project.compliance, family).statements,
+        ),
         mitigations,
         deviceCategories: familyData.deviceCategories,
         claims: matrixClaims(edition),
-        ...(edition.family === "en-50742" ? { en50742: en50742View() } : {}),
+        ...(isEn50742 ? { en50742: en50742View() } : {}),
+        // O17: no scope → the model rows are unknown, never met and never n/a
+        ...(isEn50742 && en50742RelevanceOf().relevant.size === 0
+          ? { scopeUnknown: en50742RelevanceOf().mode === "none" ? ("noSafetyScope" as const) : ("noRelevantInterface" as const) }
+          : {}),
       };
       return {
         achieved: evaluateMatrix({ ...base, view, run: "achieved" }),
@@ -329,7 +407,8 @@ function docComplianceOf(project: Project, language: string, standard: StandardM
   const { achieved, planned } = result;
   const name = complianceNameOf(project);
   const familyData = familyCompliance(project.compliance, edition.family);
-  const target = familyData.target ?? {};
+  // EN 50742 B fixes the SL-T (Table 4, B-F5)
+  const target = edition.fixedSlTarget ?? familyData.target ?? {};
   const rowById = new Map(edition.rows.map((r) => [r.label, r]));
   const levels = standard.header === "security-levels";
 
@@ -420,7 +499,12 @@ function docComplianceOf(project: Project, language: string, standard: StandardM
         ...(r.unclearMitigationIds?.length ? { unclearMitigations: [...r.unclearMitigationIds] } : {}),
         ...(r.uncountedClaims?.length ? { uncountedClaims: r.uncountedClaims.map((c) => ({ ...c })) } : {}),
         claims: r.claimIds,
-        reasoning: reasonOf(r),
+        // EN 50742 B (O14): a recommended row is named as such in every format
+        reasoning: r.recommended
+          ? [String(complianceT("compliance.recommendedTooltip", { defaultValue: "Recommended by analogy — Table 4 names only the embedded-device variant (O14). Shown, not counted." })), reasonOf(r)]
+              .filter(Boolean)
+              .join(" — ")
+          : reasonOf(r),
         summary: descriptions.map((d) => `${d.title} — ${d.summary}`).join(" / "),
         checklist: localizedChecklist(descriptions, r.checklist),
         contradiction: r.contradiction,

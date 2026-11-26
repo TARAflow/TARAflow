@@ -19,7 +19,7 @@
 import type { FactorRating } from "../models/risk-factor-types";
 import type { RiskConfiguration } from "../models/risk-config-types";
 import { LIKELIHOOD_SCALES } from "../models/risk-scale-types";
-import { normaliseImpactValue, type SafetySeverity } from "shared";
+import { hasEn50742Overlay, normaliseImpactValue, type SafetySeverity } from "shared";
 import type { WindowOfOpportunity, DFDReference, AssetReference } from "shared";
 import {
   calculateRiskValues,
@@ -52,6 +52,8 @@ export interface EN50742CalculationResult {
   srsl: Srsl | null;
   apScore: number | null;
   apBand: AttackPotentialBand | null;
+  /** B.6 gave SRSL0 on an interface above EL0 — raised to SRSL1 (guardSrslZero). */
+  srslRaised?: true;
 }
 
 type NormaliseFn = (value: number, sourceLevels: number, targetLevels: number) => number;
@@ -76,6 +78,8 @@ export function en50742RiskFromResolved(
   severity: Severity | undefined,
   scaleLevels: number,
   normalise: NormaliseFn,
+  /** See guardSrslZero (patch 22). */
+  functionIsolated?: boolean,
 ): EN50742CalculationResult {
   if (!el || !ac) {
     return {
@@ -91,6 +95,7 @@ export function en50742RiskFromResolved(
   const evaluated = evaluateEN50742Likelihood(
     { exposureLevel: el, windowOfOpportunity, attackerCapability: ac },
     severity,
+    functionIsolated,
   );
   const likelihood = normalise(
     evaluated.likelihoodOrdinal,
@@ -106,6 +111,7 @@ export function en50742RiskFromResolved(
     srsl: evaluated.srsl,
     apScore: evaluated.attackPotential.score,
     apBand: evaluated.attackPotential.band,
+    ...(evaluated.srslRaised ? { srslRaised: true as const } : {}),
   };
 }
 
@@ -187,6 +193,12 @@ export function calculateEN50742RiskValues(
 export interface ExposureLevelAnchorThreat {
   linkedElement?: { elementId: string; elementType?: string } | null;
   dataFlow?: { connectionId?: string } | null;
+  /**
+   * EN 50742 relevance of the anchor (O18); false = no EL is derived for it.
+   * exposureLevel: the EL an attack-path threat (no anchor of its own) is
+   * prefilled with — the MIN of its anchored leaves (app layer, 0.20).
+   */
+  en50742?: { relevant: boolean; exposureLevel?: string } | null;
 }
 
 function resolveAnchorProperties(
@@ -246,7 +258,14 @@ export function applyExposureLevelToFactorRatings(
   // permanently, exactly as before.
   if (rating.source === "manual" && rating.value !== 0) return ratings;
 
-  const rawEL = resolveAnchorProperties(threat, dfd)?.exposureLevel;
+  // O18: an anchor outside the safety zone / off the path to a safety
+  // function is not EN 50742 relevant — no EL is derived for it (a derived
+  // value from before is reset; a manual value stays, but the gate below
+  // gives the risk no SRSL).
+  const rawEL =
+    threat.en50742?.relevant === false
+      ? undefined
+      : (resolveAnchorProperties(threat, dfd)?.exposureLevel ?? threat.en50742?.exposureLevel);
   const el =
     typeof rawEL === "string" &&
     (EN50742_EXPOSURE_LEVELS as readonly string[]).includes(rawEL)
@@ -335,10 +354,10 @@ export function resolveEN50742Severity(
 // apply it before computing risk values), so this function only ever reads
 // `ratings`, never `dfd`/`threat` itself.
 //
-//   method !== "en-50742-a"            → generic path, srsl/apScore/apBand
+//   no EN 50742 A overlay              → generic path, srsl/apScore/apBand
 //                                         simply absent (not an EN 50742
 //                                         project at all).
-//   method === "en-50742-a":
+//   overlay (en-50742-a, or TVRA + A tag, hasEn50742Overlay):
 //     exposure_level unrated (value 0)
 //     OR windowOfOpportunity not yet configured on the project
 //                                       → generic R×L path, srsl/apScore/
@@ -362,6 +381,8 @@ export interface GatedRiskCalculationResult {
   srsl?: Srsl | null;
   apScore?: number | null;
   apBand?: AttackPotentialBand | null;
+  /** B.6 gave SRSL0 on an interface above EL0 — raised to SRSL1 (guardSrslZero). */
+  srslRaised?: true;
 }
 
 /**
@@ -374,6 +395,14 @@ export function calculateGatedRiskValues(
   ratings: FactorRating[],
   configuration: RiskConfiguration,
   linkedAssets: AssetReference[],
+  /**
+   * O18: the risk's anchor is EN 50742 relevant. false → no SRSL (the risk
+   * is rated as usual, L × I); undefined → no decision available, the SRSL
+   * follows the ratings as before.
+   */
+  en50742Relevant?: boolean,
+  /** The risk's safety functions are completely isolated (patch 22, guardSrslZero); undefined = none linked. */
+  functionIsolated?: boolean,
 ): GatedRiskCalculationResult {
   // SRSL and R = L × I are SEPARATE assessments (EN 50742 Approach A yields an
   // SRSL + mandated controls; the residual risk stays the standard L × I).
@@ -382,7 +411,9 @@ export function calculateGatedRiskValues(
   // the SRSL, which is overlaid here as a parallel output. Setting EL/AC/WoO
   // never moves the risk.
   const generic = calculateRiskValues(ratings, configuration);
-  if (configuration.likelihoodMethod !== "en-50742-a") {
+  // The overlay of EN 50742 A on the base method (preset en-50742-a, or
+  // ETSI TVRA + the A tag — hasEn50742Overlay, 0.20).
+  if (!hasEn50742Overlay(configuration)) {
     return generic;
   }
 
@@ -397,7 +428,7 @@ export function calculateGatedRiskValues(
     | AttackerCapability
     | undefined;
 
-  if (!el || !ac || !configuration.windowOfOpportunity) {
+  if (en50742Relevant === false || !el || !ac || !configuration.windowOfOpportunity) {
     return { ...generic, srsl: null, apScore: null, apBand: null };
   }
 
@@ -409,11 +440,13 @@ export function calculateGatedRiskValues(
       attackerCapability: ac,
     },
     severity,
+    functionIsolated,
   );
   return {
     ...generic,
     srsl: evaluated.srsl,
     apScore: evaluated.attackPotential.score,
     apBand: evaluated.attackPotential.band,
+    ...(evaluated.srslRaised ? { srslRaised: true as const } : {}),
   };
 }

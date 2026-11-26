@@ -107,6 +107,9 @@ export interface DFDElementReference {
   name: string;
   displayId: string;
   properties?: Record<string, unknown>;
+  /** The builder hands over the whole element — read by the threat element info. */
+  description?: string;
+  assetRelations?: ReadonlyArray<{ assetId: string; relationType?: string }>;
 }
 
 /**
@@ -127,6 +130,7 @@ export interface DFDConnectionReference {
   excludeFromThreatGen?: boolean;
   assumedTrusted?: boolean;
   properties?: Record<string, unknown>;
+  assetRelations?: ReadonlyArray<{ assetId: string; relationType?: string }>;
 }
 
 export interface DFDAssetReference {

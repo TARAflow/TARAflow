@@ -60,6 +60,7 @@ export const FINDING_CLASS: Record<keyof typeof ValidationMessages, "structure" 
   CHIPBOUNDARY_INVALID_CONNECTION: "structure",
   PHYSICALBOUNDARY_INVALID_CONNECTION: "structure",
   INTERFACE_NO_PHYSICAL_BOUNDARY: "structure",
+  SAFETY_ZONE_CROSSING_WITHOUT_INTERFACE: "structure",
   SENSOR_INVALID_CONNECTION: "structure",
   ACTUATOR_INVALID_CONNECTION: "structure",
   TRANSDUCER_EE_NOT_PHYSICAL: "structure",

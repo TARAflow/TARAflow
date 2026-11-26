@@ -68,6 +68,14 @@ export interface RegulationPreset {
   likelihoodFactorIds?: string[];
 
   /**
+   * Factors outside the regime pools this preset switches off as well (same
+   * rule: one the analyst enabled by hand stays, reported as a conflict).
+   * No preset uses it since 0.20 patch 27 (O16 revoked); kept for a regime
+   * that needs it.
+   */
+  disabledFactorIds?: string[];
+
+  /**
    * STRIDE threat generators this preset disables (per-element / per-interaction
    * / attack-path). Omitted → the preset disables none. Enforced BOTH in the GUI
    * (the method toggle is disabled and cannot be selected) AND in the backend
@@ -165,9 +173,15 @@ export const REGULATION_PRESETS: Record<RegulationPresetId, RegulationPreset> = 
     likelihoodMethod: "weighted-mean",
     nameKey: "regulationPresets.en-50742-b.name",
     descriptionKey: "regulationPresets.en-50742-b.description",
-    // Approach B is compliance-driven (IEC 62443-3-3/-4-2 fixed subset),
-    // delivered by the Compliance feature — it does not manage likelihood
-    // factors, so likelihoodFactorIds is intentionally omitted.
+    // Approach B is compliance-driven (IEC 62443-4-2 fixed subset, Table 4,
+    // delivered by the Compliance feature); the risks keep the standard
+    // weighted mean, motive included. O16 (2026-11-14: B without motive) is
+    // revoked (user 2026-11-21): R = L × I is TARAflow's cyber risk, not the
+    // norm's result — the safety side of B is the fixed requirement set, so
+    // 4.3/242 (likelihood of being targeted not relevant) does not touch it.
+    // The same reading as for A (F4). Listing motive as a target switches it
+    // back on where the earlier preset had switched it off.
+    likelihoodFactorIds: ["skill_level", "motive", "opportunity", "ease_of_exploit"],
   },
   "etsi-tvra": {
     id: "etsi-tvra",
@@ -198,6 +212,24 @@ export function getRequiredImpactScale(
   id: RegulationPresetId | undefined,
 ): RequiredImpactScale | undefined {
   return getRegulationPreset(id).requiredImpactScale;
+}
+
+// ==================== EN 50742 A OVERLAY ====================
+// EN 50742 Approach A is an addition, not a base method (user 2026-11-21):
+// R = L × I comes from the base method (standard or ETSI TVRA), and the
+// safety-relevant risks get AP from EL, WoO and AC, and from it the SRSL,
+// next to it. With the standard method the preset is en-50742-a (its
+// likelihood method means standard factors + overlay); with ETSI TVRA the
+// preset is etsi-tvra and the risk configuration carries en50742Overlay.
+
+/** The per-risk factors of the overlay (WoO is project-global). */
+export const EN50742_OVERLAY_FACTOR_IDS: readonly string[] = ["exposure_level", "attacker_capability"];
+
+/** The risks of this configuration get AP and SRSL (EN 50742 A). The one test for it. */
+export function hasEn50742Overlay(
+  configuration: { likelihoodMethod?: string; en50742Overlay?: boolean } | null | undefined,
+): boolean {
+  return configuration?.likelihoodMethod === "en-50742-a" || configuration?.en50742Overlay === true;
 }
 
 // ==================== THREAT GENERATOR ACTIVATION ====================

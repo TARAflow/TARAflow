@@ -4,7 +4,7 @@ import { Info } from "lucide-react";
 import { Tooltip } from "@mui/material";
 import {
   ProjectTags,
-  regulationPresetFromTags,
+  en50742ApproachFromTags,
   WINDOW_OF_OPPORTUNITY_OPTIONS,
   type WindowOfOpportunity,
 } from "shared";
@@ -44,7 +44,8 @@ export const WindowOfOpportunitySelector: React.FC<
 
   // Only EN 50742 Approach A consumes WoO (AP = EL × WoO + AC). Approach B and
   // every other preset ignore it — no point asking the analyst to rate it.
-  const relevant = regulationPresetFromTags(tags) === "en-50742-a";
+  // The A tag decides, also on ETSI TVRA (A as an overlay, 0.20).
+  const relevant = en50742ApproachFromTags(tags) === "A";
   if (!relevant) return null;
 
   const selected = WINDOW_OF_OPPORTUNITY_OPTIONS.find((o) => o.id === value);

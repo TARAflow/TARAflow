@@ -21,7 +21,7 @@ export type FoundationalRequirement = (typeof FOUNDATIONAL_REQUIREMENTS)[number]
 /** A level 1 … 4 an analyst can target. */
 export type TargetSecurityLevel = 1 | 2 | 3 | 4;
 
-export type ComplianceEditionId = "iec-62443-4-2-2019" | "en-iec-62443-4-2-praa-2026" | "en-50742-a";
+export type ComplianceEditionId = "iec-62443-4-2-2019" | "en-iec-62443-4-2-praa-2026" | "en-50742-a" | "en-50742-b";
 
 /**
  * A standard family — the editions of one standard; statements and the

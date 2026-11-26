@@ -167,4 +167,39 @@ describe("phase indicators", () => {
     });
     expect(details[PhaseId.DFD]).toBeUndefined();
   });
+
+  it("threats generated with an older catalogue: one warning naming the versions", () => {
+    const { counts, details } = phaseIndicators({
+      phaseStatus: stored,
+      info,
+      dfdValidation: null,
+      threatDrift: { obsolete: 0, added: 0 },
+      threatCatalog: { stored: 1, current: 2 },
+      t,
+    });
+    expect(counts[PhaseId.Threats]).toEqual({ errors: 0, warnings: 1 });
+    expect(details[PhaseId.Threats]).toEqual([
+      "Generated with threat catalogue v1, current is v2 — regenerate in the Threats tab to re-evaluate the threats",
+    ]);
+  });
+});
+
+describe("Risk phase — why risks are open (0.20 item 14)", () => {
+  it("the reasons follow the findings in the details; they do not count as warnings", () => {
+    const { counts, details } = phaseIndicators({
+      phaseStatus: stored,
+      info,
+      dfdValidation: null,
+      riskValidation: { errors: [], warnings: ["W1"] },
+      openRisks: ["mitigations not implemented yet (2): T-1, T-2"],
+      t,
+    });
+    expect(counts[PhaseId.Risk]).toEqual({ errors: 0, warnings: 1 });
+    expect(details[PhaseId.Risk]).toEqual(["W1", "mitigations not implemented yet (2): T-1, T-2"]);
+  });
+
+  it("no findings, only open risks: the reasons alone (the tooltip said nothing before)", () => {
+    const { details } = phaseIndicators({ phaseStatus: stored, info, dfdValidation: null, openRisks: ["SRSL controls missing (EN 50742) (1): T-4"], t });
+    expect(details[PhaseId.Risk]).toEqual(["SRSL controls missing (EN 50742) (1): T-4"]);
+  });
 });

@@ -24,6 +24,13 @@ export interface UsePageThumbnailsOptions {
   isRenderable: () => Promise<boolean>;
   /** Pause before another try (tests); default RETRY_MS. */
   retryMs?: number;
+  /**
+   * What the EL badges and the safety-zone frame in the editor stand for
+   * (useDFDEditor.appliedMarks). The images show them, but they are display
+   * only — a change exports every page again (manual test en-50742 7.2).
+   * The first value counts as what the stored images show.
+   */
+  marks?: string | null;
 }
 
 export function usePageThumbnails(
@@ -34,6 +41,8 @@ export function usePageThumbnails(
   const retryMs = options.retryMs ?? RETRY_MS;
   const xml = project.dfd?.xml;
   const pages = project.dfd?.pages;
+  const marks = options.marks ?? null;
+  const marksRef = useRef<string | null>(null);
 
   // pageId → fingerprint of the content last exported. A stored thumbnail
   // counts as current when the DFD is opened.
@@ -52,6 +61,12 @@ export function usePageThumbnails(
 
   useEffect(() => {
     if (!enabled || !xml || !pages || pages.length < 2 || busyRef.current) return;
+    // Changed marks: no page image is current any more.
+    if (marks !== null) {
+      // "" is no fingerprint: every page counts as changed (pagesToExport)
+      if (marksRef.current !== null && marksRef.current !== marks) exportedRef.current = new Map(pages.map((p) => [p.pageId, ""]));
+      marksRef.current = marks;
+    }
     const current = pageFingerprints(xml);
     if (!exportedRef.current) {
       exportedRef.current = new Map(
@@ -93,7 +108,7 @@ export function usePageThumbnails(
         busyRef.current = false;
       }
     })();
-  }, [enabled, xml, pages, exportPageSvgs, storeThumbnails, isRenderable, retry, retryMs]);
+  }, [enabled, xml, pages, exportPageSvgs, storeThumbnails, isRenderable, retry, retryMs, marks]);
 }
 
 /** Pause before another try when a page could not be exported. */

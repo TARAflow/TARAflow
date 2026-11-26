@@ -6,6 +6,8 @@ import {
   SourceBinding,
   EMPTY_PROJECT_TAGS,
   regulationPresetFromTags,
+  en50742ApproachFromTags,
+  type ProjectTags,
 } from "shared";
 import { itemDefinitionFindings } from "../services/item-definition-findings";
 import { MethodologyView } from "./methodology-view";
@@ -25,6 +27,7 @@ import {
   MethodologySummary,
   VerificationStatusView,
   ComponentOverviewItem,
+  RatingLoss,
 } from "../models/overview-types";
 import { VerificationStatusLine } from "./verification-status-line";
 import { ComponentsView } from "./components-view";
@@ -89,6 +92,9 @@ interface GeneralTabProps {
   /** Callback when data changes */
   onUpdate: (data: GeneralTabData) => void;
 
+  /** The risk ratings a tag change would delete — the project info asks before saving (app layer). */
+  ratingLossOf?: (tags: ProjectTags) => RatingLoss | undefined;
+
   /** Remembers the last sub-tab for this project; without it: Project. */
   projectId?: string;
 
@@ -126,6 +132,8 @@ interface GeneralTabProps {
   onFollowComponentBranch?: (importId: string, branch: string) => void;
   /** Open a component import's TARA as a further project. */
   onOpenComponent?: (importId: string) => void;
+  /** "Change prefix…" of an imported component instance (runs in the DFD tab). */
+  renameComponentPrefixOf?: (instanceId: string) => { check: (prefix: string) => string | undefined; onConfirm: (prefix: string) => void };
 }
 
 /**
@@ -149,6 +157,7 @@ const GeneralTabView: React.FC<GeneralTabProps> = ({
   phaseIndicators,
   onOpenPhase,
   onUpdate,
+  ratingLossOf,
   projectId,
   modelItems = [],
   assumptionUsage,
@@ -164,6 +173,7 @@ const GeneralTabView: React.FC<GeneralTabProps> = ({
   onUpdateComponent,
   onFollowComponentBranch,
   onOpenComponent,
+  renameComponentPrefixOf,
 }) => {
   const { t } = useTranslation();
   const [chosenView, setView] = useState<OverviewView>(() => loadView(projectId));
@@ -317,7 +327,11 @@ const GeneralTabView: React.FC<GeneralTabProps> = ({
       {view === "project" && (
         <>
           {verification && <VerificationStatusLine status={verification} onOpenAudit={onOpenAuditTab} />}
-          <ProjectInfo info={projectInfoData} onUpdate={handleInfoUpdate} />
+          <ProjectInfo
+            info={projectInfoData}
+            onUpdate={handleInfoUpdate}
+            {...(ratingLossOf ? { ratingLossOf } : {})}
+          />
 
           <ProjectProgress
             data={progressData}
@@ -357,6 +371,7 @@ const GeneralTabView: React.FC<GeneralTabProps> = ({
           {...(onUpdateComponent ? { onUpdate: onUpdateComponent } : {})}
           {...(onFollowComponentBranch ? { onFollowBranch: onFollowComponentBranch } : {})}
           {...(onOpenComponent ? { onOpen: onOpenComponent } : {})}
+          {...(renameComponentPrefixOf ? { renamePrefixOf: renameComponentPrefixOf } : {})}
         />
       )}
 
@@ -366,6 +381,7 @@ const GeneralTabView: React.FC<GeneralTabProps> = ({
           <ProjectSettings
             settings={data.settings}
             onUpdate={handleSettingsUpdate}
+            en50742={en50742ApproachFromTags(data.info.tags ?? EMPTY_PROJECT_TAGS) !== undefined}
           />
         </>
       )}

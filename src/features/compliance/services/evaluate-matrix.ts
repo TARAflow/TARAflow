@@ -326,6 +326,9 @@ function evaluateRule(rule: EvidenceRule<AnyRequirementId>, graph: Graph, input:
       openChecklist: [...(rule.checklist ?? [])],
     });
   }
+  // EN 50742 (O17): without a safety zone and a safety function the scope is
+  // not known — a model row cannot be met (nor n/a).
+  if (input.scopeUnknown && rule.targets.length > 0) return outcome("unknown", because(input.scopeUnknown));
   if (rule.minSrsl) {
     const reached = input.en50742 ? srslReached(rule.minSrsl, input.en50742) : "unknown";
     if (reached === "no") return outcome("n/a", because("srslNotReached", { values: { srsl: String(rule.minSrsl) } }));
@@ -375,6 +378,15 @@ function evaluateRule(rule: EvidenceRule<AnyRequirementId>, graph: Graph, input:
         unset,
         ...because("standIn", { types: targetTypes(rule.targets) }),
       });
+    }
+    if (rule.withoutTarget) {
+      // Step 7 here too: "kept somewhere" rows (7.3.4) are met by a store
+      // outside the scope that does it — as 7.3.2 / 7.3.3 by DS-1 (0.20 manual
+      // test en-50742 4.4, 2026-11-25: DS-1 kept the audit logs ≥ 5 years,
+      // 7.3.4 stayed a gap because DS-1 lies outside the EN 50742 scope).
+      const supporting = supportingMeasures(rule, graph, inScope, typeA);
+      if (supporting.length > 0) return outcome("met", { source: "supporting-measure", supporting });
+      return outcome(rule.withoutTarget.status, because(rule.withoutTarget.reason));
     }
     return outcome("n/a", because("noApplicable", { types: targetTypes(rule.targets) }));
   }
@@ -457,16 +469,25 @@ function evaluateRule(rule: EvidenceRule<AnyRequirementId>, graph: Graph, input:
   }
 
   // Step 7 — supporting measure, automatically only for "any" rules (D-20).
-  if (rule.type !== "C" && rule.quantifier === "any") {
-    const supporting = rule.targets.flatMap((target) =>
-      candidates(graph, target, inScope, false)
-        .filter((e) => applicable(graph, e, target) === "yes" && satisfied(e, target, typeA) === "yes")
-        .map((e) => e.id),
-    );
-    if (supporting.length > 0) return { ...model, status: "met", source: "supporting-measure", supporting };
-  }
+  const supporting = supportingMeasures(rule, graph, inScope, typeA);
+  if (supporting.length > 0) return { ...model, status: "met", source: "supporting-measure", supporting };
 
   return model;
+}
+
+/** Step 7: elements outside the scope that satisfy an "any" rule (D-20); none for other rules. */
+function supportingMeasures(
+  rule: EvidenceRule<AnyRequirementId>,
+  graph: Graph,
+  inScope: (id: string) => boolean,
+  typeA: boolean,
+): string[] {
+  if (rule.type === "C" || rule.quantifier !== "any") return [];
+  return rule.targets.flatMap((target) =>
+    candidates(graph, target, inScope, false)
+      .filter((e) => applicable(graph, e, target) === "yes" && satisfied(e, target, typeA) === "yes")
+      .map((e) => e.id),
+  );
 }
 
 /** One element's answer to a checklist item: yes, no, or open (unknown). */
@@ -568,6 +589,7 @@ function evaluateRow(row: AnyEditionRow, graph: Graph, input: ComplianceInput): 
     claimIds: [] as string[],
     checklist: [] as string[],
     supportingMeasuresAllowed: row.supportingMeasuresAllowed,
+    ...(row.recommended ? { recommended: row.recommended } : {}),
   };
 
   // Step 1 — void row.
@@ -695,7 +717,8 @@ export function countsWithSupport(row: RowResult): boolean {
 export function vectorOf(rows: readonly RowResult[], counts: (row: RowResult) => boolean): SlVector {
   const vector = {} as SlVector;
   for (const fr of FOUNDATIONAL_REQUIREMENTS as readonly FoundationalRequirement[]) {
-    const blocking = rows.filter((r) => r.group === fr && r.minSl !== null && !counts(r)).map((r) => r.minSl as number);
+    // recommended rows (EN 50742 B, O14) are shown, never counted
+    const blocking = rows.filter((r) => r.group === fr && r.minSl !== null && !r.recommended && !counts(r)).map((r) => r.minSl as number);
     vector[fr] = (blocking.length > 0 ? Math.min(...blocking) - 1 : 4) as SecurityLevel;
   }
   return vector;
@@ -703,9 +726,45 @@ export function vectorOf(rows: readonly RowResult[], counts: (row: RowResult) =>
 
 // ==================== ENTRY ====================
 
+/**
+ * EN 50742 B, 8.3/473 – 478 (CCSC 2): a Table 4 row the component meets only
+ * with countermeasures of the machinery system (a supporting measure, a
+ * claim, a statement "with supporting measures") must be named in the
+ * information for use, with the countermeasure. None → the row is met by
+ * the model; some → a statement confirms they are named (unless one exists).
+ */
+export const CCSC2_REQUIREMENT_ID = "en-8.3-473";
+
+function withSystemCountermeasures(rows: RowResult[], edition: ComplianceInput["edition"]): RowResult[] {
+  const index = edition.rows.findIndex((r) => r.requirementIds.includes(CCSC2_REQUIREMENT_ID as never));
+  if (index < 0) return rows;
+  const row = rows[index];
+  if (row.source === "statement") return rows;
+  const viaSystem = rows.filter(
+    (r, i) =>
+      edition.rows[i].family !== undefined &&
+      edition.rows[i].family !== edition.family &&
+      !r.recommended &&
+      (r.source === "supporting-measure" || r.source === "claim" || (r.source === "statement" && !!r.statementSupportingMeasure)),
+  );
+  const next: RowResult =
+    viaSystem.length === 0
+      ? { ...row, status: "met", modelStatus: "met", source: "model", ...because("noSystemCountermeasure") }
+      : {
+          ...row,
+          status: "needs-statement",
+          modelStatus: "needs-statement",
+          ...because("nameCountermeasures", { values: { list: viaSystem.map((r) => r.label).join(", ") } }),
+        };
+  return rows.map((r, i) => (i === index ? next : r));
+}
+
 export function evaluateMatrix(input: ComplianceInput): ComplianceResult {
   const graph = buildGraph(input);
-  const rows = input.edition.rows.map((row) => evaluateRow(row, graph, input));
+  const rows = withSystemCountermeasures(
+    input.edition.rows.map((row) => evaluateRow(row, graph, input)),
+    input.edition,
+  );
   return {
     rows,
     component: vectorOf(rows, countsForComponent),

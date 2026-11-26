@@ -36,10 +36,9 @@ describe("regulation preset catalog", () => {
     ]);
   });
 
-  it("en-50742-b manages no likelihood factors (compliance-driven)", () => {
-    expect(
-      REGULATION_PRESETS["en-50742-b"].likelihoodFactorIds,
-    ).toBeUndefined();
+  it("en-50742-b manages the standard factors, motive included (O16 revoked, 0.20 patch 27)", () => {
+    expect(REGULATION_PRESETS["en-50742-b"].likelihoodFactorIds).toEqual(REGULATION_PRESETS.standard.likelihoodFactorIds);
+    expect(REGULATION_PRESETS["en-50742-b"].disabledFactorIds).toBeUndefined();
   });
 
 

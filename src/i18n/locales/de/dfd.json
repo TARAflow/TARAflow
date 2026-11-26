@@ -5,6 +5,9 @@
       "description": "Erstelle und bearbeite hier dein Datenflussdiagramm.",
       "loading": "DFD-Editor wird geladen...",
       "proceed": "Weiter",
+      "badges": {
+        "safety": "Safety"
+      },
       "assetGraph": {
         "locked": {
           "label": "Komponente {{prefix}}",
@@ -563,6 +566,24 @@
             "by_user": "Löschfunktion für den Benutzer",
             "factory_reset": "Zurücksetzen in den Lieferzustand",
             "both": "Beides"
+          }
+        },
+        "safetyZone": {
+          "label": "Safety-Zone (EN 50742)",
+          "help": "Diese Trust Boundary ist der sicherheitsbezogene Teil der Maschine (Gelb-Bereich einer Grau/Gelb-Trennung). EN 50742 Approach A und B bewerten die Datenflüsse, die sie kreuzen, und die Interfaces, die diese passieren; deren Risiken bekommen EL, Angreiferfähigkeit und SRSL (A). In EN-50742-Projekten gefragt.",
+          "values": {
+            "yes": "Ja — Safety-Zone",
+            "no": "Nein"
+          }
+        },
+        "auditRecordRetention": {
+          "label": "Audit-Aufzeichnungen aufbewahrt",
+          "help": "Wie lange die Audit-Aufzeichnungen dieses Speichers aufbewahrt werden. EN 50742 verlangt mindestens fünf Jahre: 8.5 (Approach B, die auditierbaren Ereignisse von CR 2.8 für die Sicherheitsfunktionen) und 7.3.4 (Approach A, der letzte Eingriff je Art). Nur bei Speichern mit Audit-Logs sichtbar.",
+          "values": {
+            "under_1_year": "Weniger als 1 Jahr",
+            "1_to_5_years": "1 bis 5 Jahre",
+            "at_least_5_years": "Mindestens 5 Jahre",
+            "unlimited": "Unbegrenzt"
           }
         },
         "loginLockout": {
@@ -3146,6 +3167,7 @@
     "assetMissingRole": "Asset \"{{name}}\" hat keine Rolle gesetzt — beim Asset erfasst; ausgewertet wird der Typ der externen Entität",
     "assetMissingAutomationLevel": "Asset \"{{name}}\" hat kein Automatisierungsniveau gesetzt — Kontext für die Bewertung der Angriffsmachbarkeit; noch nicht automatisch ausgewertet und nicht im Report",
     "physicalBoundaryInvalidConnection": "Physische Grenze ist nicht verbindbar — stattdessen Schnittstellen-Element am Grenzrand verwenden",
+    "safetyZoneCrossingWithoutInterface": "{{name}} kreuzt die EN-50742-Safety-Zone ohne Interface — das passierte Interface zeichnen, sein Exposure Level ist, was EN 50742 bewertet",
     "interfaceNoPhysicalBoundary": "Schnittstelle hat keinen physischen Kontext — sie muss eine Physische Grenze überlappen oder darin liegen",
     "chipBoundaryMissingDebugInterface": "Chip Boundary \"{{name}}\" deklariert eine {{detail}} Debug-Schnittstelle aber kein passendes Schnittstellenelement überlappt sie — der Debug-Port ist nicht als Angriffsfläche modelliert",
     "interfaceConnectorTypeInvalid": "Schnittstelle \"{{name}}\": Connector-Typ \"{{connectorType}}\" ist für eine {{interfaceType}}-Schnittstelle nicht gültig",

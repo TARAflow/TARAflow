@@ -93,10 +93,11 @@ describe("applyRegulationPresetToProject", () => {
     expect(res.conflicts).toContain("iso_elapsed_time");
   });
 
-  it("is a no-op change for a preset that manages no factors (en-50742-b)", () => {
+  it("en-50742-b (O16 revoked, 0.20 patch 27): the standard factors stay, motive included", () => {
     const res = applyRegulationPresetToProject(project(), "en-50742-b");
     expect(res.project.settings.regulationPreset).toBe("en-50742-b");
-    expect(res.changed).toBe(false);
+    const on = res.project.risks!.configuration.activeFactors.filter((f) => f.enabled).map((f) => f.factorId);
+    expect(on).toContain("motive");
   });
 });
 
@@ -113,9 +114,8 @@ describe("applyRegulationPresetToProject — likelihoodMethod", () => {
     );
   });
 
-  it("sets the method even when no factors change (en-50742-b)", () => {
+  it("en-50742-b keeps the weighted mean", () => {
     const res = applyRegulationPresetToProject(project(), "en-50742-b");
-    expect(res.changed).toBe(false);
     expect(res.project.risks!.configuration.likelihoodMethod).toBe(
       "weighted-mean",
     );

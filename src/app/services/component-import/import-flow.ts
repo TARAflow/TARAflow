@@ -6,6 +6,7 @@
 // extend project.components). The dialog (features/components) and the
 // DFD (features/dfd) stay independent; this layer joins them.
 
+import { innerPrefixes } from "./instance-prefix";
 import type { A2ARelation, ComponentImport, ComponentInstance, ProjectComponents } from "shared";
 import { createDefaultAssetData, type Asset } from "features/assets";
 import {
@@ -75,7 +76,9 @@ export function candidateFrom(
   // A second import uses the state already imported (one state per component;
   // the update path follows in phase 5).
   const snapshot = existing?.snapshot ?? result.snapshot;
-  const prefixes = (machine.components?.instances ?? []).map((i) => i.prefix);
+  // the machine's prefixes and those the component uses inside — "SDC1" for a
+  // component with its own SDC1 gave "SDC1:SDC1:CASE" (0.20 manual test E3)
+  const prefixes = [...(machine.components?.instances ?? []).map((i) => i.prefix), ...innerPrefixes(snapshot)];
   return {
     name: snapshot.component.name,
     source: existing?.source ?? result.source,

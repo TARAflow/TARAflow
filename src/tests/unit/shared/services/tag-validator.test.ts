@@ -4,6 +4,12 @@ import {
   requiresHazardAnalysis,
   getRegulationConflicts,
   hasTagConflicts,
+  addTagToProject,
+  EMPTY_PROJECT_TAGS,
+  getRegulationPreset,
+  getAllPredefinedTagNames,
+  addTagWithOutcome,
+  getTagWarnings,
 } from "shared";
 import type { ProjectTags } from "shared";
 
@@ -81,5 +87,99 @@ describe("getRegulationConflicts — mutual exclusion", () => {
 
   it("does not flag non-regime tags", () => {
     expect(getRegulationConflicts(tags(["Automotive", "IoT"]))).toHaveLength(0);
+  });
+});
+
+describe("EN 50742 Approach B (0.20)", () => {
+  it("adding the B tag brings IEC 62443 along (user 2026-11-20), once", () => {
+    const once = addTagToProject(EMPTY_PROJECT_TAGS, "EN 50742 B");
+    expect(once.regulation).toEqual(["EN 50742 B", "IEC 62443"]);
+    const already = addTagToProject({ ...EMPTY_PROJECT_TAGS, regulation: ["IEC 62443"] }, "EN 50742 B");
+    expect(already.regulation).toEqual(["IEC 62443", "EN 50742 B"]);
+    // an alias spelling is written as the catalogue tag (0.20) and brings it along too
+    expect(addTagToProject(EMPTY_PROJECT_TAGS, "EN50742_B").regulation).toEqual(["EN 50742 B", "IEC 62443"]);
+    // Approach A brings nothing along
+    expect(addTagToProject(EMPTY_PROJECT_TAGS, "EN 50742 A").regulation).toEqual(["EN 50742 A"]);
+  });
+
+  it("selects the preset en-50742-b: the standard factors, motive included (O16 revoked)", () => {
+    const id = regulationPresetFromTags({ ...EMPTY_PROJECT_TAGS, regulation: ["EN 50742 B", "IEC 62443"] });
+    expect(id).toBe("en-50742-b");
+    expect(getRegulationPreset(id).likelihoodFactorIds).toEqual(["skill_level", "motive", "opportunity", "ease_of_exploit"]);
+    expect(getRegulationPreset(id).likelihoodMethod).toBe("weighted-mean");
+  });
+
+  it("A and B together stay a conflict (Clause 4.1)", () => {
+    expect(getRegulationConflicts({ ...EMPTY_PROJECT_TAGS, regulation: ["EN 50742 A", "EN 50742 B"] }).length).toBeGreaterThan(0);
+  });
+
+  it("the B tag is offered in the tag editor", () => {
+    expect(getAllPredefinedTagNames()).toContain("EN 50742 B");
+  });
+});
+
+describe("method tag combinations (user 2026-11-21)", () => {
+  const add = (regulation: string[], tag: string) => addTagWithOutcome(tags(regulation), tag);
+
+  it("EN 50742 A is an addition: with the standard method or ETSI TVRA, no conflict", () => {
+    expect(add(["ETSI TVRA"], "EN 50742 A")).toMatchObject({ tags: { regulation: ["ETSI TVRA", "EN 50742 A"] }, replaced: [] });
+    expect(getRegulationConflicts(tags(["ETSI TVRA", "EN 50742 A"]))).toEqual([]);
+  });
+
+  it("EN 50742 B goes with ETSI TVRA and IEC 62443", () => {
+    expect(add(["ETSI TVRA"], "EN 50742 B").tags.regulation).toEqual(["ETSI TVRA", "EN 50742 B", "IEC 62443"]);
+    expect(getRegulationConflicts(tags(["ETSI TVRA", "EN 50742 B", "IEC 62443"]))).toEqual([]);
+  });
+
+  it("the excluded pairs: the added tag replaces the other one", () => {
+    expect(add(["EN 50742 A", "CRA"], "EN 50742 B")).toMatchObject({
+      tags: { regulation: ["CRA", "EN 50742 B", "IEC 62443"] },
+      replaced: ["EN 50742 A"],
+    });
+    expect(add(["EN 50742 B", "IEC 62443"], "EN 50742 A")).toMatchObject({
+      tags: { regulation: ["IEC 62443", "EN 50742 A"] },
+      replaced: ["EN 50742 B"],
+    });
+    expect(add(["ISO 21434"], "EN 50742 A")).toMatchObject({ tags: { regulation: ["EN 50742 A"] }, replaced: ["ISO 21434"] });
+    expect(add(["ETSI TVRA", "EN 50742 A"], "ISO 21434")).toMatchObject({
+      tags: { regulation: ["ISO 21434"] },
+      replaced: ["ETSI TVRA", "EN 50742 A"],
+    });
+    expect(add(["ISO 21434"], "ETSI TVRA")).toMatchObject({ tags: { regulation: ["ETSI TVRA"] }, replaced: ["ISO 21434"] });
+  });
+
+  it("the bare EN 50742 is refused; a free spelling becomes the catalogue tag", () => {
+    expect(add([], "EN 50742")).toMatchObject({ tags: { regulation: [] }, refused: "en50742-approach" });
+    expect(add([], "EN50742")).toMatchObject({ refused: "en50742-approach" });
+    expect(add([], "EN 50742 Approach A").tags.regulation).toEqual(["EN 50742 A"]);
+    // other method tags stay as typed (review 2026-11-21) — and still count as the method
+    expect(add([], "ISO/SAE 21434").tags.regulation).toEqual(["ISO/SAE 21434"]);
+    expect(add(["ISO/SAE 21434"], "EN 50742 A")).toMatchObject({ tags: { regulation: ["EN 50742 A"] }, replaced: ["ISO/SAE 21434"] });
+    expect(add([], "ETSI TS 102 165-1")).toMatchObject({ tags: { regulation: ["ETSI TS 102 165-1"] }, added: "ETSI TS 102 165-1" });
+    // the same method in an old spelling goes silently
+    expect(add(["EN50742_A"], "EN 50742 A")).toMatchObject({ tags: { regulation: ["EN 50742 A"] }, replaced: [] });
+    // a free tag is untouched
+    expect(addTagWithOutcome(EMPTY_PROJECT_TAGS, "Kiosk").tags.custom).toEqual(["Kiosk"]);
+  });
+
+  it("conflicts of projects saved before — the bare EN 50742 counts as A (was missed)", () => {
+    expect(getRegulationConflicts(tags(["EN 50742", "EN 50742 B"]))).toHaveLength(1);
+    expect(getRegulationConflicts(tags(["ISO 21434", "ETSI TVRA", "EN 50742 A"]))).toHaveLength(2);
+  });
+
+  it("EN 50742 B without any IEC 62443-4-2 edition is hinted; with the CRA edition not", () => {
+    const hint = (r: string[]) => getTagWarnings(tags(r)).filter((w) => w.regulation === "EN 50742 B");
+    expect(hint(["EN 50742 B"])).toHaveLength(1);
+    expect(hint(["EN 50742 B", "EN IEC 62443 (CRA)"])).toHaveLength(0);
+    expect(hint(["EN 50742 B", "IEC 62443"])).toHaveLength(0);
+  });
+
+  it("aliases are read everywhere without rewriting: preset, approach, conflicts, context hints", () => {
+    expect(regulationPresetFromTags(tags(["EN50742_A"]))).toBe("en-50742-a");
+    expect(regulationPresetFromTags(tags(["ETSI TS 102 165-1", "EN50742_A"]))).toBe("etsi-tvra");
+    expect(regulationPresetFromTags(tags(["ISO/SAE 21434"]))).toBe("iso-21434");
+    expect(getRegulationConflicts(tags(["ISO/SAE 21434", "EN50742_B"]))).toHaveLength(1);
+    // the context hint of ISO 21434 (no Automotive) also for its alias
+    expect(getTagWarnings(tags(["ISO/SAE 21434"])).some((w) => w.kind === "missing-context")).toBe(true);
   });
 });

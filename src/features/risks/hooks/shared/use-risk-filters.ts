@@ -33,6 +33,8 @@ export interface RiskFilters {
   scope: DfdScopeFilter;
   /** ISO/SAE 21434: only the decisions to review (plan 3a-3, E5). */
   isoReviewOnly?: boolean;
+  /** EN 50742 (patch 29): only the safety-relevant risks (A and B). */
+  safetyOnly?: boolean;
 }
 
 /** Scale context needed to map a numeric risk score to a discrete level. */
@@ -67,7 +69,11 @@ function riskLevelValue(
 // ==================== HOOK ====================
 
 /** `scopeIndex`: the page index of a leveled DFD; absent for a classic one. */
-export function useRiskFilters(scopeIndex?: DfdScopeIndex) {
+export function useRiskFilters(
+  scopeIndex?: DfdScopeIndex,
+  /** EN 50742 (patch 29): threat ids whose risk is safety-relevant; undefined outside EN 50742. */
+  safetyRelevantThreatIds?: ReadonlySet<string>,
+) {
   const [filters, setFilters] = useState<RiskFilters>({
     searchText: "",
     priorityFilter: "",
@@ -75,6 +81,7 @@ export function useRiskFilters(scopeIndex?: DfdScopeIndex) {
     riskLevelFilter: "",
     scope: NO_DFD_SCOPE_FILTER,
     isoReviewOnly: false,
+    safetyOnly: false,
   });
   const inScope = useMemo(
     () => dfdScopePredicate(scopeIndex, filters.scope),
@@ -105,6 +112,10 @@ export function useRiskFilters(scopeIndex?: DfdScopeIndex) {
     setFilters((prev) => ({ ...prev, isoReviewOnly }));
   }, []);
 
+  const setSafetyOnly = useCallback((safetyOnly: boolean) => {
+    setFilters((prev) => ({ ...prev, safetyOnly }));
+  }, []);
+
   const clearFilters = useCallback(() => {
     setFilters({
       searchText: "",
@@ -113,6 +124,7 @@ export function useRiskFilters(scopeIndex?: DfdScopeIndex) {
       riskLevelFilter: "",
       scope: NO_DFD_SCOPE_FILTER,
       isoReviewOnly: false,
+      safetyOnly: false,
     });
   }, []);
 
@@ -124,9 +136,10 @@ export function useRiskFilters(scopeIndex?: DfdScopeIndex) {
         filters.treatmentFilter ||
         filters.riskLevelFilter !== "" ||
         filters.isoReviewOnly ||
+        (filters.safetyOnly && safetyRelevantThreatIds) ||
         inScope,
       ),
-    [filters, inScope],
+    [filters, inScope, safetyRelevantThreatIds],
   );
 
   const filterRisks = useCallback(
@@ -161,6 +174,9 @@ export function useRiskFilters(scopeIndex?: DfdScopeIndex) {
         });
       }
 
+      if (filters.safetyOnly && safetyRelevantThreatIds) {
+        filtered = filtered.filter((r) => safetyRelevantThreatIds.has(r.threatId));
+      }
       if (filters.priorityFilter) {
         filtered = filtered.filter(
           (r) => r.moscowPriority === filters.priorityFilter,
@@ -202,7 +218,7 @@ export function useRiskFilters(scopeIndex?: DfdScopeIndex) {
       }
       return filtered;
     },
-    [filters, hasActiveFilters, inScope],
+    [filters, hasActiveFilters, inScope, safetyRelevantThreatIds],
   );
 
   return {
@@ -213,6 +229,7 @@ export function useRiskFilters(scopeIndex?: DfdScopeIndex) {
     setRiskLevelFilter,
     setScopeFilter,
     setIsoReviewOnly,
+    setSafetyOnly,
     clearFilters,
     filterRisks,
     hasActiveFilters,

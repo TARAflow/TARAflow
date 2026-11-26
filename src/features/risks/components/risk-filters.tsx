@@ -15,6 +15,8 @@ import {
   Stack,
   Typography,
   InputAdornment,
+  FormControlLabel,
+  Checkbox,
 } from "@mui/material";
 import {
   Search as SearchIcon,
@@ -60,6 +62,10 @@ export interface RiskFiltersProps {
   scopeIndex?: DfdScopeIndex;
   scope?: DfdScopeFilter;
   onScopeChange?: (scope: DfdScopeFilter) => void;
+
+  /** EN 50742 (patch 29): only the safety-relevant risks; absent outside EN 50742. */
+  safetyOnly?: boolean;
+  onSafetyOnlyChange?: (on: boolean) => void;
 }
 
 // ==================== COMPONENT ====================
@@ -81,12 +87,15 @@ export const RiskFilters = React.memo<RiskFiltersProps>(
     scopeIndex,
     scope,
     onScopeChange,
+    safetyOnly,
+    onSafetyOnlyChange,
   }) => {
     const { t } = useTranslation();
     const hasFilters =
       searchText.trim() !== "" ||
       priorityFilter !== "" ||
-      riskLevelFilter !== "";
+      riskLevelFilter !== "" ||
+      !!safetyOnly;
 
     // Level options come from the active scale so 3-/4-/5-level all work
     // (4-level -> Low / Medium / High / Critical). Highest severity first.
@@ -217,6 +226,21 @@ export const RiskFilters = React.memo<RiskFiltersProps>(
 
           {scope && onScopeChange && (
             <DfdScopeFilterControls index={scopeIndex} filter={scope} onChange={onScopeChange} />
+          )}
+
+          {onSafetyOnlyChange && (
+            <FormControlLabel
+              control={
+                <Checkbox
+                  size="small"
+                  checked={!!safetyOnly}
+                  onChange={(e) => onSafetyOnlyChange(e.target.checked)}
+                  inputProps={{ "aria-label": "safety-only" }}
+                />
+              }
+              label={t("tabs.risks.safetyOnlyFilter", { defaultValue: "Only safety-relevant (EN 50742)" })}
+              data-testid="risk-filter-safety-only"
+            />
           )}
 
           {/* Spacer */}

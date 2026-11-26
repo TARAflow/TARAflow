@@ -17,6 +17,7 @@
 // asset<->DFD relations (`linkedDFDElements`, the asset-side mirror of a flow's
 // `assetRelations`) were not compared at all. Both are covered now.
 
+import { sameValue } from "shared/utils/same-value";
 import type { Project } from "app";
 import type {
   PhaseChanges,
@@ -33,9 +34,9 @@ import type { ThreatData, Threat } from "features/threats";
 import type { RiskData, Risk } from "features/risks";
 import type { AttackTreeData, AttackTree } from "features/attacktree";
 import { formatRiskLabel } from "shared/models/risk-label";
+import { storedCatalogVersion } from "shared/models/threat-catalog-stamp";
 import type { A2ARelation, CybersecurityConcept, ItemDefinition } from "shared";
 import { RETIRED_ASSET_FIELDS, type RetiredAssetField } from "shared/models/retired-asset-fields";
-import { canonicalStringify } from "shared/utils/tcs-canonical";
 
 /**
  * Asset fields retired from the model (shared/models/retired-asset-fields.ts),
@@ -59,23 +60,8 @@ function legacyAssetValue(asset: Asset, field: RetiredAssetField): string | unde
   return value === undefined || value === null ? undefined : typeof value === "string" ? value : JSON.stringify(value);
 }
 
-/**
- * Value equality for the change detection: the canonical form (TCS — keys
- * sorted, arrays in order), so an object rebuilt with the same content but
- * another key order is no change. JSON.stringify is order-sensitive: a
- * mitigation draft re-created by the threat sync ({id, alreadyImplemented, …}
- * instead of the file's sorted {alreadyImplemented, id, …}) showed up as a
- * modified threat in the commit message although the file stayed identical.
- * Values TCS rejects (NaN, functions) fall back to JSON.stringify.
- */
-function sameValue(a: unknown, b: unknown): boolean {
-  if (a === undefined || b === undefined) return a === b;
-  try {
-    return canonicalStringify(a) === canonicalStringify(b);
-  } catch {
-    return JSON.stringify(a) === JSON.stringify(b);
-  }
-}
+// Value equality for the change detection: shared/utils/same-value.ts (the
+// canonical form — another key order is no change; moved there in 0.20).
 
 /** The description of a DFD change ("Page added", "Layout changed"). */
 function dfdChangeText(change: DfdChange): string {
@@ -107,6 +93,37 @@ function valueTypeOf(value: unknown): ChangeDetail["valueType"] {
   if (typeof value === "number") return "number";
   if (typeof value === "boolean") return "boolean";
   return "string";
+}
+
+/** Analyst decisions compared as plain values: field → label. */
+const THREAT_DECISIONS = {
+  relevance: "Relevance",
+  workflowStatus: "Workflow",
+  threatActor: "Threat actor",
+  evalNote: "Evaluation note",
+} as const;
+const RISK_DECISIONS = {
+  treatment: "Treatment",
+  treatmentJustification: "Treatment justification",
+  wontJustification: "Won't justification",
+  riskBeforeRationale: "Rationale before mitigation",
+  riskAfterRationale: "Rationale after mitigation",
+} as const;
+
+/** One detail per changed field; absent and empty text count the same. */
+function plainDetails<T extends object>(current: T, previous: T, fields: Readonly<Record<string, string>>): ChangeDetail[] {
+  const value = (x: T, f: string) => {
+    const v = (x as Record<string, unknown>)[f];
+    return v === undefined || v === null || v === "" ? undefined : v;
+  };
+  const out: ChangeDetail[] = [];
+  for (const [field, fieldLabel] of Object.entries(fields)) {
+    const oldValue = value(previous, field);
+    const newValue = value(current, field);
+    if (sameValue(oldValue, newValue)) continue;
+    out.push({ field, fieldLabel, oldValue, newValue, valueType: valueTypeOf(newValue ?? oldValue) });
+  }
+  return out;
 }
 
 // ==================== DIFF SERVICE ====================
@@ -295,6 +312,8 @@ export class DiffService {
     const changes: ChangeItem[] = [];
 
     if (!current && !previous) return changes;
+    // the same object: nothing to compare (no XML parse)
+    if (current === previous) return changes;
 
     // New DFD created
     if (current && !previous) {
@@ -308,14 +327,14 @@ export class DiffService {
             field: "elements",
             fieldLabel: "Elements",
             oldValue: 0,
-            newValue: current.elements.length,
+            newValue: current.elements?.length ?? 0,
             valueType: "number",
           },
           {
             field: "connections",
             fieldLabel: "Data Flows",
             oldValue: 0,
-            newValue: current.connections.length,
+            newValue: current.connections?.length ?? 0,
             valueType: "number",
           },
         ],
@@ -746,8 +765,8 @@ export class DiffService {
 
     // One-sided null = whole phase added/removed; treat the missing side as an
     // empty threat set so first generation is committable.
-    const currentThreats = current ? this.getActiveThreats(current) : [];
-    const previousThreats = previous ? this.getActiveThreats(previous) : [];
+    const currentThreats = current ? this.allThreats(current) : [];
+    const previousThreats = previous ? this.allThreats(previous) : [];
 
     const currentMap = new Map(currentThreats.map((t) => [t.id, t]));
     const previousMap = new Map(previousThreats.map((t) => [t.id, t]));
@@ -786,6 +805,32 @@ export class DiffService {
       ),
     );
 
+    // Threat catalogue version a method was (re)generated with (catalogue
+    // divergence phase A) — a regeneration that changes no threat still
+    // records the re-evaluation in the trail.
+    if (current && previous) {
+      for (const method of ["per-element", "per-interaction"] as const) {
+        const before = storedCatalogVersion(previous, method);
+        const after = storedCatalogVersion(current, method);
+        if (before === after) continue;
+        changes.push({
+          type: "modified",
+          id: `threat-catalog-${method}`,
+          name: `Threat catalogue (${method})`,
+          description: `Threats ${method} regenerated with catalogue v${after} (before v${before})`,
+          details: [
+            {
+              field: "catalogStamp",
+              fieldLabel: "Threat catalogue version",
+              oldValue: before,
+              newValue: after,
+              valueType: "number",
+            },
+          ],
+        });
+      }
+    }
+
     // Modified threats
     Array.from(currentMap.entries()).forEach(([id, currentThreat]) => {
       const previousThreat = previousMap.get(id);
@@ -796,7 +841,7 @@ export class DiffService {
         changes.push({
           type: "modified",
           id: currentThreat.id,
-          name: `${currentThreat.id} (${currentThreat.strideCategory})`,
+          name: `${currentThreat.displayId || currentThreat.id} (${currentThreat.strideCategory})`,
           description: `Threat modified: ${details.length} field(s) changed`,
           details,
         });
@@ -806,13 +851,14 @@ export class DiffService {
     return changes;
   }
 
-  private getActiveThreats(threatData: ThreatData): Threat[] {
-    const method = threatData.configuration.activeMethod;
-    const tables =
-      method === "per-element"
-        ? threatData.perElementTables
-        : threatData.perInteractionTables;
-    return tables.flatMap((table) => table.threats);
+  /**
+   * The threats of both methods: the other method's are in the file too, and
+   * a change of them is a change of the file (0.20 item 16 — before, only the
+   * active method's were compared, the rest went into the commit unnamed).
+   */
+  private allThreats(threatData: ThreatData): Threat[] {
+    // a file read raw from git may lack parts (a phase never opened)
+    return [...(threatData.perElementTables ?? []), ...(threatData.perInteractionTables ?? [])].flatMap((table) => table.threats ?? []);
   }
 
   private compareThreatDetails(
@@ -820,6 +866,11 @@ export class DiffService {
     previous: Threat,
   ): ChangeDetail[] {
     const details: ChangeDetail[] = [];
+
+    // The analyst's decisions on the threat (0.20 manual test D4, 2026-11-25):
+    // in the threat's own lines, not under "does not list" where the cap of
+    // 20 could hide a relevance decision behind "N more".
+    details.push(...plainDetails(current, previous, THREAT_DECISIONS));
 
     if (current.threatDescription !== previous.threatDescription) {
       details.push({
@@ -964,12 +1015,14 @@ export class DiffService {
       });
     }
 
-    // Implementation status is derived — compare selectedMitigations instead
+    // Implementation status is derived — compare selectedMitigations instead:
+    // which measure and its status (0.20 item 16: a measure replaced by
+    // another of the same status was no change before)
     const prevImpl =
       current.selectedMitigations.length !==
         previous.selectedMitigations.length ||
       current.selectedMitigations.some(
-        (m, i) => m.status !== previous.selectedMitigations[i]?.status,
+        (m, i) => m.status !== previous.selectedMitigations[i]?.status || m.id !== previous.selectedMitigations[i]?.id,
       );
     if (prevImpl) {
       details.push({
@@ -981,6 +1034,24 @@ export class DiffService {
         newValue: current.selectedMitigations
           .map((m) => `${m.id ?? "custom"}:${m.status}`)
           .join(", "),
+        valueType: "string",
+      });
+    }
+
+    // The analyst's decisions on the risk (0.20 manual test D4, 2026-11-25) —
+    // in the risk's own lines, like the mitigations.
+    details.push(...plainDetails(current, previous, RISK_DECISIONS));
+
+    // Verifications chosen for the risk (they come with its mitigations) —
+    // next to the mitigations, not under "does not list" (0.20 manual test
+    // D4, 2026-11-25).
+    const verifications = (r: Risk) => (r.selectedVerifications ?? []).join(", ");
+    if (verifications(previous) !== verifications(current)) {
+      details.push({
+        field: "selectedVerifications",
+        fieldLabel: "Verifications",
+        oldValue: verifications(previous) || undefined,
+        newValue: verifications(current) || undefined,
         valueType: "string",
       });
     }

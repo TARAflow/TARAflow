@@ -42,34 +42,21 @@ export const RiskSyncBanner: React.FC<Props> = ({
   // Mirrors the individual counts the old chips rendered, minus "uncertain"
   // which is surfaced as its own separate notification.
   const syncChangeSummary = useMemo(() => {
+    const k = "tabs.risks.syncSummary";
     const parts: string[] = [];
-    if (syncStatus.newThreats > 0) parts.push(`${syncStatus.newThreats} new`);
-    if (syncStatus.orphanedRisks > 0)
-      parts.push(`${syncStatus.orphanedRisks} orphaned`);
-    if (syncStatus.changedDescriptions > 0)
-      parts.push(`${syncStatus.changedDescriptions} changed`);
-    if (syncStatus.changedMitigations > 0)
-      parts.push(`${syncStatus.changedMitigations} mitigations changed`);
-    if (syncStatus.changedExposureLevels > 0)
-      parts.push(
-        `${syncStatus.changedExposureLevels} exposure level${
-          syncStatus.changedExposureLevels === 1 ? "" : "s"
-        } changed`,
-      );
-    if (syncStatus.changedLinkedAssets > 0)
-      parts.push(
-        `${syncStatus.changedLinkedAssets} asset link${
-          syncStatus.changedLinkedAssets === 1 ? "" : "s"
-        } changed`,
-      );
-    if ((syncStatus.changedDisplayIds ?? 0) > 0)
-      parts.push(
-        `${syncStatus.changedDisplayIds} threat ID${
-          syncStatus.changedDisplayIds === 1 ? "" : "s"
-        } renumbered`,
-      );
+    const add = (count: number | undefined, key: string, defaultValue: string) => {
+      if ((count ?? 0) > 0) parts.push(t(`${k}.${key}`, { count, defaultValue }));
+    };
+    add(syncStatus.newThreats, "newThreats", "{{count}} new");
+    add(syncStatus.orphanedRisks, "orphaned", "{{count}} orphaned");
+    add(syncStatus.changedDescriptions, "changed", "{{count}} changed");
+    add(syncStatus.changedMitigations, "mitigations", "{{count}} mitigations changed");
+    add(syncStatus.changedExposureLevels, "exposureLevels", "{{count}} exposure level(s) changed");
+    add(syncStatus.changedLinkedAssets, "assetLinks", "{{count}} asset link(s) changed");
+    add(syncStatus.changedDisplayIds, "renumbered", "{{count}} threat ID(s) renumbered");
+    add(syncStatus.changedRelevance, "relevance", "{{count}} threat relevance(s) changed");
     return parts.join(", ");
-  }, [syncStatus]);
+  }, [syncStatus, t]);
 
   if (!needsSync && uncertainCount === 0 && syncWarnings.length === 0) return null;
 
