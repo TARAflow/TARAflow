@@ -151,8 +151,10 @@ describe("unlistedChanges", () => {
   // settings — listed with their values; only secret-named fields are masked,
   // wherever the change sits (a whole section removed printed them as JSON).
   it("tracker settings with their values; a token masked, also inside a removed section", () => {
-    const withUrl = (url: string) => JSON.stringify({ integration: { connection: { tool: "jira", credentials: { baseUrl: url, projectKey: "K" } } } });
-    expect(unlistedChanges(withUrl("https://a.example.net"), withUrl("https://b.example.net")).changes).toEqual([
+    const withUrl = (url: string, projectKey?: string) =>
+      JSON.stringify({ integration: { connection: { tool: "jira", credentials: { baseUrl: url, ...(projectKey ? { projectKey } : {}) } } } });
+    // the tracker project goes with the address — a tool setting, not named (user 2026-11-26)
+    expect(unlistedChanges(withUrl("https://a.example.net", "K"), withUrl("https://b.example.net")).changes).toEqual([
       { path: "integration.connection.credentials.baseUrl", before: "https://a.example.net", after: "https://b.example.net" },
     ]);
     const old = JSON.stringify({ integration: { connection: { tool: "jira", credentials: { baseUrl: "https://a.example.net", apiToken: "FAKE-1" } } } });

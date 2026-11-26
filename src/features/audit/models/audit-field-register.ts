@@ -344,6 +344,11 @@ export const AUDIT_FIELD_REGISTER: readonly AuditFieldEntry[] = [
   derived("integration/connection/status", "connection test result"),
   derived("integration/connection/lastTested", "timestamp"),
   derived("integration/connection/projectName", "read from the tracker"),
+  // the tracker project tickets go to — a tool setting that changes nothing in
+  // the analysis, and dropped with every address change (user 2026-11-26)
+  derived("integration/connection/credentials/projectKey", "tracker project chosen in the Issue tracker tab"),
+  derived("integration/connection/issueTypes", "read from the tracker"),
+  derived("integration/connection/issueTypes/**", "read from the tracker"),
   derived("audit/config/lastRoundNumber", "counter"),
 ];
 
