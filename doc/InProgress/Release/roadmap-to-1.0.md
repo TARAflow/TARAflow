@@ -303,6 +303,12 @@ Designs: `doc/Open/Threat/transducer-threat-catalogue-design.md` (phase 0) and
     (git checkout of the file, after a confirmation naming what is lost; the project is
     reloaded). For changes one does not want to keep, also when only timestamps differ
     from the commit (a value set and set back).
+- **Asset tab grouped by system asset** (idea 2026-11-26): in a machine TARA with
+  components, show the assets as *system → functions → data*, derived from the existing
+  asset-to-asset relations. A view only — no new field, no change of threat or risk
+  results, except one additive relation type `held_by` (data → system, decided
+  2026-11-26). Design and open decisions G1, G3–G7 (first: is it more than the D20
+  grouping by multiprocess?): `doc/Open/Assets/asset-tab-system-grouping-design.md`.
 
 ### 3.3 0.22 — EN 18031 and EN 40000-1-4
 
