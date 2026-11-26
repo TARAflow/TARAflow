@@ -36,6 +36,7 @@
       "prefixHint": "Before the component's ids, e.g. {{example}}",
       "prefixInvalid": "1–12 letters, digits, - or _",
       "prefixTaken": "Already used by another instance",
+      "prefixInner": "The component uses it inside for one of its own imports",
       "mappingTitle": "External entities of the component",
       "noEntities": "The component has no external entities.",
       "entity": "Component entity",
@@ -87,6 +88,13 @@
       "quantityHint": "Identical units in the same place — one analysis for all of them",
       "copyRatings": "Copy ratings from another instance…",
       "pathUnknown": "Where the component TARA lies on this computer is not known — open it via File → Open."
+    },
+    "prefix": {
+      "change": "Change prefix…",
+      "title": "Change the instance prefix",
+      "text": "The instance is inserted again with the new prefix: every id of it changes ({{current}}:P-1 → <new>:P-1). The decisions of this TARA on it stay.",
+      "confirm": "Change prefix",
+      "failed": "The prefix could not be changed: {{detail}}"
     },
     "update": {
       "open": "Update…",

@@ -56,6 +56,7 @@ import { withCitedClaim } from "../../services/component-import/cited-claims";
 import type { ComponentDrift } from "./use-component-drift";
 import { outdatedInstanceIds, updateTargetOf, type ComponentDriftStatus } from "../../services/component-import/component-drift";
 import { withPathOverlay } from "../../services/component-import/path-overlays";
+import { prefixProblem, renameInstancePrefix } from "../../services/component-import/instance-prefix";
 import { componentAttackPathGroups } from "../../utils/component-attack-trees";
 import {
   componentSourceLabel,
@@ -353,6 +354,51 @@ export function useComponentImport({
     },
     [pendingUpdate, updateProject, finishUpdate, toast, t],
   );
+  // "Change prefix…" (0.20 manual test E3): checked like at the import, the
+  // instance inserted again with the new prefix — through the DFD tab like an
+  // update, "Discard" until the project is saved.
+  const prefixCheckOf = useCallback(
+    (instanceId: string) =>
+      (prefix: string): string | undefined => {
+        const project = activeProjectRef.current;
+        const instance = project?.components?.instances.find((i) => i.id === instanceId);
+        if (!project || !instance) return undefined;
+        const problem = prefixProblem(project, instance.importId, prefix, instanceId);
+        if (problem === "format") return t("components.import.prefixInvalid", { ns: "components", defaultValue: "1–12 letters, digits, - or _" });
+        if (problem === "taken") return t("components.import.prefixTaken", { ns: "components", defaultValue: "Already used by another instance" });
+        if (problem === "inner")
+          return t("components.import.prefixInner", { ns: "components", defaultValue: "The component uses it inside for one of its own imports" });
+        return undefined;
+      },
+    [activeProjectRef, t],
+  );
+  const renameRunnerFor = useCallback(
+    (instanceId: string, prefix: string): ComponentImportRunner =>
+      (context) =>
+        new Promise((resolve) => {
+          const project = activeProjectRef.current;
+          if (!project) return resolve(null);
+          const base = withContext(project, context);
+          try {
+            const next = renameInstancePrefix(base, instanceId, prefix, new Date().toISOString());
+            sawUnsaved.current = false;
+            setApplied({ projectId: project.id, before: base });
+            void updateProject({ id: project.id, ...storesOf(next) });
+            resolve(outcomeOfDfd(next));
+          } catch (err) {
+            toast.error(
+              t("components.prefix.failed", {
+                ns: "components",
+                detail: err instanceof Error ? err.message : String(err),
+                defaultValue: "The prefix could not be changed: {{detail}}",
+              }),
+            );
+            resolve(null);
+          }
+        }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeProjectRef, updateProject, toast, t],
+  );
   const discardRunner: ComponentImportRunner = useCallback(
     () =>
       new Promise((resolve) => {
@@ -436,6 +482,7 @@ export function useComponentImport({
           return target && componentImportAvailable() ? { updateRunner: updateRunnerFor(imported.id), ...(target.refresh ? { updateIsRefresh: true } : {}) } : {};
         })(),
         ...(applied && applied.projectId === activeProjectRef.current?.id ? { discardRunner } : {}),
+        renamePrefix: { check: prefixCheckOf(instance.id), runnerFor: (prefix: string) => renameRunnerFor(instance.id, prefix) },
         // decisions to review after an update (derived from reviewBasis)
         reviews: openReviews(instance, imported.snapshot as ComponentSnapshot).map((r) => ({
           key: `${r.kind}|${r.key}`,
@@ -525,7 +572,7 @@ export function useComponentImport({
         ...(openProjectFile && componentImportAvailable() ? { onOpen: () => openComponentTara(imported.id) } : {}),
       };
     },
-    [components, openProjectFile, openComponentTara, t, toast, activeProjectRef, updateProject, drift, updateRunnerFor, applied, discardRunner],
+    [components, openProjectFile, openComponentTara, t, toast, activeProjectRef, updateProject, drift, updateRunnerFor, applied, discardRunner, prefixCheckOf, renameRunnerFor],
   );
 
   // Relevance override on an imported boundary-flow threat (I3) — written
@@ -605,8 +652,12 @@ export function useComponentImport({
      */
     updateActionOf: (importId: string): { runner: ComponentImportRunner; refresh: boolean } | undefined => {
       const imported = activeProject?.components?.imports.find((i) => i.id === importId);
-      const target = imported ? updateTargetOf(imported, drift?.drift.get(importId)) : undefined;
+      const target = imported
+        ? updateTargetOf(imported, drift?.drift.get(importId), outdatedInstanceIds(activeProject ?? {}, importId).length > 0)
+        : undefined;
       return target && componentImportAvailable() ? { runner: updateRunnerFor(importId), refresh: target.refresh } : undefined;
     },
+    /** "Change prefix…" of an instance for a start outside the DFD tab (Overview): its check and runner. */
+    renamePrefixOf: (instanceId: string) => ({ check: prefixCheckOf(instanceId), runnerFor: (prefix: string) => renameRunnerFor(instanceId, prefix) }),
   };
 }

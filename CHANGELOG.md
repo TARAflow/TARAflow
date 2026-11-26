@@ -9,6 +9,11 @@ changes of the file. Project schema stays **14** — no conversion; results of
 existing EN 50742 A projects can change (see the upgrade notes).
 
 ### Added
+- **Change the prefix of an imported component instance:** *Change prefix…* in the
+  multiprocess's tab *Component* and at each instance in Overview → Components inserts the
+  instance again with the new prefix — every id of it follows, the decisions of the TARA on
+  it stay, the audit lists "Prefix: old → new". The import proposes and accepts no prefix
+  the component uses inside for its own imports (it gave "SDC1:SDC1:CASE").
 - **DFD info while rating threats and risks:** an ⓘ next to each element and data flow in
   the threat tables, right after its name in the threat dialog and in the risk dialog
   (also for a per-element threat on a data flow) opens what the DFD knows about it — description, the

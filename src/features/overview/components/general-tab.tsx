@@ -132,6 +132,8 @@ interface GeneralTabProps {
   onFollowComponentBranch?: (importId: string, branch: string) => void;
   /** Open a component import's TARA as a further project. */
   onOpenComponent?: (importId: string) => void;
+  /** "Change prefix…" of an imported component instance (runs in the DFD tab). */
+  renameComponentPrefixOf?: (instanceId: string) => { check: (prefix: string) => string | undefined; onConfirm: (prefix: string) => void };
 }
 
 /**
@@ -171,6 +173,7 @@ const GeneralTabView: React.FC<GeneralTabProps> = ({
   onUpdateComponent,
   onFollowComponentBranch,
   onOpenComponent,
+  renameComponentPrefixOf,
 }) => {
   const { t } = useTranslation();
   const [chosenView, setView] = useState<OverviewView>(() => loadView(projectId));
@@ -368,6 +371,7 @@ const GeneralTabView: React.FC<GeneralTabProps> = ({
           {...(onUpdateComponent ? { onUpdate: onUpdateComponent } : {})}
           {...(onFollowComponentBranch ? { onFollowBranch: onFollowComponentBranch } : {})}
           {...(onOpenComponent ? { onOpen: onOpenComponent } : {})}
+          {...(renameComponentPrefixOf ? { renamePrefixOf: renameComponentPrefixOf } : {})}
         />
       )}
 

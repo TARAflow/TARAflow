@@ -36,6 +36,7 @@
       "prefixHint": "Vor den IDs der Komponente, z. B. {{example}}",
       "prefixInvalid": "1–12 Buchstaben, Ziffern, - oder _",
       "prefixTaken": "Bereits von einer anderen Instanz verwendet",
+      "prefixInner": "Die Komponente verwendet ihn intern für einen eigenen Import",
       "mappingTitle": "Externe Entitäten der Komponente",
       "noEntities": "Die Komponente hat keine externen Entitäten.",
       "entity": "Entität der Komponente",
@@ -87,6 +88,13 @@
       "quantityHint": "Gleiche Einheiten am gleichen Ort — eine Analyse für alle",
       "copyRatings": "Bewertung von anderer Instanz übernehmen…",
       "pathUnknown": "Wo die Komponenten-TARA auf diesem Rechner liegt, ist nicht bekannt — über Datei → Öffnen öffnen."
+    },
+    "prefix": {
+      "change": "Präfix ändern…",
+      "title": "Präfix der Instanz ändern",
+      "text": "Die Instanz wird mit dem neuen Präfix neu eingefügt: Alle ihre IDs ändern sich ({{current}}:P-1 → <neu>:P-1). Die Entscheide dieser TARA dazu bleiben.",
+      "confirm": "Präfix ändern",
+      "failed": "Der Präfix konnte nicht geändert werden: {{detail}}"
     },
     "update": {
       "open": "Update…",

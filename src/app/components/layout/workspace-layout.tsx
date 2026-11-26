@@ -430,6 +430,10 @@ export const WorkspaceLayout: React.FC = () => {
               if (action) navigation.runInDfd(action.runner);
             }}
             {...(componentImport.openComponentTara ? { onOpenComponent: componentImport.openComponentTara } : {})}
+            renameComponentPrefixOf={(instanceId) => {
+              const rename = componentImport.renamePrefixOf(instanceId);
+              return { check: rename.check, onConfirm: (prefix) => navigation.runInDfd(rename.runnerFor(prefix)) };
+            }}
             onFollowComponentBranch={(importId, branch) => {
               // the import follows the checked-out branch; the drift check runs again
               const components = activeProject.components;
