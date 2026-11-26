@@ -4,7 +4,9 @@
 // stored, and "Disconnect" removed the whole integration — the ticket mapping
 // with it. Now (user decisions 2026-11-26):
 //   - tracker and address are project settings: saved as they are changed
-//     (the audit lists them); e-mail and token stay on this machine;
+//     — the address when the field is left or Enter is pressed (review
+//     2026-11-27) — and listed by the audit; e-mail and token stay on this
+//     machine;
 //   - Disconnect ends the connection here (token, status) and keeps tracker,
 //     address, project and mapping;
 //   - changing tracker, address or user while connected asks first — the
@@ -88,6 +90,8 @@ describe("Issue tracker — settings in the project, the connection on this mach
     render(<IntegrationTab data={{ integration: CONNECTED }} onUpdate={onUpdate} />);
     fireEvent.change(host(), { target: { value: "https://acme.example.net2" } });
     fireEvent.click(screen.getByTestId("integration-change-disconnect"));
+    await waitFor(() => expect(host().value).toBe("https://acme.example.net2"));
+    fireEvent.blur(host());
     await waitFor(() => expect(last(onUpdate)?.connection?.credentials?.baseUrl).toBe("https://acme.example.net2"));
     expect(deleteToken).toHaveBeenCalled();
     expect(last(onUpdate)).toEqual({
@@ -101,14 +105,31 @@ describe("Issue tracker — settings in the project, the connection on this mach
     expect(host().value).toBe("https://acme.example.net2");
   });
 
-  it("not connected: the address is saved as typed, no dialog; the user name stays local", () => {
+  it("not connected: the address is saved when the field is left, no dialog; the user name stays local", () => {
     const onUpdate = vi.fn();
     render(<IntegrationTab data={{ integration: null }} onUpdate={onUpdate} />);
     fireEvent.change(host(), { target: { value: "https://other.example.net" } });
     expect(screen.queryByTestId("integration-change-dialog")).toBeNull();
+    fireEvent.blur(host());
     expect(last(onUpdate).connection).toMatchObject({ tool: "jira", status: "disconnected", credentials: { baseUrl: "https://other.example.net" } });
     const calls = onUpdate.mock.calls.length;
     fireEvent.change(screen.getByTestId("integration-user"), { target: { value: "me@example.com" } });
     expect(onUpdate.mock.calls.length).toBe(calls);
+  });
+
+  // review 2026-11-27: every keystroke was a project change and dropped the
+  // chosen tracker project — now the address is saved once, when the field is
+  // left or Enter is pressed
+  it("typing the address changes the project only once: on leaving the field or Enter", () => {
+    const onUpdate = vi.fn();
+    const { rerender } = render(<IntegrationTab data={{ integration: null }} onUpdate={onUpdate} />);
+    for (const value of ["https://o", "https://ot", "https://other.example.net"]) fireEvent.change(host(), { target: { value } });
+    expect(onUpdate).not.toHaveBeenCalled();
+    fireEvent.keyDown(host(), { key: "Enter" });
+    expect(onUpdate).toHaveBeenCalledTimes(1);
+    expect(last(onUpdate).connection.credentials.baseUrl).toBe("https://other.example.net");
+    rerender(<IntegrationTab data={{ integration: last(onUpdate) }} onUpdate={onUpdate} />); // the saved state comes back
+    fireEvent.blur(host()); // unchanged since: nothing more
+    expect(onUpdate).toHaveBeenCalledTimes(1);
   });
 });

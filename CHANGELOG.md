@@ -165,7 +165,8 @@ existing EN 50742 A projects can change (see the upgrade notes).
 - **Threats no longer generated:** the dialog that asks *Keep* or *Remove* shows the
   threat's text (and the attack text in its tooltip), not only its id and element.
 - **Issue tracker settings:** the tracker and its address are project settings — saved as
-  they are changed and named in the audit commit; e-mail and token stay on this machine.
+  they are changed (the address when its field is left or Enter is pressed, not with every
+  keystroke) and named in the audit commit; e-mail and token stay on this machine.
   *Disconnect* ends the connection on this machine (token, status) and keeps tracker,
   address, project and ticket mapping — before, it removed the whole tracker section, the
   mapping with it. Changing the tracker, the address or the user while connected asks

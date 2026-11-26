@@ -132,9 +132,13 @@ export const IntegrationTab: React.FC<IntegrationTabProps> = ({ data, onUpdate }
     if (connection) update({ ...connection, status: "disconnected" });
   };
 
-  // Tracker and address are project settings: saved as they are changed and
-  // listed by the audit (user 2026-11-26). The project chosen on the old
-  // tracker / address goes with it; e-mail and token stay on this machine.
+  // Tracker and address are project settings: saved when they are changed —
+  // the tracker at once, the address when the field is left or Enter is
+  // pressed, not with every keystroke (review 2026-11-27) — and listed by the
+  // audit (user 2026-11-26). The project chosen on the old tracker / address
+  // goes with it. The token stays in the keychain; the e-mail is kept in the
+  // project state for the form, and prepareForDisk drops it on save, so it
+  // stays on this machine.
   const saveSettings = (tool: string, baseUrl: string) => {
     if (connection?.tool === tool && connection?.credentials?.baseUrl === baseUrl) return;
     const authMethod = connection?.credentials?.authMethod;
@@ -231,10 +235,11 @@ export const IntegrationTab: React.FC<IntegrationTabProps> = ({ data, onUpdate }
             placeholder="https://…"
             onChange={(e) => {
               const value = e.target.value;
-              change(() => {
-                setHost(value);
-                saveSettings(tracker.id, value);
-              });
+              change(() => setHost(value));
+            }}
+            onBlur={() => saveSettings(tracker.id, host)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") saveSettings(tracker.id, host);
             }}
             inputProps={{ "data-testid": "integration-host" }}
           />
