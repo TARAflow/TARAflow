@@ -350,6 +350,19 @@ export const AUDIT_FIELD_REGISTER: readonly AuditFieldEntry[] = [
   derived("integration/connection/issueTypes", "read from the tracker"),
   derived("integration/connection/issueTypes/**", "read from the tracker"),
   derived("audit/config/lastRoundNumber", "counter"),
+  // Personal and machine-local values (PERSONAL_PATHS): prepareForDisk drops
+  // them, so they change only once, when a file written before that is saved
+  // again — not an analysis change (review of 201f1410, 2026-11-26).
+  derived("audit/config/author", "personal — stays on this machine"),
+  derived("audit/config/author/**", "personal — stays on this machine"),
+  derived("audit/config/auth/patAccount", "machine-local — stays on this machine"),
+  derived("audit/config/auth/sshKeyPath", "machine-local — stays on this machine"),
+  derived("audit/config/signing/sshSigningKeyPath", "machine-local — stays on this machine"),
+  derived("audit/config/signing/keyId", "personal — stays on this machine"),
+  derived("audit/config/gpg/keyId", "personal — stays on this machine"),
+  derived("audit/config/*/hasStoredKey", "runtime flag"),
+  derived("integration/connection/credentials/email", "personal — stays on this machine"),
+  derived("integration/connection/credentials/accountId", "personal — stays on this machine"),
 ];
 
 /**
@@ -372,6 +385,25 @@ export const SECRET_FIELD_NAMES: readonly string[] = [
   "privateKey",
 ];
 
+/**
+ * Personal and machine-local values — never with their value in the trail
+ * either. prepareForDisk drops them (PERSONAL VALUES, LOCAL / CREDENTIAL
+ * FIELDS), but a file written before that still holds them, and the first
+ * commit after saving it again listed them with their values: the author's
+ * e-mail, the tracker account, absolute key paths (review of 201f1410,
+ * 2026-11-26 — before it, the whole credentials and auth blocks were masked).
+ */
+export const PERSONAL_PATHS: readonly string[] = [
+  "audit/config/author/**",
+  "audit/config/auth/patAccount",
+  "audit/config/auth/sshKeyPath",
+  "audit/config/signing/sshSigningKeyPath",
+  "audit/config/signing/keyId",
+  "audit/config/gpg/keyId",
+  "integration/connection/credentials/email",
+  "integration/connection/credentials/accountId",
+];
+
 /** Whether a path (segments) matches a pattern ("*" one segment, "**" any number). */
 export function matchesPath(pattern: readonly string[], path: readonly string[]): boolean {
   if (pattern.length === 0) return path.length === 0;
@@ -386,13 +418,14 @@ export function matchesPath(pattern: readonly string[], path: readonly string[])
 
 const SPLIT = AUDIT_FIELD_REGISTER.map((e) => ({ ...e, segments: e.path.split("/") }));
 const SECRET_NAMES = new Set(SECRET_FIELD_NAMES);
+const PERSONAL_SPLIT = PERSONAL_PATHS.map((p) => p.split("/"));
 
 /** The register entry of a path (the first that matches), if any. */
 export function auditFieldEntry(path: readonly string[]): AuditFieldEntry | undefined {
   return SPLIT.find((e) => matchesPath(e.segments, path));
 }
 
-/** Whether a path's values stay out of the trail. */
+/** Whether a path's values stay out of the trail: a secret's name, or a personal value. */
 export function isSecretPath(path: readonly string[]): boolean {
-  return path.some((segment) => SECRET_NAMES.has(segment));
+  return path.some((segment) => SECRET_NAMES.has(segment)) || PERSONAL_SPLIT.some((p) => matchesPath(p, path));
 }

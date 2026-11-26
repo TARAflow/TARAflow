@@ -69,7 +69,9 @@ existing EN 50742 A projects can change (see the upgrade notes).
   by record as the analyst knows it (`threats.perElement[DB-E-1].causeDescription: … →
   …`), sorted, at most 20 per commit and the rest counted. Values computed by the app,
   the DFD layout, the method a tab shows and the report settings stay out on purpose;
-  a token or password is named without its value. The audit diff also compares the
+  a token or password is named without its value, and personal values an older file
+  still holds (commit author, tracker account, local key paths — dropped on save) are
+  neither listed nor shown. The audit diff also compares the
   threats of both methods (before: only the active one's), names changed threats by their
   display id and notices a measure replaced by another of the same status.
 - **EN 50742 relevance:** EN 50742 is about the interfaces to the safety functions and

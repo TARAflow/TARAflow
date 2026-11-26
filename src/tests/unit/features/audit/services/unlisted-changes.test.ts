@@ -16,6 +16,7 @@ import {
   formatFieldPath,
   unlistedChangeList,
   unlistedChanges,
+  unlistedChangesOf,
   withUnlistedChanges,
   withoutSecrets,
   MAX_LISTED_PATHS,
@@ -231,5 +232,40 @@ describe("withUnlistedChanges", () => {
     // the trailers are the real ones, not a value from the list
     expect(parseCommitMessage(message).trailers["Batch-Size"]).toEqual([String(data.batchSize)]);
     expect(message.indexOf("risks.risks[r0].note")).toBeLessThan(message.indexOf("Affected-Phases:"));
+  });
+});
+
+// Review of 201f1410 (2026-11-26): with the name-based masking, a file written
+// before prepareForDisk dropped the personal values (author, tracker account,
+// key paths) listed them with their values in the first commit after saving
+// it again — the author's e-mail in the audit repository.
+describe("unlistedChangesOf — personal values of an older file", () => {
+  const before = {
+    integration: { connection: { tool: "jira", credentials: { baseUrl: "https://x", email: "j@example.com", accountId: "acc-1" } } },
+    audit: {
+      config: {
+        author: { name: "Analyst A", email: "j@example.com" },
+        auth: { method: "ssh", sshKeyPath: "/opt/keys/id_ed25519", patAccount: "pat-1" },
+        signing: { enabled: true, format: "ssh", sshSigningKeyPath: "/opt/keys/sign", keyId: "K1" },
+        gpg: { enabled: false, keyId: "G1" },
+      },
+    },
+  };
+  const after = {
+    integration: { connection: { tool: "jira", credentials: { baseUrl: "https://x" } } },
+    audit: { config: { auth: { method: "ssh" }, signing: { enabled: true, format: "ssh" }, gpg: { enabled: false } } },
+  };
+
+  it("lists none of them — they are dropped on save, not an analysis change", () => {
+    const { changes, derivedOnly } = unlistedChangesOf(before, after);
+    expect(derivedOnly).toBe(true);
+    const text = JSON.stringify(changes);
+    for (const value of ["j@example.com", "Analyst A", "acc-1", "pat-1", "/opt/keys", "K1", "G1"]) expect(text).not.toContain(value);
+  });
+
+  it("masks them also inside a removed section", () => {
+    const { changes } = unlistedChangesOf(before, { ...after, audit: undefined, integration: undefined });
+    const text = JSON.stringify(changes);
+    for (const value of ["j@example.com", "Analyst A", "acc-1", "pat-1", "/opt/keys", "K1", "G1"]) expect(text).not.toContain(value);
   });
 });
