@@ -194,6 +194,9 @@ export const AUDIT_FIELD_REGISTER: readonly AuditFieldEntry[] = [
   derived("threats/*/*/retainedAfterRuleChange/**", "set when a rule changes"),
   derived("threats/configuration/customMitigationSeq", "counter"),
   presentation("threats/configuration/showThreatActor", "column shown"),
+  // which method the Threats tab shows — the threats of both are compared and
+  // reported (user, 0.20 manual test D5, 2026-11-26)
+  presentation("threats/configuration/activeMethod", "method the Threats tab shows"),
 
   // ---- risks (compareRisks)
   derived("risks", "the phase container — its risks are listed"),
@@ -255,6 +258,7 @@ export const AUDIT_FIELD_REGISTER: readonly AuditFieldEntry[] = [
   derived("risks/configuration/likelihoodMethod", "from the regulation preset (method tags)"),
   derived("settings/regulationPreset", "from the method tags (project info, listed there)"),
   presentation("risks/configuration/showIndividualFactors", "columns shown"),
+  presentation("risks/configuration/activeStrideMethod", "method the Risks tab shows"),
 
   // ---- attack trees (compareAttackTrees)
   derived("attackTrees", "the phase container — its trees are listed"),

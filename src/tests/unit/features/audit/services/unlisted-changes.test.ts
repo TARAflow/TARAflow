@@ -133,6 +133,19 @@ describe("unlistedChanges", () => {
     expect(unlistedChanges(withLinks(["a1"]), withLinks(["a1", "a2"])).changes.map((c) => c.notAudited)).toEqual(["derived"]);
   });
 
+  // user, 0.20 manual test D5 (2026-11-26): the active method only says which
+  // threats the tabs show — both methods' threats are compared and reported
+  it("switching the method the tabs show: presentation, not named", () => {
+    const method = (m: string) =>
+      JSON.stringify({ threats: { configuration: { activeMethod: m } }, risks: { configuration: { activeStrideMethod: m }, risks: [] } });
+    const r = unlistedChanges(method("per-element"), method("per-interaction"));
+    expect(r.derivedOnly).toBe(true);
+    expect(r.changes.map((c) => [c.path, c.notAudited])).toEqual([
+      ["risks.configuration.activeStrideMethod", "presentation"],
+      ["threats.configuration.activeMethod", "presentation"],
+    ]);
+  });
+
   it("credentials: named, never their values", () => {
     const withToken = (token: string) => JSON.stringify({ integration: { connection: { credentials: { apiToken: token } } } });
     expect(unlistedChanges(withToken("a"), withToken("b")).changes).toEqual([
