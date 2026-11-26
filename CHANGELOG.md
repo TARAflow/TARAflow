@@ -156,6 +156,9 @@ existing EN 50742 A projects can change (see the upgrade notes).
   by an earlier push is removed on the next push — **revoke it**).
 
 ### Fixed
+- **Asset graph — long display ids:** a prefixed id such as `C:SDC1:P1` did not fit into the
+  round node. A node is now a stadium (round ends, top and bottom parallel) as wide as its id
+  needs; short ids keep the circle, and edges end at the new border.
 - **Threat dialog — editing a text:** the pen stayed a pen while the threat or attack text
   was edited, and every keystroke was taken over at once. Now ✓ takes the edited text
   over and ✗ drops it; while a text is edited the dialog's buttons below are disabled.

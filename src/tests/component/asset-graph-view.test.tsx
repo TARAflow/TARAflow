@@ -223,4 +223,21 @@ describe("AssetGraphView", () => {
     view({ focusRequest: { assetId: "d1" } });
     expect(screen.getByTestId("asset-graph-inspector-asset")).toHaveTextContent("DA-001 Measure Data");
   });
+
+  // 0.20 manual test (2026-11-26): "C:SDC1:P1" did not fit into the circle —
+  // a node is a stadium as wide as its id needs; short ids keep the circle
+  it("a long display id widens the node; a short one keeps the circle", () => {
+    render(
+      <AssetGraphView
+        source={{ ...source, assets: [...source.assets, { id: "x1", displayId: "C:SDC1:SDC2:DA-1", name: "Nested", assetGroup: "data" }] }}
+        selectedAssetId={null}
+        onSelectAsset={vi.fn()}
+        onShowElement={vi.fn()}
+      />,
+    );
+    const width = (id: string) => Number(screen.getByTestId(`asset-graph-shape-${id}`).getAttribute("width"));
+    expect(width("d1")).toBe(68);
+    expect(Number(screen.getByTestId("asset-graph-shape-d1").getAttribute("rx"))).toBe(34);
+    expect(width("x1")).toBeGreaterThan(68);
+  });
 });
