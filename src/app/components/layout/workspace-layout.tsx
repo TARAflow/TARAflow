@@ -100,7 +100,7 @@ import { useComplianceView } from "app/hooks/workspace/use-compliance-view";
 import { driftView, useComponentImport } from "app/hooks/workspace/use-component-import";
 import { componentOverviewItems } from "app/services/component-import/component-overview";
 import { useComponentDrift } from "app/hooks/workspace/use-component-drift";
-import { componentDriftFindings, updateTargetOf } from "app/services/component-import/component-drift";
+import { componentDriftFindings, outdatedInstanceIds, updateTargetOf } from "app/services/component-import/component-drift";
 import { componentImportAvailable } from "app/services/component-import/component-source-electron";
 import { componentAssetGoals, componentLockedIds, findingOwner } from "app/services/component-import/component-scope";
 import { instanceClaims } from "app/services/component-import/cited-claims";
@@ -321,7 +321,10 @@ export const WorkspaceLayout: React.FC = () => {
         const status = componentDrift.drift.get(item.importId);
         // the same condition as the DFD's "Update…" (updateActionOf on click)
         const imported = activeProject?.components?.imports.find((i) => i.id === item.importId);
-        const target = imported && componentImportAvailable() ? updateTargetOf(imported, status) : undefined;
+        const target =
+          imported && componentImportAvailable()
+            ? updateTargetOf(imported, status, outdatedInstanceIds(activeProject ?? {}, imported.id).length > 0)
+            : undefined;
         return {
           ...item,
           ...(status ? { drift: driftView(status, t) } : {}),

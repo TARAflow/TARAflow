@@ -82,8 +82,8 @@ Work in the git repository of the prerequisites. Commit the unchanged file first
 
 | # | Step | Expected |
 |---|---|---|
-| E.1 | Import `SmokeDetectorCase` twice into `SmokeDetectorController` (prefixes `SD1`, `SD2`). | The boundaries read "Smoke Detector Case [SD1:CASE]" and "[SD2:CASE]", also on the copies around the multiprocesses and in the report. No "ID label … is used multiple times". |
-| E.2 | The machine from 0.19 with an instance: open, then update the component (**Update…**, **Apply update**, as in `component-import.md` §12). | Before the update the boundaries keep "[CASE]"; after it they read "[<prefix>:CASE]". The audit lists the new display ids once. A manual threat in the machine's table of such a boundary stays in that table. |
+| E.1 | In a machine **without** an instance of it (a copy of `SmokeDetectorController` with its instances deleted, or a new project), import `SmokeDetectorCase` twice (prefixes `SD1`, `SD2`). | The boundaries read "Smoke Detector Case [SD1:CASE]" and "[SD2:CASE]", also on the copies around the multiprocesses and in the report. No "ID label … is used multiple times". |
+| E.2 | `SmokeDetectorController` as committed (its instance SDC1 inserted by 0.19, the component unchanged): open, DFD → multiprocess of SDC1 → tab *Component* → **Check**. | Info "… instance SDC1: inserted by an older TARAflow …" and **Refresh stored state…** offered (no newer state needed). Refresh, apply: the boundaries read "[SDC1:CASE]", "[SDC1:SB]", "[SDC1:SDS]"; the audit lists the new display ids once; a manual threat in the machine's table of such a boundary stays in that table. After it the info is gone. |
 | E.3 | Nested import: save the controller of E.1 as a component, import it into a new machine with prefix `C1`, save, close, reopen. | The case's process reads `C1:SD1:P-1` (not `SD1:C1:P-1`), the boundary "[C1:SD1:CASE]"; after reopening the same; no missing-id finding. |
 | E.4 | An instance: *Component* tab → an assumption of use → *not fulfilled*. | The note field asks "Why it is not fulfilled" (German: "Warum sie nicht erfüllt ist"). |
 

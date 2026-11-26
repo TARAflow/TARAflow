@@ -222,16 +222,19 @@ existing EN 50742 A projects can change (see the upgrade notes).
   stay the machine's.
 - **Machines with a nested component import from 0.19** (a component that brings its own
   imports) have the wrong ids stored for its elements, e.g. "C1:M1:P-1" instead of
-  "M1:C1:P-1". Opening the project does not change them; the next update of the component
-  builds the instance again with the right ids — the audit then shows the new display ids
-  of these elements once.
+  "M1:C1:P-1". Opening the project does not change them; the component check names such
+  an instance and offers *Refresh stored state…* (also when the component is unchanged),
+  which builds it again with the right ids — the audit then shows the new display ids of
+  these elements once.
 - **Component TARAs with threat text stored as an i18n key** (e.g. `general.D-009.threat`)
   are repaired when opened. The repair changes the component's content once, so a
   machine that imported it reports a newer state of the component one time. This is a
   deliberate exception to the rule that opening never changes a component's hash.
   Components without such text are not touched.
 - **Imported component instances from 0.19** keep their unprefixed boundary labels
-  ("[CASE]"). The next component update builds the instance again with the prefix
+  ("[CASE]"). The component check names such an instance ("inserted by an older
+  TARAflow") and offers *Refresh stored state…* in the multiprocess's tab *Component*,
+  also when the component is unchanged; it builds the instance again with the prefix
   ("[SD1:CASE]"); the audit then shows the boundaries' new display ids once. Manual
   threats in the machine's threat table of such a boundary stay in that table (tables are
   matched by the boundary, no longer by its display id).

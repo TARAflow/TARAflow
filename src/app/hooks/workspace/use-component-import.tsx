@@ -54,7 +54,7 @@ import { withRelevanceOverride, type RelevanceDecision } from "../../services/co
 import { withMeasureOverride } from "../../services/component-import/measure-overrides";
 import { withCitedClaim } from "../../services/component-import/cited-claims";
 import type { ComponentDrift } from "./use-component-drift";
-import { updateTargetOf, type ComponentDriftStatus } from "../../services/component-import/component-drift";
+import { outdatedInstanceIds, updateTargetOf, type ComponentDriftStatus } from "../../services/component-import/component-drift";
 import { withPathOverlay } from "../../services/component-import/path-overlays";
 import { componentAttackPathGroups } from "../../utils/component-attack-trees";
 import {
@@ -304,7 +304,9 @@ export function useComponentImport({
             const project = activeProjectRef.current;
             const imported = project?.components?.imports.find((i) => i.id === importId);
             // a newer state, or the imported commit again when only the builder changed (refresh)
-            const target = imported ? updateTargetOf(imported, drift?.drift.get(importId)) : undefined;
+            const target = imported
+              ? updateTargetOf(imported, drift?.drift.get(importId), outdatedInstanceIds(project ?? {}, importId).length > 0)
+              : undefined;
             if (!project || !imported || !target) return resolve(null);
             const next = await readNewerComponentStateOnDisk(imported, project.filePath, target.status);
             if (!next.ok) {
@@ -426,7 +428,11 @@ export function useComponentImport({
         // update (5c-2): offered for a newer state; discard while the update is not saved
         ...(() => {
           // update to a newer state, or refresh the stored state of the same commit (builder changed)
-          const target = updateTargetOf(imported, drift?.drift.get(imported.id));
+          const target = updateTargetOf(
+            imported,
+            drift?.drift.get(imported.id),
+            outdatedInstanceIds(activeProjectRef.current ?? {}, imported.id).length > 0,
+          );
           return target && componentImportAvailable() ? { updateRunner: updateRunnerFor(imported.id), ...(target.refresh ? { updateIsRefresh: true } : {}) } : {};
         })(),
         ...(applied && applied.projectId === activeProjectRef.current?.id ? { discardRunner } : {}),

@@ -52,6 +52,7 @@
     "findings": {
       "CMP_NEWER_STATE_AVAILABLE": "Komponente {{component}}: ein neuerer Stand ist verfügbar ({{where}}). Nichts ändert sich, bis er explizit übernommen wird (Update).",
       "CMP_NEWER_ON_OTHER_BRANCH": "Komponente {{component}}: der ausgecheckte Branch {{branch}} hat einen neueren Stand ({{where}}); der Import folgt {{tracked}}. Übersicht → Komponenten → „Branch folgen“, um diesen Branch zu nehmen.",
+      "CMP_INSTANCE_OUTDATED": "Komponente {{component}}, Instanz {{prefix}}: von einer älteren TARAflow-Version eingefügt — Grenzen ohne den Instanz-Präfix oder die IDs eines verschachtelten Imports in falscher Reihenfolge. „Gespeicherten Stand auffrischen…“ im Tab „Komponente“ des Multiprozesses fügt sie neu ein; die Komponente selbst ist unverändert.",
       "CMP_SNAPSHOT_BUILDER_CHANGED": "Komponente {{component}}: dieses TARAflow liest den importierten Stand anders als die Version, die ihn importiert hat — die Komponente selbst hat sich nicht geändert. „Gespeicherten Stand auffrischen…“ im Tab „Komponente“ des Multiprozesses übernimmt ihn neu.",
       "CMP_SOURCE_DIVERGED": "Komponente {{component}}: ein Stand auf getrenntem Ast ({{where}}) — weder neuer noch älter als der importierte (z.B. nach einem Rebase). Vor einer Übernahme mit dem Komponenten-Team klären.",
       "CMP_SOURCE_UNREACHABLE": "Komponente {{component}}: ob es einen neueren Stand gibt, lässt sich hier nicht prüfen ({{reason}}).",
