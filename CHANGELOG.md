@@ -149,6 +149,12 @@ existing EN 50742 A projects can change (see the upgrade notes).
   by an earlier push is removed on the next push — **revoke it**).
 
 ### Fixed
+- **Issue tracker settings:** the tracker and its address are project settings — saved as
+  they are changed and named in the audit commit; e-mail and token stay on this machine.
+  *Disconnect* ends the connection on this machine (token, status) and keeps tracker,
+  address, project and ticket mapping — before, it removed the whole tracker section, the
+  mapping with it. Changing the tracker, the address or the user while connected asks
+  first (the token is bound to them) and keeps the ticket mapping.
 - **Assets of an imported component lost their DFD links:** a DFD update (also right after
   opening a machine) re-derived them from the machine's diagram, whose copies of the
   component's elements carry no asset relations — the links were emptied, the impact

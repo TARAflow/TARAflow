@@ -347,8 +347,25 @@ export const AUDIT_FIELD_REGISTER: readonly AuditFieldEntry[] = [
   derived("audit/config/lastRoundNumber", "counter"),
 ];
 
-/** Settings whose values never go into the trail — listed as changed only. */
-export const SECRET_PATHS: readonly string[] = ["integration/connection/credentials/**", "audit/config/auth/**"];
+/**
+ * Field names whose values never go into the trail — listed as changed only,
+ * anywhere in the file. The names prepareForDisk never writes under
+ * `integration` (INTEGRATION_SECRET_KEYS) and those of keys and passphrases;
+ * they reach a commit only from a file written before them. The rest of a
+ * tracker connection — tracker, address, project — is a project setting and
+ * listed with its values (user 2026-11-26).
+ */
+export const SECRET_FIELD_NAMES: readonly string[] = [
+  "apiToken",
+  "personalAccessToken",
+  "accessToken",
+  "refreshToken",
+  "token",
+  "password",
+  "clientSecret",
+  "passphrase",
+  "privateKey",
+];
 
 /** Whether a path (segments) matches a pattern ("*" one segment, "**" any number). */
 export function matchesPath(pattern: readonly string[], path: readonly string[]): boolean {
@@ -363,7 +380,7 @@ export function matchesPath(pattern: readonly string[], path: readonly string[])
 }
 
 const SPLIT = AUDIT_FIELD_REGISTER.map((e) => ({ ...e, segments: e.path.split("/") }));
-const SECRET_SPLIT = SECRET_PATHS.map((p) => p.split("/"));
+const SECRET_NAMES = new Set(SECRET_FIELD_NAMES);
 
 /** The register entry of a path (the first that matches), if any. */
 export function auditFieldEntry(path: readonly string[]): AuditFieldEntry | undefined {
@@ -372,5 +389,5 @@ export function auditFieldEntry(path: readonly string[]): AuditFieldEntry | unde
 
 /** Whether a path's values stay out of the trail. */
 export function isSecretPath(path: readonly string[]): boolean {
-  return SECRET_SPLIT.some((s) => matchesPath(s, path));
+  return path.some((segment) => SECRET_NAMES.has(segment));
 }

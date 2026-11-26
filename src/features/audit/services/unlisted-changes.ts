@@ -271,10 +271,9 @@ export function unlistedChangesOf(before: unknown, after: unknown, opts: { liste
 }
 
 /**
- * The value with every part under a secret path (credentials, audit auth)
- * replaced by "(set)" — a change above it (the whole `integration` removed
- * when the tracker is disconnected) printed the credentials block into the
- * commit (0.20 manual test D7, 2026-11-26).
+ * The value with every part under a secret field name (a token, a password)
+ * replaced by "(set)" — wherever the change sits: a whole section removed
+ * printed it as JSON (0.20 manual test D7, 2026-11-26).
  */
 export function withoutSecrets(path: readonly string[], value: unknown): unknown {
   if (isSecretPath(path)) return value === undefined ? undefined : "(set)";

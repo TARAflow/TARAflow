@@ -815,6 +815,9 @@
     "secretHelp": "Stored in the OS keychain for this address only.",
     "test": "Test connection",
     "disconnect": "Disconnect",
+    "changeTitle": "Change the tracker connection",
+    "changeText": "The token is bound to {{host}}. Changing the tracker, the address or the user ends this connection; the ticket mapping is kept. Connect again afterwards with \"Test connection\".",
+    "changeKeep": "Keep connection",
     "project": "Project",
     "projectHint": "Run the connection test again to choose another project.",
     "host": {

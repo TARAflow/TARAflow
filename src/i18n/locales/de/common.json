@@ -813,6 +813,9 @@
     "secretHelp": "Wird nur für diese Adresse im Schlüsselbund gespeichert.",
     "test": "Verbindung testen",
     "disconnect": "Trennen",
+    "changeTitle": "Tracker-Verbindung ändern",
+    "changeText": "Der Token ist an {{host}} gebunden. Eine Änderung von Tracker, Adresse oder Benutzer beendet diese Verbindung; die Ticket-Zuordnung bleibt erhalten. Danach mit „Verbindung testen“ neu verbinden.",
+    "changeKeep": "Verbindung behalten",
     "project": "Projekt",
     "projectHint": "Verbindungstest erneut ausführen, um ein anderes Projekt zu wählen.",
     "host": {

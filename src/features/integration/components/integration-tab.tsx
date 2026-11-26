@@ -13,6 +13,11 @@ import {
   Box,
   Button,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   MenuItem,
   Paper,
   Stack,
@@ -60,11 +65,17 @@ export const IntegrationTab: React.FC<IntegrationTabProps> = ({ data, onUpdate }
     };
   }, [ref]);
 
+  // Disconnecting keeps the ticket mapping (0.20 manual test D7, 2026-11-26:
+  // it went with the connection, and the next connect started from the
+  // defaults again).
+  const mapping = data.integration?.mapping ?? null;
   const update = (next: IntegrationConnection | null) =>
     onUpdate({
       integration: next
-        ? { connection: next, mapping: data.integration?.mapping ?? defaultTicketMapping(next.tool), lastSync: data.integration?.lastSync }
-        : null,
+        ? { connection: next, mapping: mapping ?? defaultTicketMapping(next.tool), lastSync: data.integration?.lastSync }
+        : mapping
+          ? { connection: null, mapping }
+          : null,
     });
 
   const handleTest = async () => {
@@ -109,15 +120,48 @@ export const IntegrationTab: React.FC<IntegrationTabProps> = ({ data, onUpdate }
     });
   };
 
+  // Disconnecting ends the connection on this machine — the token leaves the
+  // keychain, the status goes. Tracker, address, project and ticket mapping
+  // are the project's settings and stay (0.20 manual test D7, user decision
+  // 2026-11-26: before, the whole integration went, the mapping with it).
   const handleDisconnect = async () => {
     if (ref) await deleteTrackerToken(ref);
     setProjects([]);
     setResult(null);
     setTokenStored(null);
-    update(null);
+    if (connection) update({ ...connection, status: "disconnected" });
   };
 
-  const connected = connection?.status === "connected" && connection.tool === tracker.id;
+  // Tracker and address are project settings: saved as they are changed and
+  // listed by the audit (user 2026-11-26). The project chosen on the old
+  // tracker / address goes with it; e-mail and token stay on this machine.
+  const saveSettings = (tool: string, baseUrl: string) => {
+    if (connection?.tool === tool && connection?.credentials?.baseUrl === baseUrl) return;
+    const authMethod = connection?.credentials?.authMethod;
+    update({
+      tool: tool as IntegrationConnection["tool"],
+      status: "disconnected",
+      credentials: { ...(authMethod ? { authMethod } : {}), baseUrl, ...(user ? { email: user } : {}) },
+    });
+  };
+
+  const isConnected = connection?.status === "connected";
+  const connected = isConnected && connection?.tool === tracker.id;
+
+  // A change of tracker, address or user while connected: the token is bound
+  // to them, so the connection cannot go on — ask, then disconnect and take
+  // the value (user decision 2026-11-26).
+  const [pendingChange, setPendingChange] = useState<(() => void) | null>(null);
+  const change = (apply: () => void) => {
+    if (isConnected) setPendingChange(() => apply);
+    else apply();
+  };
+  const confirmChange = async () => {
+    const apply = pendingChange;
+    setPendingChange(null);
+    await handleDisconnect();
+    apply?.();
+  };
 
   return (
     <Box sx={{ p: 3, maxWidth: 900 }} data-testid="integration-tab">
@@ -158,11 +202,15 @@ export const IntegrationTab: React.FC<IntegrationTabProps> = ({ data, onUpdate }
             label={t("integration.tracker", { defaultValue: "Tracker" })}
             value={tracker.id}
             onChange={(e) => {
-              const next = issueTracker(e.target.value);
-              setToolId(e.target.value);
-              setHost(next?.defaultHost ?? "");
-              setResult(null);
-              setProjects([]);
+              const value = e.target.value;
+              change(() => {
+                const next = issueTracker(value);
+                setToolId(value);
+                setHost(next?.defaultHost ?? "");
+                setResult(null);
+                setProjects([]);
+                saveSettings(value, next?.defaultHost ?? "");
+              });
             }}
             inputProps={{ "data-testid": "integration-tracker" }}
           >
@@ -181,7 +229,13 @@ export const IntegrationTab: React.FC<IntegrationTabProps> = ({ data, onUpdate }
             label={labels.host}
             value={host}
             placeholder="https://…"
-            onChange={(e) => setHost(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              change(() => {
+                setHost(value);
+                saveSettings(tracker.id, value);
+              });
+            }}
             inputProps={{ "data-testid": "integration-host" }}
           />
           {tracker.userField && (
@@ -189,7 +243,10 @@ export const IntegrationTab: React.FC<IntegrationTabProps> = ({ data, onUpdate }
               label={labels.user}
               type={tracker.userField.kind === "email" ? "email" : "text"}
               value={user}
-              onChange={(e) => setUser(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                change(() => setUser(value));
+              }}
               inputProps={{ "data-testid": "integration-user" }}
             />
           )}
@@ -214,7 +271,7 @@ export const IntegrationTab: React.FC<IntegrationTabProps> = ({ data, onUpdate }
               {testing ? <CircularProgress size={18} sx={{ mr: 1 }} /> : null}
               {t("integration.test", { defaultValue: "Test connection" })}
             </Button>
-            {connection && (
+            {isConnected && (
               <Button color="error" onClick={handleDisconnect} data-testid="integration-disconnect">
                 {t("integration.disconnect", { defaultValue: "Disconnect" })}
               </Button>
@@ -245,6 +302,26 @@ export const IntegrationTab: React.FC<IntegrationTabProps> = ({ data, onUpdate }
           {t("integration.projectHint", { defaultValue: "Run the connection test again to choose another project." })}
         </Typography>
       )}
+      <Dialog open={pendingChange !== null} onClose={() => setPendingChange(null)} data-testid="integration-change-dialog">
+        <DialogTitle>{t("integration.changeTitle", { defaultValue: "Change the tracker connection" })}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {t("integration.changeText", {
+              host: connection?.credentials?.baseUrl ?? "",
+              defaultValue:
+                'The token is bound to {{host}}. Changing the tracker, the address or the user ends this connection; the ticket mapping is kept. Connect again afterwards with "Test connection".',
+            })}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPendingChange(null)} data-testid="integration-change-keep">
+            {t("integration.changeKeep", { defaultValue: "Keep connection" })}
+          </Button>
+          <Button color="error" onClick={() => void confirmChange()} data-testid="integration-change-disconnect">
+            {t("integration.disconnect", { defaultValue: "Disconnect" })}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

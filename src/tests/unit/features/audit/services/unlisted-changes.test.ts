@@ -147,20 +147,24 @@ describe("unlistedChanges", () => {
     ]);
   });
 
-  // 0.20 manual test D7 (2026-11-26): disconnecting the tracker removes the
-  // whole integration — its credentials block went into the commit as JSON.
-  it("a change above the credentials: the value shown without them", () => {
-    const connected = JSON.stringify({
-      integration: { connection: { tool: "jira", credentials: { baseUrl: "https://tenant.example.net/", projectKey: "K" } } },
-    });
-    const r = unlistedChanges(connected, JSON.stringify({}));
-    expect(r.changes).toEqual([{ path: "integration", before: { connection: { tool: "jira", credentials: "(set)" } }, after: undefined }]);
-    const [phase] = unlistedChangeList(r);
-    expect(JSON.stringify(phase)).not.toMatch(/tenant|projectKey/);
-    expect(withoutSecrets(["audit"], { config: { auth: { method: "ssh" }, provider: "github" } })).toEqual({ config: { auth: "(set)", provider: "github" } });
+  // 0.20 manual test D7 (2026-11-26, user): tracker and address are project
+  // settings — listed with their values; only secret-named fields are masked,
+  // wherever the change sits (a whole section removed printed them as JSON).
+  it("tracker settings with their values; a token masked, also inside a removed section", () => {
+    const withUrl = (url: string) => JSON.stringify({ integration: { connection: { tool: "jira", credentials: { baseUrl: url, projectKey: "K" } } } });
+    expect(unlistedChanges(withUrl("https://a.example.net"), withUrl("https://b.example.net")).changes).toEqual([
+      { path: "integration.connection.credentials.baseUrl", before: "https://a.example.net", after: "https://b.example.net" },
+    ]);
+    const old = JSON.stringify({ integration: { connection: { tool: "jira", credentials: { baseUrl: "https://a.example.net", apiToken: "FAKE-1" } } } });
+    const r = unlistedChanges(old, JSON.stringify({}));
+    expect(r.changes).toEqual([
+      { path: "integration", before: { connection: { tool: "jira", credentials: { baseUrl: "https://a.example.net", apiToken: "(set)" } } }, after: undefined },
+    ]);
+    expect(JSON.stringify(unlistedChangeList(r))).not.toContain("FAKE-");
+    expect(withoutSecrets(["audit"], { config: { auth: { method: "ssh", password: "x" } } })).toEqual({ config: { auth: { method: "ssh", password: "(set)" } } });
   });
 
-  it("credentials: named, never their values", () => {
+  it("a secret field: named, never its value", () => {
     const withToken = (token: string) => JSON.stringify({ integration: { connection: { credentials: { apiToken: token } } } });
     expect(unlistedChanges(withToken("a"), withToken("b")).changes).toEqual([
       { path: "integration.connection.credentials.apiToken", before: "(set)", after: "(set)", secret: true },
