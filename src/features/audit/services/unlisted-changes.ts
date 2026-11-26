@@ -261,13 +261,26 @@ export function unlistedChangesOf(before: unknown, after: unknown, opts: { liste
   const changes = shown
     .map((c) => ({
       path: formatFieldPath(c.path, labels),
-      before: c.before,
-      after: c.after,
+      before: withoutSecrets(c.path, c.before),
+      after: withoutSecrets(c.path, c.after),
       ...(isSecretPath(c.path) ? { secret: true } : {}),
       ...(derivedOnly && c.entry ? { notAudited: c.entry.class } : {}),
     }))
     .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
   return { derivedOnly, changes };
+}
+
+/**
+ * The value with every part under a secret path (credentials, audit auth)
+ * replaced by "(set)" — a change above it (the whole `integration` removed
+ * when the tracker is disconnected) printed the credentials block into the
+ * commit (0.20 manual test D7, 2026-11-26).
+ */
+export function withoutSecrets(path: readonly string[], value: unknown): unknown {
+  if (isSecretPath(path)) return value === undefined ? undefined : "(set)";
+  if (Array.isArray(value)) return value.map((x, i) => withoutSecrets([...path, `[${i}]`], x));
+  if (isObject(value)) return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, withoutSecrets([...path, k], v)]));
+  return value;
 }
 
 /** At most this many places in the commit; the rest counted. */

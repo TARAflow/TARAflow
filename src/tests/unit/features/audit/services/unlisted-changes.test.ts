@@ -17,6 +17,7 @@ import {
   unlistedChangeList,
   unlistedChanges,
   withUnlistedChanges,
+  withoutSecrets,
   MAX_LISTED_PATHS,
 } from "features/audit/services/unlisted-changes";
 import { DiffService } from "features/audit/services/diff-service";
@@ -146,10 +147,23 @@ describe("unlistedChanges", () => {
     ]);
   });
 
+  // 0.20 manual test D7 (2026-11-26): disconnecting the tracker removes the
+  // whole integration — its credentials block went into the commit as JSON.
+  it("a change above the credentials: the value shown without them", () => {
+    const connected = JSON.stringify({
+      integration: { connection: { tool: "jira", credentials: { baseUrl: "https://tenant.example.net/", projectKey: "K" } } },
+    });
+    const r = unlistedChanges(connected, JSON.stringify({}));
+    expect(r.changes).toEqual([{ path: "integration", before: { connection: { tool: "jira", credentials: "(set)" } }, after: undefined }]);
+    const [phase] = unlistedChangeList(r);
+    expect(JSON.stringify(phase)).not.toMatch(/tenant|projectKey/);
+    expect(withoutSecrets(["audit"], { config: { auth: { method: "ssh" }, provider: "github" } })).toEqual({ config: { auth: "(set)", provider: "github" } });
+  });
+
   it("credentials: named, never their values", () => {
     const withToken = (token: string) => JSON.stringify({ integration: { connection: { credentials: { apiToken: token } } } });
     expect(unlistedChanges(withToken("a"), withToken("b")).changes).toEqual([
-      { path: "integration.connection.credentials.apiToken", before: "a", after: "b", secret: true },
+      { path: "integration.connection.credentials.apiToken", before: "(set)", after: "(set)", secret: true },
     ]);
     const [phase] = unlistedChangeList(unlistedChanges(withToken("a"), withToken("b")));
     expect(phase.changes[0].details?.[0]).toMatchObject({ oldValue: "(set)", newValue: "(changed)" });
