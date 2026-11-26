@@ -156,6 +156,9 @@ existing EN 50742 A projects can change (see the upgrade notes).
   by an earlier push is removed on the next push — **revoke it**).
 
 ### Fixed
+- **Hazard item dialog — review progress:** the counter read `{{reviewed}}/1 reviewed`; the
+  dialog passed the count under another name than the text asks for. A new test checks every
+  translated text's placeholders against the code.
 - **Asset graph — long display ids:** a prefixed id such as `C:SDC1:P1` did not fit into the
   round node. A node is now a stadium (round ends, top and bottom parallel) as wide as its id
   needs; short ids keep the circle, and edges end at the new border.

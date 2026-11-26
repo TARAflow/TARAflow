@@ -553,8 +553,8 @@ export const HazardDialog: React.FC<HazardDialogProps> = ({
       </FormControl>
       <Typography variant="caption" color="text.secondary">
         {t("tabs.hazards.review.progress", {
-          defaultValue: "{{done}}/{{total}} reviewed",
-          done: reviewedCount,
+          defaultValue: "{{reviewed}}/{{total}} reviewed",
+          reviewed: reviewedCount,
           total: draft.hazards.length,
         })}
       </Typography>
