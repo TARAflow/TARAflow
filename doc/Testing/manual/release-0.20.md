@@ -92,7 +92,7 @@ Work in the git repository of the prerequisites. Commit the unchanged file first
 
 | # | Step | Expected |
 |---|---|---|
-| F.1 | Open a project. Open a second window with a copy. | Window title "<project> — <file path> — TARAflow <version>"; the two windows can be told apart. Without a project: "TARAflow <version>". |
+| F.1 | Start without a project; open two **different** projects (e.g. Simple_Test_Project and SmokeDetector) and switch between them; rename the active project; close it. | Without a project: "TARAflow <version>". With one: "<project> — <file path> — TARAflow <version>", following the active project and its new name. (A copy of a file has the same project id and replaces the open original — roadmap 0.21.) |
 | F.2 | Risks tab with open risks: hover the status chip and the Risk phase in the phase bar. | The reasons with the risks: mitigations not implemented yet, no mitigation selected, SRSL controls missing (EN 50742 A). |
 | F.3 | In a copy of an example, set a threat's `threatDescription` to `general.D-009.threat` in the file, open it. | The text of the template appears (also in its risk); a text the analyst wrote is not touched. |
 | F.4 | Overview → remove the tag *EN 50742 A* from `Simple_Test_Project`, save the project information. | Dialog "Risk ratings will be deleted" with the factors and the number of ratings and risks; *Cancel* keeps everything. |

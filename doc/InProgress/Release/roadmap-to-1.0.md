@@ -299,6 +299,13 @@ Designs: `doc/Open/Threat/transducer-threat-catalogue-design.md` (phase 0) and
   - a DFD image missing in the file (the report shows no diagram) is rendered once the
     DFD tab is shown, without the 10 s limit at opening, and the Doc tab says why it is
     missing — unless done in 0.20.
+  - **Two files with the same project id** (a copied `.tara.json`): the app knows a project
+    by the id in the file, so opening the copy replaced the open original in the project
+    list, and the local values kept per id (tracker status, audit settings) are shared. At
+    least a notice dialog when a file with the id of an open project is opened ("the same
+    project id as the open project X — opening it replaces it"); whether to offer "open as a
+    copy with a new id" is to decide — the project id is also the `componentId` machines
+    import a component by.
   - Audit tab: **discard the changes** of the project file — restore its committed state
     (git checkout of the file, after a confirmation naming what is lost; the project is
     reloaded). For changes one does not want to keep, also when only timestamps differ
