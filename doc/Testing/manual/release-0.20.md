@@ -73,7 +73,7 @@ Work in the git repository of the prerequisites. Commit the unchanged file first
 | D.2 | Commit, then *Verify audit trail*. | The commit is accepted; the list stands in the message before the trailers; the verification passes. |
 | D.3 | Change only the report language and move an element, save. | *Derived values* with "layout or report setting" — nothing under "does not list". Commit it. |
 | D.4 | Change the risk treatment and the treatment justification of more than 20 risks (or regenerate threats with relevance changes), save. | At most 20 places, then "N more". |
-| D.5 | Change a threat of the method that is *not* active (switch the method, edit, switch back), save. | The change is listed (before 0.20: unnamed). |
+| D.5 | A project stores threats of both methods, one is active (`Simple_Test_Project`: per element). Threats tab → switch to **per interaction**, change the relevance of one of its threats, switch back to **per element**, save, open the Audit tab. | Under *Threats*, that threat with `Relevance: … → …`; no line for the method (it was switched back). (Checks a fixed gap: up to 0.19 the audit compared only the threats of the active method.) |
 | D.6 | A risk with one selected mitigation, e.g. M-T-001 *open*: deselect it and select another one with the **same status**, e.g. M-T-002 *open*. Save, open the Audit tab. | Under *Risks*, at the risk: `Mitigations: M-T-001:open → M-T-002:open`. (Checks a fixed gap: up to 0.19 the audit compared only the number and the statuses of the mitigations, so this swap was signed without a line.) |
 | D.7 | Change the tracker connection's base URL in the integration settings, save. | Named as `integration.connection.credentials.baseUrl` with "(set) → (changed)", never the value. |
 
