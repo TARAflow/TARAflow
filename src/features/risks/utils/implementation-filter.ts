@@ -2,7 +2,10 @@
 // 0.20.1 (user 2026-11-27): the risks tab could not be filtered by the
 // implementation status of the mitigations. A risk has several selected
 // mitigations, each with a status:
-//   - a status (open … rejected): at least one selected mitigation has it;
+//   - a status (open … rejected): the risk's implementation status as the
+//     column "Implementation" shows it (deriveImplementationProgress) — user
+//     2026-11-27: "open" listed a risk the column shows "in review" (one of
+//     its mitigations was still open), which read as wrong;
 //   - "none": no mitigation selected;
 //   - "not_done" / "all_done": the risk's implementation progress
 //     (deriveImplementationProgress — the rule the progress chip uses);
@@ -47,6 +50,6 @@ export function matchesImplementationFilter(risk: Pick<Risk, "selectedMitigation
     case "done_without_evidence":
       return selected.some((m) => needsStatusEvidence(m, true));
     default:
-      return selected.some((m) => m.status === filter);
+      return selected.length > 0 && deriveImplementationProgress(selected) === filter;
   }
 }

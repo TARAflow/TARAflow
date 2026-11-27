@@ -3,11 +3,12 @@
 Small fixes after 0.20.0-beta. No new project schema (still 14); results unchanged.
 
 ### Added
-- **Risks tab — filter by implementation status:** next to priority and risk level. A risk
-  matches when one of its selected mitigations has the chosen status (open … rejected), or
-  by the values *no mitigation selected*, *mitigations not done*, *all mitigations done*
-  and *done without evidence* (a done status without ticket, evidence note or reference —
-  also without a tracker).
+- **Risks tab — filter by implementation status:** next to priority and risk level. A status
+  (open … rejected) lists the risks whose *Implementation* column shows it — a risk with an
+  open and an in-review mitigation is *in review*; besides, *no mitigation selected*,
+  *mitigations not done* (every risk with open work), *all mitigations done* and *done
+  without evidence* (a done status without ticket, evidence note or reference — also
+  without a tracker). The *won't* table is not filtered.
 
 ### Fixed
 - **Git over SSH no longer waits on a hidden prompt:** started from a terminal, a *Resolve* of

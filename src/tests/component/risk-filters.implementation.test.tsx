@@ -19,15 +19,18 @@ afterEach(cleanup);
 
 const risk = (id: string, statuses: string[]) =>
   ({ id, threatDisplayId: id, threatDescription: "", selectedMitigations: statuses.map((status, i) => ({ id: `M-${i}`, status })) }) as unknown as Risk;
-const RISKS = [risk("A", ["open", "verified"]), risk("B", []), risk("C", ["verified"])];
+const RISKS = [risk("A", ["open", "in_review"]), risk("B", []), risk("C", ["verified"])];
 
 describe("useRiskFilters — implementation status", () => {
   it("filters, counts as an active filter, and is cleared with the others", () => {
     const { result } = renderHook(() => useRiskFilters());
     expect(result.current.filterRisks(RISKS).map((r) => r.id)).toEqual(["A", "B", "C"]);
-    act(() => result.current.setImplementationFilter("verified"));
+    act(() => result.current.setImplementationFilter("open"));
     expect(result.current.hasActiveFilters).toBe(true);
-    expect(result.current.filterRisks(RISKS).map((r) => r.id)).toEqual(["A", "C"]);
+    // A shows "in review" (one mitigation still open) — not listed under "open"
+    expect(result.current.filterRisks(RISKS).map((r) => r.id)).toEqual([]);
+    act(() => result.current.setImplementationFilter("in_review"));
+    expect(result.current.filterRisks(RISKS).map((r) => r.id)).toEqual(["A"]);
     act(() => result.current.setImplementationFilter("none"));
     expect(result.current.filterRisks(RISKS).map((r) => r.id)).toEqual(["B"]);
     act(() => result.current.clearFilters());

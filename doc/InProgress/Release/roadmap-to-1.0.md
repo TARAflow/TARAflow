@@ -371,9 +371,9 @@ Designs: `doc/Open/Threat/transducer-threat-catalogue-design.md` (phase 0) and
   - **Filter by implementation status in the risks tab** (user 2026-11-27; **done in
     0.20.1** — the findings above reuse its rules), next to the
     priority, treatment and risk level filters (`use-risk-filters.ts`, `risk-filters.tsx`).
-    A risk has several selected mitigations, each with a status — a risk matches when at
-    least one of its selected mitigations has the chosen status (open, in progress, in
-    review, implemented, verified, rejected). In addition: "no mitigation selected",
+    A risk has several selected mitigations, each with a status — a status value matches
+    the risk's status as the *Implementation* column shows it (user 2026-11-27: "at least
+    one mitigation" listed an *in review* risk under *open*). In addition: "no mitigation selected",
     "all done" and "done without evidence" — the rules of the findings above, reused, so
     filter and panel always count the same risks. The filter applies to the attack-path
     risks too, as the other filters do; the counts in the toolbar stay unfiltered.

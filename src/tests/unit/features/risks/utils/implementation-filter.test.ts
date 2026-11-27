@@ -1,8 +1,9 @@
 // src/tests/unit/features/risks/utils/implementation-filter.test.ts
 //
 // 0.20.1 (user 2026-11-27): filter the risks by the implementation status of
-// their mitigations. A risk with mixed statuses matches every status one of
-// its mitigations has; the extra values follow the progress rule.
+// their mitigations — the status the column "Implementation" shows (a risk
+// with an open and an in-review mitigation is "in review", not "open"); the
+// extra values follow the progress rule.
 import { describe, expect, it } from "vitest";
 import { matchesImplementationFilter, type ImplementationFilter } from "features/risks/utils/implementation-filter";
 import type { Risk } from "features/risks/models/risk-assessment-types";
@@ -15,8 +16,11 @@ const match = (r: Risk) =>
   );
 
 describe("matchesImplementationFilter", () => {
-  it("mixed statuses: each status one of the mitigations has; not done", () => {
-    expect(match(risk({ status: "open" }, { status: "implemented", ticketId: "T-1" }))).toEqual(["open", "implemented", "not_done"]);
+  it("mixed statuses: the column's status only (user 2026-11-27: open + in review is in review, not open)", () => {
+    expect(match(risk({ status: "open" }, { status: "in_review", ticketId: "T-1" }))).toEqual(["in_review", "not_done"]);
+    // partly done: in progress
+    expect(match(risk({ status: "open" }, { status: "implemented", ticketId: "T-1" }))).toEqual(["in_progress", "not_done"]);
+    expect(match(risk({ status: "open" }, { status: "open" }))).toEqual(["open", "not_done"]);
   });
 
   it("no mitigation selected: only none", () => {
@@ -24,7 +28,8 @@ describe("matchesImplementationFilter", () => {
   });
 
   it("all done (implemented, verified; rejected ones do not count against it)", () => {
-    expect(match(risk({ status: "verified", evidenceNote: "test report" }, { status: "rejected" }))).toEqual(["verified", "rejected", "all_done"]);
+    expect(match(risk({ status: "verified", evidenceNote: "test report" }, { status: "rejected" }))).toEqual(["verified", "all_done"]);
+    expect(match(risk({ status: "rejected" }))).toEqual(["rejected", "all_done"]);
   });
 
   it("a done status without ticket, note or reference: done without evidence — also without a tracker", () => {
