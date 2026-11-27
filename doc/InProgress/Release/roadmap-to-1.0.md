@@ -1,6 +1,6 @@
 # TARAflow — roadmap to 1.0.0
 
-**Status:** v0.11 · 2026-11-27 · v0.11: dismiss unsuitable proposed mitigations / verifications per threat, and the catalogue leak of gap template I-001, in 0.21 (user 2026-11-27) · v0.10 · 2026-11-21 · v0.10: EN 50742 B done (0.20 patches 09 – 19), tag rules (one base method, A as an overlay — user 2026-11-21) · v0.9: results dump of 0.19 done (0.20 patch 01); four small
+**Status:** v0.12 · 2026-11-27 · v0.12: open-work findings that click through to the implementation dialog, and an implementation status filter in the risks tab, in 0.21 (user 2026-11-27) · v0.11: dismiss unsuitable proposed mitigations / verifications per threat, and the catalogue leak of gap template I-001, in 0.21 (user 2026-11-27) · v0.10 · 2026-11-21 · v0.10: EN 50742 B done (0.20 patches 09 – 19), tag rules (one base method, A as an overlay — user 2026-11-21) · v0.9: results dump of 0.19 done (0.20 patch 01); four small
 items from the 0.19 manual test and review in 0.20; EN 40000-1-4 with EN 18031 in 0.22 (user
 2026-11-20) · v0.8: the Audit SSH key field without effect (review 2026-11-20) · v0.7: 0.20 also hardens git:rawInDir and shows a component's boundary interfaces (review / user 2026-11-19/20) · v0.6: acknowledged audit findings in 0.20 (user 2026-11-17) · v0.5: snapshot hash test from 0.20 (reference 0.19, re-based in 0.21); where R-6 / R-7 go if decided for 1.0; the deliberate exception of 0.23 to rule 2 (review of cb0eabe5, second instance) · v0.4: review of the order against the design documents and
 the code (second instance, user 2026-11-14) — guard rails first in 0.20 (results dump,
@@ -344,6 +344,43 @@ Designs: `doc/Open/Threat/transducer-threat-catalogue-design.md` (phase 0) and
   fence without data change, report output. Acceptance with a test fixture (never the
   customer file): dismiss, regenerate, sync — stays dismissed, not selectable, one
   readable audit change, the reason in the report. Open: R-11.
+- **Open-work findings that click through to the right place** (user 2026-11-27; independent
+  of the dismissal above). The toolbar tooltip "23 of 59 risks done. Open: …"
+  (`openRiskReasonLines`, `risk-progress.ts`) lists at most 8 ids and cannot be clicked; the
+  findings panel opens the risk dialog — right for choosing mitigations, but status and
+  evidence are set in `RiskMitigationStatusDialog`. And "done without evidence" is only a
+  finding with a connected tracker (`needsStatusEvidence(m, trackerConnected)`), so offline
+  a status set from an assumption stays invisible.
+  - New findings in `risk-findings.ts`, each with its risk ids: `mitigationsOpen` (info —
+    selected, not rejected mitigations not done; the rule of `openRiskReasons`, reused, not
+    copied) and `doneWithoutEvidenceOffline` (info — done without ticket, evidence note or
+    reference, without a tracker; with a tracker it stays the warning of today).
+    `reduceUnmitigated` stays as it is and replaces the tooltip's "no mitigation" line.
+  - A click target per finding: `RISK_FINDING_TAB` becomes a target type —
+    `{ kind: "riskDialog", tab }` for the findings of today,
+    `{ kind: "implementation", focus: "firstOpen" | "firstWithoutEvidence" }` for the two
+    new ones.
+  - `RiskMitigationStatusDialog` gets `risks` + `index` with previous / next over the
+    finding's risks in table order (`sortRisksByThreatId`), as the risk dialog has, and a
+    focus target: scrolled to the first open mitigation or the first without evidence, the
+    focus on its status or evidence field. Saving stays per risk; a change is saved before
+    browsing on (or asked, as in the risk dialog).
+  - The toolbar tooltip shows numbers only ("23/59 done, 36 open") — the lists live in the
+    panel alone, not in two places; the phase indicator may keep its short form.
+  - Inside a finding: MoSCoW first (must → should → could), then threat id.
+  - **Filter by implementation status in the risks tab** (user 2026-11-27), next to the
+    priority, treatment and risk level filters (`use-risk-filters.ts`, `risk-filters.tsx`).
+    A risk has several selected mitigations, each with a status — a risk matches when at
+    least one of its selected mitigations has the chosen status (open, in progress, in
+    review, implemented, verified, rejected). In addition: "no mitigation selected",
+    "all done" and "done without evidence" — the rules of the findings above, reused, so
+    filter and panel always count the same risks. The filter applies to the attack-path
+    risks too, as the other filters do; the counts in the toolbar stay unfiltered.
+  - All texts en + de (findings, dialog navigation). Tests: codes, severities and risk ids
+    offline and with a tracker; the panel click opens the implementation dialog with the
+    right risks, index 0 and focus; browsing changes only the risk and keeps a change.
+    The filter: each value on a risk with mixed statuses, the extra values equal to the
+    findings' risk lists. One commit, or findings, dialog and filter as three.
 - **Asset tab grouped by system asset** (idea 2026-11-26): in a machine TARA with
   components, show the assets as *system → functions → data*, derived from the existing
   asset-to-asset relations. A view only — no new field, no change of threat or risk
