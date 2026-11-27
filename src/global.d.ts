@@ -213,7 +213,13 @@ declare global {
         | {
             success: false;
             // what git said went wrong (electron/ipc/remote-ref.ts)
-            data: { reachable: false; sha: null; failure?: "not_found" | "no_access" | "offline" | "timeout" | "unknown" };
+            data: {
+              reachable: false;
+              sha: null;
+              failure?: "not_found" | "no_access" | "offline" | "timeout" | "unknown";
+              // an SSH refusal: what to do about it (0.20.1, remote-ref.ts)
+              hint?: "host_key" | "ssh_key";
+            };
             error: string;
           }
       >;

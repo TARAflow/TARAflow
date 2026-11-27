@@ -155,4 +155,17 @@ describe("resolveSourceBinding", () => {
 
     expect(result).toEqual({ success: false, reachable: false, error: "remote: Repository not found.", failure: "not_found" });
   });
+
+  it("passes on the hint of an SSH refusal (0.20.1, ssh in BatchMode)", async () => {
+    approveHost("github.com");
+    (window as any).git.resolveRemoteRef.mockResolvedValue({
+      success: false,
+      data: { reachable: false, sha: null, failure: "no_access", hint: "host_key" },
+      error: "Host key verification failed.",
+    });
+
+    const result = await resolveSourceBinding(binding, vi.fn());
+
+    expect(result).toEqual({ success: false, reachable: false, error: "Host key verification failed.", failure: "no_access", hint: "host_key" });
+  });
 });

@@ -56,6 +56,15 @@ const FAILURE_TEXT = {
   timeout: "{{host}} did not answer in time.",
 } as const;
 
+// An SSH refusal, what to do about it (0.20.1: ssh runs in BatchMode and no
+// longer waits on a prompt in the terminal that started TARAflow).
+const HINT_TEXT = {
+  host_key:
+    "SSH does not know this host's key yet. Connect to {{host}} once in a terminal (e.g. ssh -T git@{{host}}) and confirm the key — TARAflow does not ask.",
+  ssh_key:
+    "SSH accepted none of your keys. TARAflow asks for no password or passphrase: a key with a passphrase has to be loaded into the ssh-agent (ssh-add), and its public key stored at {{host}}.",
+} as const;
+
 interface PendingConsent {
   host: string;
   resolve: (allowed: boolean) => void;
@@ -149,7 +158,13 @@ export const SourceBindingsSection: React.FC<SourceBindingsSectionProps> = ({
                 host: extractRepoHost(row.repoUrl),
                 defaultValue: "Could not reach {{host}}.",
               });
-      setResolveErrors((errs) => ({ ...errs, [row.id]: message }));
+      const hint = result.hint
+        ? t(`sourceBinding.resolveError.hint.${result.hint}`, {
+            host: extractRepoHost(row.repoUrl),
+            defaultValue: HINT_TEXT[result.hint],
+          })
+        : null;
+      setResolveErrors((errs) => ({ ...errs, [row.id]: hint ? `${message} ${hint}` : message }));
       return;
     }
 

@@ -179,7 +179,11 @@
       "no_access": "{{host}} verweigert den Zugriff. Ein privates Repository braucht hinterlegte Git-Zugangsdaten (Credential Helper oder SSH-Schlüssel).",
       "offline": "Keine Verbindung zu {{host}} — kein Netzwerk oder falscher Hostname.",
       "timeout": "{{host}} hat nicht rechtzeitig geantwortet.",
-      "refNotFound": "Repository erreicht, aber \"{{ref}}\" wurde dort nicht gefunden."
+      "refNotFound": "Repository erreicht, aber \"{{ref}}\" wurde dort nicht gefunden.",
+      "hint": {
+        "host_key": "SSH kennt den Schlüssel dieses Hosts noch nicht. Verbinden Sie sich einmal im Terminal mit {{host}} (z. B. ssh -T git@{{host}}) und bestätigen Sie den Schlüssel — TARAflow fragt nicht nach.",
+        "ssh_key": "SSH hat keinen Ihrer Schlüssel akzeptiert. TARAflow fragt nach keinem Passwort und keiner Passphrase: Ein Schlüssel mit Passphrase muss im ssh-agent geladen sein (ssh-add) und sein öffentlicher Schlüssel bei {{host}} hinterlegt."
+      }
     },
     "consent": {
       "title": "Netzwerkzugriff erlauben?",

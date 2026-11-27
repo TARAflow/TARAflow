@@ -4,7 +4,7 @@
 // SSH key field (audit settings, auth.sshKeyPath): it was shown, stored and
 // remembered per project, but no git call read it — push used the default
 // key. Now a push with auth method "ssh" and a key path runs with
-//   -c core.sshCommand="ssh -i '<path>' -o IdentitiesOnly=yes"
+//   -c core.sshCommand="ssh -i '<path>' -o IdentitiesOnly=yes -o BatchMode=yes"
 // for that one call. The user's environment wins: with GIT_SSH_COMMAND or
 // GIT_SSH set (git-environment.ts passes them), the field is not applied —
 // git would prefer GIT_SSH_COMMAND anyway, and GIT_SSH must not be silently
@@ -60,7 +60,9 @@ export function pushAuthConfig(input: PushAuthInput): PushAuth {
   if (input.method === "ssh" && key) {
     if (input.env.GIT_SSH_COMMAND || input.env.GIT_SSH) sshKeySkipped = "environment";
     else if (/[\0\r\n]/.test(key)) sshKeySkipped = "invalid";
-    else config.push(`core.sshCommand=ssh -i ${shellQuote(key)} -o IdentitiesOnly=yes`);
+    // BatchMode (0.20.1): fail instead of asking for a password or passphrase
+    // in a terminal nobody sees (git-environment.ts)
+    else config.push(`core.sshCommand=ssh -i ${shellQuote(key)} -o IdentitiesOnly=yes -o BatchMode=yes`);
   }
 
   return { config, ...(sshKeySkipped ? { sshKeySkipped } : {}) };

@@ -259,6 +259,26 @@ describe("SourceBindingsSection", () => {
     expect(onUpdate).not.toHaveBeenCalled();
   });
 
+  // 0.20.1: ssh runs in BatchMode and no longer asks in the terminal — a
+  // refusal says what to do about it.
+  it.each([
+    ["ssh_key", "ssh-agent (ssh-add)"],
+    ["host_key", "confirm the key — TARAflow does not ask"],
+  ] as const)("an SSH refusal comes with its hint: %s", async (hint, part) => {
+    vi.mocked(resolveSourceBinding).mockResolvedValue({ success: false, reachable: false, error: "git said so", failure: "no_access", hint });
+    render(
+      <SourceBindingsSection
+        bindings={[binding]}
+        scopeLabel="Project Source Reference"
+        scopeDescriptionKey="sourceBinding.projectScope.description"
+        onUpdate={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByText("Resolve"));
+    const message = await screen.findByText((content) => content.startsWith("github.com refused access.") && content.includes(part));
+    expect(message).toBeTruthy();
+  });
+
   it("shows a distinct message when consent was denied", async () => {
     const onUpdate = vi.fn();
     vi.mocked(resolveSourceBinding).mockResolvedValue({

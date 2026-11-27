@@ -15,7 +15,7 @@ import type {
 import type { AuditConfig } from "audit/models/audit-types";
 import { credentialService } from "./credential-service-main";
 import { resolveGitSigning, signingFromConfig } from "./git-signing";
-import { userGitEnvironment } from "./git-environment";
+import { userGitEnvironment, withSshBatchMode } from "./git-environment";
 import { pushAuthConfig, storedUrlRepair } from "./git-push-auth";
 
 // ==================== GIT SERVICE ====================
@@ -358,9 +358,12 @@ export class GitService {
         remoteUrl,
         env: user.env,
       });
-      const git = auth.config.length
-        ? simpleGit({ ...this.options, ...user.options, config: auth.config }).env(user.env)
-        : this.git;
+      // ssh never asks (git-environment.ts): the key's core.sshCommand carries
+      // BatchMode itself — a GIT_SSH_COMMAND would override it, so only
+      // without the key does the environment get one
+      const keyApplied = auth.config.some((c) => c.startsWith("core.sshCommand="));
+      const env = keyApplied ? user : await withSshBatchMode(user, this.repoPath);
+      const git = simpleGit({ ...this.options, ...env.options, ...(auth.config.length ? { config: auth.config } : {}) }).env(env.env);
 
       // Push with upstream tracking
       const result = await git.push([remote, branch, "--set-upstream"]);

@@ -23,6 +23,8 @@ export interface SourceBindingResolutionResult {
   error?: string;
   /** Why the repository could not be reached (git's message classified). */
   failure?: "not_found" | "no_access" | "offline" | "timeout" | "unknown";
+  /** An SSH refusal: what to do about it (ssh runs in BatchMode and does not ask). */
+  hint?: "host_key" | "ssh_key";
 }
 
 // ==================== HOST EXTRACTION ====================
@@ -116,6 +118,7 @@ export async function resolveSourceBinding(
       reachable: false,
       error: result.error,
       ...(result.data?.failure ? { failure: result.data.failure } : {}),
+      ...(result.data?.hint ? { hint: result.data.hint } : {}),
     };
   }
   return {

@@ -3,6 +3,12 @@
 Small fixes after 0.20.0-beta. No new project schema (still 14); results unchanged.
 
 ### Fixed
+- **Git over SSH no longer waits on a hidden prompt:** started from a terminal, a *Resolve* of
+  a source reference (also a push or the component check's fetch) to a host without a usable
+  key asked for a password in that terminal, and TARAflow waited until its timeout. ssh now
+  runs in batch mode and fails at once; *Resolve* says what to do — confirm a new host's key
+  once in a terminal, or load a key with a passphrase into the ssh-agent. Your own ssh setup
+  (`GIT_SSH_COMMAND`, `GIT_SSH`, `core.sshCommand`) is used as it is.
 - **Risk table — column widths:** the treatment column grew with the table (it took as much
   room as the description), while the headers *Risk (Before)* and *Risk (After)* — longer
   in German — ran into the next column. A column is now at least as wide as its header,

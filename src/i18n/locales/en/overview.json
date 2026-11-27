@@ -179,7 +179,11 @@
       "no_access": "{{host}} refused access. A private repository needs stored git credentials (credential helper or SSH key).",
       "offline": "Could not connect to {{host}} — no network, or the host name is wrong.",
       "timeout": "{{host}} did not answer in time.",
-      "refNotFound": "Reached the repository, but \"{{ref}}\" was not found there."
+      "refNotFound": "Reached the repository, but \"{{ref}}\" was not found there.",
+      "hint": {
+        "host_key": "SSH does not know this host's key yet. Connect to {{host}} once in a terminal (e.g. ssh -T git@{{host}}) and confirm the key — TARAflow does not ask.",
+        "ssh_key": "SSH accepted none of your keys. TARAflow asks for no password or passphrase: a key with a passphrase has to be loaded into the ssh-agent (ssh-add), and its public key stored at {{host}}."
+      }
     },
     "consent": {
       "title": "Allow network access?",
