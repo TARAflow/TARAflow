@@ -1,6 +1,6 @@
 # SSH key handling — design note
 
-**Status:** steps 1 and 2 in 0.20.1, step 3 in 0.21 (user 2026-11-27) · roadmap §3.2, decision R-12
+**Status:** steps 1 to 3 (b) in 0.20.1, step 3 (a) on demand (user 2026-11-27) · roadmap §3.2, decision R-12
 
 ## Trigger
 
@@ -98,14 +98,17 @@ fallback to the default key.
 `user.signingkey`; the private key is then in the agent. At most it gets a hint: "the private
 key has to be in the ssh-agent".
 
-## Step 3 — where Resolve takes its credentials from (0.21, R-12)
+## Step 3 — where Resolve takes its credentials from (0.20.1: (b); R-12)
 
 - **(b) now:** the source reference dialog and a `no_access` say "Resolve uses your SSH setup
   (`~/.ssh/config`, ssh-agent); the audit key is not used here".
   - With it, a `no_access` on `ssh.dev.azure.com` / `vs-ssh.visualstudio.com` hints that
     Azure DevOps takes RSA keys only, that keys expire after a year and are uploaded per
     organisation.
-  - It names the key type when step 2 knows it.
+  - The key type is **not** named there, unlike the brief proposed: Resolve uses the
+    user's SSH setup, not the audit key, so the key it offered is not known.
+  - Shown under the URL field for an SSH URL (`user@host:path`, `ssh://…`) and after the
+    message of a `no_access` over SSH.
 - **(a) later:** a per-host key, machine-local (like the audit's `auth.sshKeyPath`, never in
   the project file), wired to `CredentialRef.sshKeyPath`, with the checks of steps 1 and 2.
   This comes once several hosts or keys come up in practice.
@@ -123,3 +126,5 @@ key has to be in the ssh-agent".
     `GIT_SSH_COMMAND` runs without BatchMode. POSIX only.
 - **Step 2:** the classification for every case of the table (permissions POSIX only); the
   push reason; the dialog's offer of the private key.
+- **Step 3:** the note at an SSH URL (not at https); after a refused SSH access with the
+  Azure DevOps rules on its hosts only.

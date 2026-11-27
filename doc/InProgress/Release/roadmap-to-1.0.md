@@ -423,9 +423,9 @@ Designs: `doc/Open/Threat/transducer-threat-catalogue-design.md` (phase 0) and
   user's `GIT_SSH_COMMAND` untouched); `resolveRemoteRef` (BatchMode without a user's
   `GIT_SSH_COMMAND`, not with it); `classifyRemoteError` (publickey → `no_access`, host
   key → `no_access` with its hint); the BatchMode argument at the simple-git interface in
-  an integration test (as `git-reader-exec.int.test.ts`). **Steps 1 and 2 go into 0.20.1**
-  (user 2026-11-27) — design note `doc/Open/Audit/ssh-key-handling-design.md`; step 3 stays
-  in 0.21.
+  an integration test (as `git-reader-exec.int.test.ts`). **Steps 1, 2 and 3 (b) go into 0.20.1**
+  (user 2026-11-27) — design note `doc/Open/Audit/ssh-key-handling-design.md`; only the
+  per-host key (3 (a)) is left, on demand.
 - **Asset tab grouped by system asset** (idea 2026-11-26): in a machine TARA with
   components, show the assets as *system → functions → data*, derived from the existing
   asset-to-asset relations. A view only — no new field, no change of threat or risk
@@ -552,7 +552,7 @@ list — users review once instead of twice; the rest changes no values.
 | R-4 | Flows crossing a physical boundary: build the generator source, or drop the flag? | 0.21 | open |
 | R-5 | Model field purpose D2: which fields retire; old values kept as text in the notes? | 0.21 | open |
 | R-11 | `authenticatorStorage` unset counts as `software_only` whenever an element authenticates (FX-7, `threat-catalog-service.ts` contextMatch) — it also fires for a process that holds no authenticator. A value `none` ("stores no authenticator"), or a tighter "authenticates" for `logic_module`? The design doc proposes one; implemented as its own commit once decided | 0.21 | open |
-| R-12 | SSH key of a source binding's *Resolve*: (b) say that it uses the user's SSH setup, or (a) a per-host key, machine-local, wired to `CredentialRef.sshKeyPath`? Proposed: (b) in 0.21, (a) on demand | 0.21 | open |
+| R-12 | SSH key of a source binding's *Resolve*: (b) say that it uses the user's SSH setup, or (a) a per-host key, machine-local, wired to `CredentialRef.sshKeyPath`? | 0.20.1 | **decided** — (b) in 0.20.1, (a) on demand (user 2026-11-27) |
 | R-5b | Model field purpose D3–D8 (`model-field-purpose-and-rating-context-design.md` §9) | 0.24 | open |
 | R-6 | Measure ownership (one status per measure): before 1.0, or 2.x? It changes the structure of measures — **if before 1.0, then as a release of its own before 0.23** (the later numbers move up), never inside the ISO release | before 0.23 | open |
 | R-7 | Safety profiles (`hazard-safety-profiles-design.md`): before 1.0, or after? It brings a schema plan of its own — **if before 1.0, then as a release of its own before 0.23** (the later numbers move up), never inside the ISO release; else 1.x / 2.x | before 0.23 | open |

@@ -9,6 +9,10 @@ Small fixes after 0.20.0-beta. No new project schema (still 14); results unchang
   runs in batch mode and fails at once; *Resolve* says what to do — confirm a new host's key
   once in a terminal, or load a key with a passphrase into the ssh-agent. Your own ssh setup
   (`GIT_SSH_COMMAND`, `GIT_SSH`, `core.sshCommand`) is used as it is.
+- **Resolve says where its SSH credentials come from:** a source reference with an SSH URL
+  is resolved with your SSH setup (`~/.ssh/config`, ssh-agent), not with the SSH key of the
+  audit settings — said under the URL field and after a refused access, together with Azure
+  DevOps' key rules for its hosts (RSA keys only, keys expire, stored per organisation).
 - **SSH key of the audit push checked:** the audit settings accepted the public key (`….pub`)
   as the SSH key, and ssh then fell back to a password prompt. The field now says what the
   path names — no file, a public key (with the private key beside it offered with one
