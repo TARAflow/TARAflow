@@ -55,6 +55,14 @@
       "searchPlaceholder": "Risiken suchen...",
       "safetyOnlyFilter": "Nur sicherheitsrelevante (EN 50742)",
       "allPriorities": "Alle Prioritäten",
+      "implementationFilter": {
+        "label": "Umsetzung",
+        "all": "Alle Status",
+        "none": "Keine Massnahme gewählt",
+        "not_done": "Massnahmen nicht erledigt",
+        "all_done": "Alle Massnahmen erledigt",
+        "done_without_evidence": "Erledigt ohne Nachweis"
+      },
       "allStatuses": "Alle Status",
       "showingCount": "{{count}} von {{total}} angezeigt",
       "noJustification": "Begründung fehlt!",

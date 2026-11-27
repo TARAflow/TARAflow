@@ -155,6 +155,7 @@
     "empty": "Keine Quellreferenzen erfasst.",
     "addReference": "Referenz hinzufügen",
     "repoUrl": "Repository-URL",
+    "sshSetup": "Auflösen verwendet Ihre SSH-Einrichtung (~/.ssh/config, ssh-agent) — der SSH-Schlüssel aus den Audit-Einstellungen wird hier nicht verwendet.",
     "localPathWarning": "Das sieht nach einem lokalen Pfad aus — es wird nur die Remote-URL gespeichert.",
     "credentialsInUrl": "Die URL enthält Zugangsdaten — bitte entfernen: Die Projektdatei wird geteilt (und in jede TARA kopiert, die sie importiert). Ein privates Repository nutzt gespeicherte Zugangsdaten.",
     "credentialsStored": "Diese URL enthält Zugangsdaten. URL bereinigen (Bearbeiten) und das Token beim Repository-Anbieter zurückziehen — es bleibt in der Historie jedes Repositorys, in das diese Datei committet wurde.",
@@ -179,7 +180,12 @@
       "no_access": "{{host}} verweigert den Zugriff. Ein privates Repository braucht hinterlegte Git-Zugangsdaten (Credential Helper oder SSH-Schlüssel).",
       "offline": "Keine Verbindung zu {{host}} — kein Netzwerk oder falscher Hostname.",
       "timeout": "{{host}} hat nicht rechtzeitig geantwortet.",
-      "refNotFound": "Repository erreicht, aber \"{{ref}}\" wurde dort nicht gefunden."
+      "refNotFound": "Repository erreicht, aber \"{{ref}}\" wurde dort nicht gefunden.",
+      "azureSsh": "Azure DevOps akzeptiert nur RSA-Schlüssel; die öffentlichen SSH-Schlüssel laufen ab (standardmässig nach einem Jahr) und werden pro Organisation hinterlegt (User settings → SSH public keys).",
+      "hint": {
+        "host_key": "SSH kennt den Schlüssel dieses Hosts noch nicht. Verbinden Sie sich einmal im Terminal mit {{host}} (z. B. ssh -T git@{{host}}) und bestätigen Sie den Schlüssel — TARAflow fragt nicht nach.",
+        "ssh_key": "SSH hat keinen Ihrer Schlüssel akzeptiert. TARAflow fragt nach keinem Passwort und keiner Passphrase: Ein Schlüssel mit Passphrase muss im ssh-agent geladen sein (ssh-add) und sein öffentlicher Schlüssel bei {{host}} hinterlegt."
+      }
     },
     "consent": {
       "title": "Netzwerkzugriff erlauben?",

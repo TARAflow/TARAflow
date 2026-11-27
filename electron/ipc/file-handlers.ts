@@ -10,6 +10,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { homedir } from "os";
+import { inspectSshKey } from "../services/ssh-key-inspect";
 
 export function registerFileHandlers() {
   // Save Dialog
@@ -64,6 +65,17 @@ export function registerFileHandlers() {
         return { success: false, error: "canceled" };
       }
       return { success: true, data: result.filePaths[0] };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // What an SSH key path names (0.20.1, ssh-key-inspect.ts): a classification
+  // only — the renderer never gets key content.
+  ipcMain.handle("file:inspectSshKey", async (_event, keyPath: unknown) => {
+    if (typeof keyPath !== "string" || keyPath.trim() === "") return { success: false, error: "no path" };
+    try {
+      return { success: true, data: await inspectSshKey(keyPath) };
     } catch (error) {
       return { success: false, error: (error as Error).message };
     }

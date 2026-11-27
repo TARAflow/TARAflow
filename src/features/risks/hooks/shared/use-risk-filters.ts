@@ -3,6 +3,7 @@
 // RiskStatus removed — risks no longer have a status field.
 // Filter by: searchText, priorityFilter (MoSCoW), treatmentFilter, riskLevelFilter.
 
+import { matchesImplementationFilter, type ImplementationFilter } from "../../utils/implementation-filter";
 import { isoReviewItems } from "../../models/iso-scenarios";
 import { useState, useCallback, useMemo } from "react";
 import {
@@ -35,6 +36,8 @@ export interface RiskFilters {
   isoReviewOnly?: boolean;
   /** EN 50742 (patch 29): only the safety-relevant risks (A and B). */
   safetyOnly?: boolean;
+  /** 0.20.1: by the implementation status of the mitigations ("" = all). */
+  implementationFilter?: ImplementationFilter | "";
 }
 
 /** Scale context needed to map a numeric risk score to a discrete level. */
@@ -82,6 +85,7 @@ export function useRiskFilters(
     scope: NO_DFD_SCOPE_FILTER,
     isoReviewOnly: false,
     safetyOnly: false,
+    implementationFilter: "",
   });
   const inScope = useMemo(
     () => dfdScopePredicate(scopeIndex, filters.scope),
@@ -116,6 +120,10 @@ export function useRiskFilters(
     setFilters((prev) => ({ ...prev, safetyOnly }));
   }, []);
 
+  const setImplementationFilter = useCallback((implementationFilter: ImplementationFilter | "") => {
+    setFilters((prev) => ({ ...prev, implementationFilter }));
+  }, []);
+
   const clearFilters = useCallback(() => {
     setFilters({
       searchText: "",
@@ -125,6 +133,7 @@ export function useRiskFilters(
       scope: NO_DFD_SCOPE_FILTER,
       isoReviewOnly: false,
       safetyOnly: false,
+      implementationFilter: "",
     });
   }, []);
 
@@ -136,6 +145,7 @@ export function useRiskFilters(
         filters.treatmentFilter ||
         filters.riskLevelFilter !== "" ||
         filters.isoReviewOnly ||
+        filters.implementationFilter ||
         (filters.safetyOnly && safetyRelevantThreatIds) ||
         inScope,
       ),
@@ -176,6 +186,10 @@ export function useRiskFilters(
 
       if (filters.safetyOnly && safetyRelevantThreatIds) {
         filtered = filtered.filter((r) => safetyRelevantThreatIds.has(r.threatId));
+      }
+      if (filters.implementationFilter) {
+        const f = filters.implementationFilter;
+        filtered = filtered.filter((r) => matchesImplementationFilter(r, f));
       }
       if (filters.priorityFilter) {
         filtered = filtered.filter(
@@ -230,6 +244,7 @@ export function useRiskFilters(
     setScopeFilter,
     setIsoReviewOnly,
     setSafetyOnly,
+    setImplementationFilter,
     clearFilters,
     filterRisks,
     hasActiveFilters,

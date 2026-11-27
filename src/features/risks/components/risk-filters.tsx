@@ -17,6 +17,7 @@ import {
   InputAdornment,
   FormControlLabel,
   Checkbox,
+  Divider,
 } from "@mui/material";
 import {
   Search as SearchIcon,
@@ -31,6 +32,12 @@ import {
   isoRiskValueI18nKey,
 } from "../models/iso-risk-display";
 import type { MoSCoWPriority, RiskScaleType } from "../models/risk-scale-types";
+import { MITIGATION_STATUS_CONFIGS } from "../models/risk-mitigation-types";
+import {
+  IMPLEMENTATION_EXTRA_FILTERS,
+  IMPLEMENTATION_STATUS_FILTERS,
+  type ImplementationFilter,
+} from "../utils/implementation-filter";
 
 // ==================== TYPES ====================
 
@@ -66,6 +73,10 @@ export interface RiskFiltersProps {
   /** EN 50742 (patch 29): only the safety-relevant risks; absent outside EN 50742. */
   safetyOnly?: boolean;
   onSafetyOnlyChange?: (on: boolean) => void;
+
+  /** 0.20.1: by the implementation status of the mitigations; absent: not offered. */
+  implementationFilter?: ImplementationFilter | "";
+  onImplementationFilterChange?: (filter: ImplementationFilter | "") => void;
 }
 
 // ==================== COMPONENT ====================
@@ -89,12 +100,15 @@ export const RiskFilters = React.memo<RiskFiltersProps>(
     onScopeChange,
     safetyOnly,
     onSafetyOnlyChange,
+    implementationFilter = "",
+    onImplementationFilterChange,
   }) => {
     const { t } = useTranslation();
     const hasFilters =
       searchText.trim() !== "" ||
       priorityFilter !== "" ||
       riskLevelFilter !== "" ||
+      implementationFilter !== "" ||
       !!safetyOnly;
 
     // Level options come from the active scale so 3-/4-/5-level all work
@@ -205,6 +219,41 @@ export const RiskFilters = React.memo<RiskFiltersProps>(
               ))}
             </Select>
           </FormControl>
+
+          {/* Implementation status filter (0.20.1) */}
+          {onImplementationFilterChange && (
+            <FormControl size="small" sx={{ minWidth: 190 }}>
+              <InputLabel>
+                {t("tabs.risks.implementationFilter.label", { defaultValue: "Implementation" })}
+              </InputLabel>
+              <Select
+                value={implementationFilter}
+                label={t("tabs.risks.implementationFilter.label", { defaultValue: "Implementation" })}
+                onChange={(e) => onImplementationFilterChange(e.target.value as ImplementationFilter | "")}
+                startAdornment={<FilterIcon fontSize="small" sx={{ mr: 1 }} />}
+                inputProps={{ "data-testid": "risk-filter-implementation" }}
+                SelectDisplayProps={{ "data-testid": "risk-filter-implementation-select" } as never}
+              >
+                <MenuItem value="">
+                  <em>{t("tabs.risks.implementationFilter.all", { defaultValue: "All statuses" })}</em>
+                </MenuItem>
+                {IMPLEMENTATION_STATUS_FILTERS.map((status) => {
+                  const cfg = MITIGATION_STATUS_CONFIGS.find((c) => c.value === status);
+                  return (
+                    <MenuItem key={status} value={status}>
+                      {t(`risks.mitigationStatus.${status}.label`, { defaultValue: cfg?.label ?? status })}
+                    </MenuItem>
+                  );
+                })}
+                <Divider />
+                {IMPLEMENTATION_EXTRA_FILTERS.map((x) => (
+                  <MenuItem key={x.value} value={x.value}>
+                    {t(`tabs.risks.implementationFilter.${x.value}`, { defaultValue: x.label })}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
 
           {/* Search Field */}
           <TextField

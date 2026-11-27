@@ -56,6 +56,31 @@ const FAILURE_TEXT = {
   timeout: "{{host}} did not answer in time.",
 } as const;
 
+// An SSH refusal, what to do about it (0.20.1: ssh runs in BatchMode and no
+// longer waits on a prompt in the terminal that started TARAflow).
+const HINT_TEXT = {
+  host_key:
+    "SSH does not know this host's key yet. Connect to {{host}} once in a terminal (e.g. ssh -T git@{{host}}) and confirm the key — TARAflow does not ask.",
+  ssh_key:
+    "SSH accepted none of your keys. TARAflow asks for no password or passphrase: a key with a passphrase has to be loaded into the ssh-agent (ssh-add), and its public key stored at {{host}}.",
+} as const;
+
+// Where Resolve takes its SSH credentials from (0.20.1, design note
+// doc/Open/Audit/ssh-key-handling-design.md step 3 / R-12 (b)): the user's SSH
+// setup — the audit settings' key does not apply here.
+const SSH_SETUP_TEXT =
+  "Resolve uses your SSH setup (~/.ssh/config, ssh-agent) — the SSH key of the audit settings is not used here.";
+const AZURE_SSH_TEXT =
+  "Azure DevOps takes RSA keys only; its SSH public keys expire (by default after a year) and are stored per organisation (User settings → SSH public keys).";
+
+/** An SSH remote: scp-like "user@host:path" or "ssh://…". */
+export function isSshRepoUrl(url: string): boolean {
+  const u = url.trim();
+  return /^ssh:\/\//i.test(u) || /^[\w.-]+@[^/:\s]+:(?!\/\/)/.test(u);
+}
+
+const AZURE_SSH_HOSTS = new Set(["ssh.dev.azure.com", "vs-ssh.visualstudio.com"]);
+
 interface PendingConsent {
   host: string;
   resolve: (allowed: boolean) => void;
@@ -149,7 +174,25 @@ export const SourceBindingsSection: React.FC<SourceBindingsSectionProps> = ({
                 host: extractRepoHost(row.repoUrl),
                 defaultValue: "Could not reach {{host}}.",
               });
-      setResolveErrors((errs) => ({ ...errs, [row.id]: message }));
+      const hint = result.hint
+        ? t(`sourceBinding.resolveError.hint.${result.hint}`, {
+            host: extractRepoHost(row.repoUrl),
+            defaultValue: HINT_TEXT[result.hint],
+          })
+        : null;
+      // a refused SSH access: where the credentials come from, and Azure
+      // DevOps' own rules
+      const host = extractRepoHost(row.repoUrl);
+      const sshNotes =
+        result.failure === "no_access" && isSshRepoUrl(row.repoUrl)
+          ? [
+              t("sourceBinding.sshSetup", { defaultValue: SSH_SETUP_TEXT }),
+              ...(AZURE_SSH_HOSTS.has(host.toLowerCase())
+                ? [t("sourceBinding.resolveError.azureSsh", { defaultValue: AZURE_SSH_TEXT })]
+                : []),
+            ]
+          : [];
+      setResolveErrors((errs) => ({ ...errs, [row.id]: [message, hint, ...sshNotes].filter(Boolean).join(" ") }));
       return;
     }
 
@@ -291,6 +334,11 @@ export const SourceBindingsSection: React.FC<SourceBindingsSectionProps> = ({
                         defaultValue:
                           "The URL contains credentials — remove them: the project file is shared (and copied into every TARA importing it). A private repository uses stored credentials.",
                       })}
+                    </p>
+                  )}
+                  {isSshRepoUrl(row.repoUrl) && (
+                    <p className="text-xs text-gray-500 mt-1" data-testid="source-binding-ssh-setup">
+                      {t("sourceBinding.sshSetup", { defaultValue: SSH_SETUP_TEXT })}
                     </p>
                   )}
                   {looksLikeLocalPath(row.repoUrl) && (

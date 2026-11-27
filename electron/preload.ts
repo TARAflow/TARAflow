@@ -54,6 +54,8 @@ contextBridge.exposeInMainWorld("electron", {
       buttonLabel?: string;
       filters?: { name: string; extensions: string[] }[];
     }) => ipcRenderer.invoke("file:pickFile", options),
+    // What an SSH key path names — a classification, never key content (0.20.1)
+    inspectSshKey: (keyPath: string) => ipcRenderer.invoke("file:inspectSshKey", keyPath),
     writeProject: (filePath: string, projectData: string) =>
       ipcRenderer.invoke("file:writeProject", filePath, projectData),
     readProject: (filePath: string) =>

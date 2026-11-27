@@ -368,11 +368,12 @@ Designs: `doc/Open/Threat/transducer-threat-catalogue-design.md` (phase 0) and
   - The toolbar tooltip shows numbers only ("23/59 done, 36 open") — the lists live in the
     panel alone, not in two places; the phase indicator may keep its short form.
   - Inside a finding: MoSCoW first (must → should → could), then threat id.
-  - **Filter by implementation status in the risks tab** (user 2026-11-27), next to the
+  - **Filter by implementation status in the risks tab** (user 2026-11-27; **done in
+    0.20.1** — the findings above reuse its rules), next to the
     priority, treatment and risk level filters (`use-risk-filters.ts`, `risk-filters.tsx`).
-    A risk has several selected mitigations, each with a status — a risk matches when at
-    least one of its selected mitigations has the chosen status (open, in progress, in
-    review, implemented, verified, rejected). In addition: "no mitigation selected",
+    A risk has several selected mitigations, each with a status — a status value matches
+    the risk's status as the *Implementation* column shows it (user 2026-11-27: "at least
+    one mitigation" listed an *in review* risk under *open*). In addition: "no mitigation selected",
     "all done" and "done without evidence" — the rules of the findings above, reused, so
     filter and panel always count the same risks. The filter applies to the attack-path
     risks too, as the other filters do; the counts in the toolbar stay unfiltered.
@@ -384,7 +385,7 @@ Designs: `doc/Open/Threat/transducer-threat-catalogue-design.md` (phase 0) and
 - **SSH key handling** (user 2026-11-27, from a real case: the public key `….pub` entered as
   the audit's SSH key path was accepted; *Resolve* of a source binding to Azure DevOps hung
   on an ssh password prompt in the terminal that started TARAflow until the 20 s timeout).
-  A short design note first (`doc/Open/Audit/ssh-key-handling-design.md`), then one commit
+  Design note `doc/Open/Audit/ssh-key-handling-design.md`, one commit
   per step; all texts en + de.
   1. **No hanging ssh prompts** (R2): `GIT_TERMINAL_PROMPT=0` stops git's prompts only — ssh
      reads from the controlling terminal. Every git call of the main process with fixed
@@ -423,8 +424,9 @@ Designs: `doc/Open/Threat/transducer-threat-catalogue-design.md` (phase 0) and
   user's `GIT_SSH_COMMAND` untouched); `resolveRemoteRef` (BatchMode without a user's
   `GIT_SSH_COMMAND`, not with it); `classifyRemoteError` (publickey → `no_access`, host
   key → `no_access` with its hint); the BatchMode argument at the simple-git interface in
-  an integration test (as `git-reader-exec.int.test.ts`). Steps 1 and 2 are fixes without
-  new semantics — candidates for 0.20.1 if wanted.
+  an integration test (as `git-reader-exec.int.test.ts`). **Steps 1, 2 and 3 (b) go into 0.20.1**
+  (user 2026-11-27) — design note `doc/Open/Audit/ssh-key-handling-design.md`; only the
+  per-host key (3 (a)) is left, on demand.
 - **Asset tab grouped by system asset** (idea 2026-11-26): in a machine TARA with
   components, show the assets as *system → functions → data*, derived from the existing
   asset-to-asset relations. A view only — no new field, no change of threat or risk
@@ -551,7 +553,7 @@ list — users review once instead of twice; the rest changes no values.
 | R-4 | Flows crossing a physical boundary: build the generator source, or drop the flag? | 0.21 | open |
 | R-5 | Model field purpose D2: which fields retire; old values kept as text in the notes? | 0.21 | open |
 | R-11 | `authenticatorStorage` unset counts as `software_only` whenever an element authenticates (FX-7, `threat-catalog-service.ts` contextMatch) — it also fires for a process that holds no authenticator. A value `none` ("stores no authenticator"), or a tighter "authenticates" for `logic_module`? The design doc proposes one; implemented as its own commit once decided | 0.21 | open |
-| R-12 | SSH key of a source binding's *Resolve*: (b) say that it uses the user's SSH setup, or (a) a per-host key, machine-local, wired to `CredentialRef.sshKeyPath`? Proposed: (b) in 0.21, (a) on demand | 0.21 | open |
+| R-12 | SSH key of a source binding's *Resolve*: (b) say that it uses the user's SSH setup, or (a) a per-host key, machine-local, wired to `CredentialRef.sshKeyPath`? | 0.20.1 | **decided** — (b) in 0.20.1, (a) on demand (user 2026-11-27) |
 | R-5b | Model field purpose D3–D8 (`model-field-purpose-and-rating-context-design.md` §9) | 0.24 | open |
 | R-6 | Measure ownership (one status per measure): before 1.0, or 2.x? It changes the structure of measures — **if before 1.0, then as a release of its own before 0.23** (the later numbers move up), never inside the ISO release | before 0.23 | open |
 | R-7 | Safety profiles (`hazard-safety-profiles-design.md`): before 1.0, or after? It brings a schema plan of its own — **if before 1.0, then as a release of its own before 0.23** (the later numbers move up), never inside the ISO release; else 1.x / 2.x | before 0.23 | open |

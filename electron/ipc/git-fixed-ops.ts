@@ -11,11 +11,12 @@
 //   fetchTags        git fetch --quiet --tags                    (component drift check)
 //
 // fetchTags reaches a remote: it runs with the user's git environment
-// (git-environment.ts) — SSH command, askpass, CA certificates.
+// (git-environment.ts) — SSH command, askpass, CA certificates — and ssh in
+// BatchMode unless the user runs ssh their own way.
 
 import { HOOKS_PATH_REL } from "../../src/features/audit/services/audit-repo-hooks";
 import { HOOK_REL_PATH } from "../../src/features/audit/services/audit-repo-ignore";
-import { userGitEnvironment } from "../services/git-environment";
+import { userGitEnvironment, withSshBatchMode } from "../services/git-environment";
 import { runGitInDir, type RawGitResult } from "./git-raw-in-dir";
 
 /** The fixed argument lists, by operation — the renderer adapter maps onto them. */
@@ -33,11 +34,12 @@ export function isFixedGitOp(op: unknown): op is FixedGitOp {
 }
 
 /** Runs one fixed operation in `dir`; never throws (same contract as rawInDir). */
-export function runFixedGitOp(op: FixedGitOp, dir: string): Promise<RawGitResult> {
+export async function runFixedGitOp(op: FixedGitOp, dir: string): Promise<RawGitResult> {
   const args = [...FIXED_GIT_OPS[op]];
   switch (op) {
     case "fetchTags":
-      return runGitInDir(dir, args, userGitEnvironment());
+      // ssh never asks (BatchMode, git-environment.ts)
+      return runGitInDir(dir, args, await withSshBatchMode(userGitEnvironment(), dir));
     case "setHooksPath":
       // the one call that may set core.hooksPath — to the fixed .tara/hooks
       return runGitInDir(dir, args, { env: {}, options: { unsafe: { allowUnsafeHooksPath: true } } });

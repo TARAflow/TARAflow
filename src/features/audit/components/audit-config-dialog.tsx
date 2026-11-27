@@ -39,6 +39,7 @@ import {
   FormControlLabel,
   Radio,
   Switch,
+  Link,
 } from "@mui/material";
 import {
   Save as SaveIcon,
@@ -48,6 +49,7 @@ import {
 } from "@mui/icons-material";
 
 import { useAuditSigners, type SignerGit } from "../hooks/useAuditSigners";
+import { useSshKeyCheck } from "../hooks/useSshKeyCheck";
 import { maintainers } from "../services/audit-signer-manifest";
 import type { AuditProtection } from "../hooks/useAuditProtection";
 import { AuditProtectionPanel } from "./audit-protection-panel";
@@ -302,6 +304,28 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
   /**
    * Browse for SSH authentication key.
    */
+  // The SSH key path checked in the main process (0.20.1): a .pub, a missing
+  // file … is named at the field; the browse dialog's pick is checked the same.
+  const keyCheck = useSshKeyCheck(localConfig.auth.sshKeyPath, localConfig.auth.method === "ssh");
+  const KEY_TYPE_NAME: Record<string, string> = { rsa: "RSA", ed25519: "Ed25519", ecdsa: "ECDSA", dsa: "DSA", sk: "FIDO (sk)" };
+  const keyProblem =
+    keyCheck && keyCheck.status !== "ok"
+      ? t(`audit.config.sshKeyCheck.${keyCheck.status}`, {
+          defaultValue: {
+            missing: "No file at this path.",
+            public_key: "This is a public key (.pub) — push needs the private key.",
+            not_a_private_key: "This file is no private SSH key (no \"BEGIN … PRIVATE KEY\" line).",
+            permissions_too_open: "Other users can read this key, so ssh refuses it — make it readable by you only (chmod 600).",
+          }[keyCheck.status],
+        })
+      : null;
+  const keyTypeNote =
+    keyCheck?.status === "ok" && keyCheck.keyType && KEY_TYPE_NAME[keyCheck.keyType]
+      ? t("audit.config.sshKeyCheck.ok", { defaultValue: "Private key ({{type}}).", type: KEY_TYPE_NAME[keyCheck.keyType] })
+      : null;
+  const applySuggestedKey = (privateKeyPath: string) =>
+    setLocalConfig((prev) => ({ ...prev, auth: { ...prev.auth, sshKeyPath: privateKeyPath } }));
+
   const handleBrowseAuthKey = async () => {
     const api = window.electron?.file;
 
@@ -721,11 +745,36 @@ export const AuditConfigDialog: React.FC<AuditConfigDialogProps> = ({
                         },
                       }))
                     }
-                    placeholder="~/.ssh/id_ed25519"
-                    helperText={t("audit.config.sshKeyPathHelp", {
-                      defaultValue:
-                        "Push uses this key (IdentitiesOnly). Empty: your SSH setup decides. GIT_SSH_COMMAND or GIT_SSH in your environment take precedence over this field.",
-                    })}
+                    placeholder="~/.ssh/id_audit"
+                    error={!!keyProblem}
+                    helperText={
+                      <>
+                        {keyProblem ?? keyTypeNote ?? null}
+                        {keyCheck?.status === "public_key" && keyCheck.privateKeyPath && (
+                          <>
+                            {" "}
+                            <Link
+                              component="button"
+                              type="button"
+                              data-testid="ssh-key-use-private"
+                              onClick={() => applySuggestedKey(keyCheck.privateKeyPath!)}
+                            >
+                              {t("audit.config.sshKeyCheck.usePrivate", {
+                                defaultValue: "Use {{path}} instead",
+                                path: keyCheck.privateKeyPath,
+                              })}
+                            </Link>
+                          </>
+                        )}
+                        {(keyProblem || keyTypeNote) && <br />}
+                        {t("audit.config.sshKeyPathHelp", {
+                          defaultValue:
+                            "Path to the private key (not .pub). Push uses this key (IdentitiesOnly). Empty: your SSH setup decides. GIT_SSH_COMMAND or GIT_SSH in your environment take precedence over this field.",
+                        })}
+                      </>
+                    }
+                    FormHelperTextProps={{ component: "div" } as never}
+                    inputProps={{ "data-testid": "ssh-key-path" }}
                     size="small"
                     fullWidth
                   />

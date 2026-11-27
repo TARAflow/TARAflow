@@ -1,3 +1,41 @@
+## [0.20.1-beta] - 2026-11-27
+
+Small release after 0.20.0-beta: git over SSH no longer waits on a hidden prompt, the
+audit's SSH key path is checked, and the risks tab gets a filter by implementation status.
+No new project schema (still 14); results unchanged. A push with an unusable SSH key now
+stops with the reason instead of running with the default key.
+
+### Added
+- **Risks tab — filter by implementation status:** next to priority and risk level. A status
+  (open … rejected) lists the risks whose *Implementation* column shows it — a risk with an
+  open and an in-review mitigation is *in review*; besides, *no mitigation selected*,
+  *mitigations not done* (every risk with open work), *all mitigations done* and *done
+  without evidence* (a done status without ticket, evidence note or reference — also
+  without a tracker). The *won't* table is not filtered.
+
+### Fixed
+- **Git over SSH no longer waits on a hidden prompt:** started from a terminal, a *Resolve* of
+  a source reference (also a push or the component check's fetch) to a host without a usable
+  key asked for a password in that terminal, and TARAflow waited until its timeout. ssh now
+  runs in batch mode and fails at once; *Resolve* says what to do — confirm a new host's key
+  once in a terminal, or load a key with a passphrase into the ssh-agent. Your own ssh setup
+  (`GIT_SSH_COMMAND`, `GIT_SSH`, `core.sshCommand`) is used as it is.
+- **Resolve says where its SSH credentials come from:** a source reference with an SSH URL
+  is resolved with your SSH setup (`~/.ssh/config`, ssh-agent), not with the SSH key of the
+  audit settings — said under the URL field and after a refused access, together with Azure
+  DevOps' key rules for its hosts (RSA keys only, keys expire, stored per organisation).
+- **SSH key of the audit push checked:** the audit settings accepted the public key (`….pub`)
+  as the SSH key, and ssh then fell back to a password prompt. The field now says what the
+  path names — no file, a public key (with the private key beside it offered with one
+  click), no private key, or readable by other users — and the type of a usable key. A push
+  with an unusable key stops with that reason instead of running with another key (before,
+  an invalid path was skipped silently). The key file's content never leaves the main
+  process.
+- **Risk table — column widths:** the treatment column grew with the table (it took as much
+  room as the description), while the headers *Risk (Before)* and *Risk (After)* — longer
+  in German — ran into the next column. A column is now at least as wide as its header,
+  and the treatment column as wide as its longest label.
+
 ## [0.20.0-beta] - 2026-11-26
 
 **EN 50742 Approach B and guard rails for stable results:** the tag *EN 50742 B*

@@ -155,6 +155,7 @@
     "empty": "No source references recorded.",
     "addReference": "Add reference",
     "repoUrl": "Repository URL",
+    "sshSetup": "Resolve uses your SSH setup (~/.ssh/config, ssh-agent) — the SSH key of the audit settings is not used here.",
     "localPathWarning": "This looks like a local path — only the remote URL is stored.",
     "credentialsInUrl": "The URL contains credentials — remove them: the project file is shared (and copied into every TARA importing it). A private repository uses stored credentials.",
     "credentialsStored": "This URL contains credentials. Clean the URL (Edit) and revoke the token at the repository provider — it stays in the history of every repository this file was committed to.",
@@ -179,7 +180,12 @@
       "no_access": "{{host}} refused access. A private repository needs stored git credentials (credential helper or SSH key).",
       "offline": "Could not connect to {{host}} — no network, or the host name is wrong.",
       "timeout": "{{host}} did not answer in time.",
-      "refNotFound": "Reached the repository, but \"{{ref}}\" was not found there."
+      "refNotFound": "Reached the repository, but \"{{ref}}\" was not found there.",
+      "azureSsh": "Azure DevOps takes RSA keys only; its SSH public keys expire (by default after a year) and are stored per organisation (User settings → SSH public keys).",
+      "hint": {
+        "host_key": "SSH does not know this host's key yet. Connect to {{host}} once in a terminal (e.g. ssh -T git@{{host}}) and confirm the key — TARAflow does not ask.",
+        "ssh_key": "SSH accepted none of your keys. TARAflow asks for no password or passphrase: a key with a passphrase has to be loaded into the ssh-agent (ssh-add), and its public key stored at {{host}}."
+      }
     },
     "consent": {
       "title": "Allow network access?",

@@ -15,15 +15,15 @@ import { userGitEnvironment } from "../services/git-environment";
 const HTTPS = "https://git.example.com/team/audit.git";
 
 describe("pushAuthConfig — SSH key field", () => {
-  it("method ssh with a key: core.sshCommand with the quoted path and IdentitiesOnly", () => {
-    expect(pushAuthConfig({ method: "ssh", sshKeyPath: "/home/u/.ssh/id_audit", env: {} }).config).toEqual([
-      "core.sshCommand=ssh -i '/home/u/.ssh/id_audit' -o IdentitiesOnly=yes",
+  it("method ssh with a key: core.sshCommand with the quoted path, IdentitiesOnly and BatchMode", () => {
+    expect(pushAuthConfig({ method: "ssh", sshKeyPath: "/opt/keys/id_audit", env: {} }).config).toEqual([
+      "core.sshCommand=ssh -i '/opt/keys/id_audit' -o IdentitiesOnly=yes -o BatchMode=yes",
     ]);
   });
 
   it("a path with spaces and a quote stays one word for the shell", () => {
     const [entry] = pushAuthConfig({ method: "ssh", sshKeyPath: "C:/Users/Jo O'Neil/.ssh/key", env: {} }).config;
-    expect(entry).toBe(`core.sshCommand=ssh -i 'C:/Users/Jo O'\\''Neil/.ssh/key' -o IdentitiesOnly=yes`);
+    expect(entry).toBe(`core.sshCommand=ssh -i 'C:/Users/Jo O'\\''Neil/.ssh/key' -o IdentitiesOnly=yes -o BatchMode=yes`);
   });
 
   it("GIT_SSH_COMMAND or GIT_SSH in the environment win — the field is not applied", () => {

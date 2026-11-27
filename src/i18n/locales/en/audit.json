@@ -74,7 +74,15 @@
       "enableGPG": "Enable GPG Commit Signing",
       "sshInfo": "SSH authentication uses your SSH setup: ssh-agent, ~/.ssh/config and the default keys (~/.ssh/id_ed25519, ~/.ssh/id_rsa).",
       "sshKeyPath": "SSH Key Path (optional)",
-      "sshKeyPathHelp": "Push uses this key (IdentitiesOnly). Empty: your SSH setup decides. GIT_SSH_COMMAND or GIT_SSH in your environment take precedence over this field.",
+      "sshKeyPathHelp": "Path to the private key (not .pub). Push uses this key (IdentitiesOnly). Empty: your SSH setup decides. GIT_SSH_COMMAND or GIT_SSH in your environment take precedence over this field.",
+      "sshKeyCheck": {
+        "ok": "Private key ({{type}}).",
+        "missing": "No file at this path.",
+        "public_key": "This is a public key (.pub) — push needs the private key.",
+        "not_a_private_key": "This file is no private SSH key (no \"BEGIN … PRIVATE KEY\" line).",
+        "permissions_too_open": "Other users can read this key, so ssh refuses it — make it readable by you only (chmod 600).",
+        "usePrivate": "Use {{path}} instead"
+      },
       "gpgInfo": "GPG signing ensures your commits are cryptographically verified. Your private key will be securely stored.",
       "gpgKeyId": "GPG Key ID",
       "gpgKeyIdHelp": "Enter the last 8 characters of your GPG key ID",

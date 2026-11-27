@@ -18,8 +18,21 @@
 // Variables outside simple-git's guard (HOME, PATH, SSH_AUTH_SOCK,
 // HTTPS_PROXY …) are inherited as before. GIT_TERMINAL_PROMPT=0: nobody sees
 // a prompt of a git child of the app — fail instead of waiting.
+//
+// ssh BatchMode (0.20.1, user 2026-11-27): GIT_TERMINAL_PROMPT stops git's own
+// prompts only — ssh reads its password, passphrase and host-key questions
+// from the controlling terminal. Started from a terminal, a Resolve to a host
+// without a usable key asked there for a password and the app waited until
+// its timeout. The calls that reach a remote (push, Resolve, the component
+// fetch) therefore run ssh with -o BatchMode=yes: it fails at once
+// ("Permission denied (publickey)") instead of asking. Only where nothing else
+// says how to run ssh — GIT_SSH_COMMAND, GIT_SSH and core.sshCommand (git
+// configuration, also through GIT_CONFIG_*) are the user's and stay as they
+// are; GIT_SSH_COMMAND would override core.sshCommand, so it is only set when
+// git has none (withSshBatchMode looks it up).
 
-import type { SimpleGitOptions } from "simple-git";
+import os from "node:os";
+import { simpleGit, type SimpleGitOptions } from "simple-git";
 
 /** The user's git variables the fixed-argument calls inherit. */
 export const GIT_ENVIRONMENT_ALLOWLIST: readonly string[] = [
@@ -83,4 +96,37 @@ export function userGitEnvironment(source: NodeJS.ProcessEnv = process.env): Use
       unsafe: UNSAFE_FOR_LIST,
     },
   };
+}
+
+/** The ssh command of a call without an ssh setup of the user's own. */
+export const SSH_BATCH_COMMAND = "ssh -o BatchMode=yes";
+
+/**
+ * The environment with GIT_SSH_COMMAND = SSH_BATCH_COMMAND — unless the user
+ * runs ssh their own way: GIT_SSH_COMMAND or GIT_SSH in the environment, or
+ * `configuredSshCommand` (core.sshCommand of the git configuration). Pure.
+ */
+export function withSshBatchModeIf(user: UserGitEnvironment, configuredSshCommand: string | null): UserGitEnvironment {
+  if (user.env.GIT_SSH_COMMAND || user.env.GIT_SSH || configuredSshCommand) return user;
+  const env = { ...user.env, GIT_SSH_COMMAND: SSH_BATCH_COMMAND };
+  const allow = new Set([...(user.options.allowEnvironment ?? []), "GIT_SSH_COMMAND"]);
+  return { env, options: { ...user.options, allowEnvironment: [...allow] } };
+}
+
+/**
+ * withSshBatchModeIf with core.sshCommand looked up the way the call will see
+ * it: `git config --get core.sshCommand` with the same environment, in `dir`
+ * (a repository's own configuration counts) or the home directory. When the
+ * lookup itself fails, the environment stays as it is.
+ */
+export async function withSshBatchMode(user: UserGitEnvironment, dir?: string): Promise<UserGitEnvironment> {
+  if (user.env.GIT_SSH_COMMAND || user.env.GIT_SSH) return user;
+  let configured: string;
+  try {
+    // not set: git exits 1 without output — simple-git resolves with ""
+    configured = (await simpleGit(dir ?? os.homedir(), user.options).env(user.env).raw(["config", "--get", "core.sshCommand"])).trim();
+  } catch {
+    return user;
+  }
+  return withSshBatchModeIf(user, configured || null);
 }

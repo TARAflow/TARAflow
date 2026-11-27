@@ -38,6 +38,7 @@ import {
 } from "../../models/iso-risk-display";
 import {
   isTreatmentToReview,
+  offeredTreatments,
   treatmentFallbackLabel,
   treatmentI18nKey,
   treatmentVocabulary,
@@ -63,6 +64,7 @@ import {
 import type { StrideCategory, DataColumn, FeasibilityBandLevel } from "shared";
 // ~10 tooltips per row: mount them on first hover only (see lazy-tooltip.tsx).
 import { LazyTooltip as Tooltip, hasEn50742Overlay } from "shared";
+import { textWidth } from "shared/utils/text-width";
 
 // ==================== COLUMN TYPE ====================
 
@@ -697,11 +699,25 @@ export const useRiskColumns = ({
     });
 
     // ── Treatment ────────────────────────────────────────────────────────────
+    // As wide as its longest label (2026-11-27: as a flex column it took as
+    // much room as the description): the chip of the longest treatment of the
+    // vocabulary, the concept marker beside it and the cell padding.
+    const treatmentVocab = treatmentVocabulary(configuration);
+    const longestTreatment = Math.max(
+      ...offeredTreatments(treatmentVocab, "transfer").map((tr) =>
+        textWidth(
+          t(`${treatmentI18nKey(tr.value, treatmentVocab)}.label`, {
+            defaultValue: treatmentFallbackLabel(tr.value, treatmentVocab),
+          }),
+          0.65 * 16,
+        ),
+      ),
+    );
     cols.push({
       id: "treatment",
       header: t("tabs.risks.columns.treatment", { defaultValue: "Treatment" }),
-      flex: 0.5,
-      width: 100,
+      // chip label padding 2 × 8, marker 16 + gap 4, cell padding 2 × 8, slack
+      width: longestTreatment + 16 + 20 + 16 + 4,
       renderCell: (risk) => {
         const tr = TREATMENT_MAP.get(risk.treatment);
         if (!tr) return null;

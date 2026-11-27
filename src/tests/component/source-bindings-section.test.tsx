@@ -1,6 +1,6 @@
 // src/tests/component/source-bindings-section.test.tsx
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { SourceBinding } from "shared";
 import { SourceBindingsSection } from "features/overview/components/source-bindings-section";
@@ -257,6 +257,72 @@ describe("SourceBindingsSection", () => {
     fireEvent.click(screen.getByText("Resolve"));
     await screen.findByText(text);
     expect(onUpdate).not.toHaveBeenCalled();
+  });
+
+  // 0.20.1: ssh runs in BatchMode and no longer asks in the terminal — a
+  // refusal says what to do about it.
+  it.each([
+    ["ssh_key", "ssh-agent (ssh-add)"],
+    ["host_key", "confirm the key — TARAflow does not ask"],
+  ] as const)("an SSH refusal comes with its hint: %s", async (hint, part) => {
+    vi.mocked(resolveSourceBinding).mockResolvedValue({ success: false, reachable: false, error: "git said so", failure: "no_access", hint });
+    render(
+      <SourceBindingsSection
+        bindings={[binding]}
+        scopeLabel="Project Source Reference"
+        scopeDescriptionKey="sourceBinding.projectScope.description"
+        onUpdate={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByText("Resolve"));
+    const message = await screen.findByText((content) => content.startsWith("github.com refused access.") && content.includes(part));
+    expect(message).toBeTruthy();
+  });
+
+  // 0.20.1 (design note ssh-key-handling step 3): Resolve uses the user's SSH
+  // setup, not the audit key — said at an SSH URL and with a refused access;
+  // Azure DevOps' own rules with it.
+  const SSH_SETUP = "Resolve uses your SSH setup (~/.ssh/config, ssh-agent) — the SSH key of the audit settings is not used here.";
+  const section = (b: SourceBinding) =>
+    render(
+      <SourceBindingsSection
+        bindings={[b]}
+        scopeLabel="Project Source Reference"
+        scopeDescriptionKey="sourceBinding.projectScope.description"
+        onUpdate={vi.fn()}
+      />,
+    );
+
+  it("editing: an SSH URL says where Resolve takes its credentials from; an https URL does not", () => {
+    section(binding);
+    fireEvent.click(screen.getByText("Edit"));
+    expect(screen.queryByTestId("source-binding-ssh-setup")).toBeNull();
+    fireEvent.change(screen.getByDisplayValue(binding.repoUrl), { target: { value: "git@ssh.dev.azure.com:v3/org/project/repo" } });
+    expect(screen.getByTestId("source-binding-ssh-setup").textContent).toBe(SSH_SETUP);
+  });
+
+  it("refused over SSH at Azure DevOps: the SSH setup and Azure's key rules after the message", async () => {
+    vi.mocked(resolveSourceBinding).mockResolvedValue({ success: false, reachable: false, error: "x", failure: "no_access", hint: "ssh_key" });
+    section({ ...binding, repoUrl: "git@ssh.dev.azure.com:v3/org/project/repo" });
+    fireEvent.click(screen.getByText("Resolve"));
+    const text = (await screen.findByText((c) => c.startsWith("ssh.dev.azure.com refused access."))).textContent ?? "";
+    expect(text).toContain("ssh-agent (ssh-add)");
+    expect(text).toContain(SSH_SETUP);
+    expect(text).toContain("Azure DevOps takes RSA keys only");
+  });
+
+  it("refused over https, or over SSH elsewhere: no Azure rules; https without the SSH note", async () => {
+    vi.mocked(resolveSourceBinding).mockResolvedValue({ success: false, reachable: false, error: "x", failure: "no_access" });
+    section(binding);
+    fireEvent.click(screen.getByText("Resolve"));
+    const https = (await screen.findByText((c) => c.startsWith("github.com refused access."))).textContent ?? "";
+    expect(https).not.toContain(SSH_SETUP);
+    cleanup();
+    section({ ...binding, repoUrl: "ssh://git@github.com/org/repo.git" });
+    fireEvent.click(screen.getByText("Resolve"));
+    const ssh = (await screen.findByText((c) => c.startsWith("github.com refused access."))).textContent ?? "";
+    expect(ssh).toContain(SSH_SETUP);
+    expect(ssh).not.toContain("Azure DevOps");
   });
 
   it("shows a distinct message when consent was denied", async () => {

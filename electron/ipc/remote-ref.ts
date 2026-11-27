@@ -7,22 +7,39 @@
 // "Could not reach <host>" — for a typo in the path, a private repository
 // without access and no network alike — and git could wait on a credentials
 // prompt nobody sees. Now:
-//   - no terminal prompt (GIT_TERMINAL_PROMPT=0) and a time limit;
+//   - no terminal prompt (GIT_TERMINAL_PROMPT=0; ssh in BatchMode since
+//     0.20.1) and a time limit;
 //   - the failure classified: not_found / no_access / offline / timeout /
 //     unknown — a private repository on GitHub answers like a missing one
 //     without credentials, so "not found" says "or no access";
 //   - git's message without credentials of the URL (it may echo the URL).
 
 import { simpleGit } from "simple-git";
-import { userGitEnvironment } from "../services/git-environment";
+import { userGitEnvironment, withSshBatchMode } from "../services/git-environment";
 import { withoutUrlCredentials } from "../../src/shared/utils/url-credentials";
 
 export type RemoteFailure = "not_found" | "no_access" | "offline" | "timeout" | "unknown";
 
+/**
+ * What to do about a refused SSH access (0.20.1 — ssh runs in BatchMode and
+ * no longer asks): `host_key` — the host's key was never confirmed (once, in
+ * a terminal); `ssh_key` — no key was accepted (a key with a passphrase has to
+ * be in the ssh-agent; TARAflow asks for none).
+ */
+export type RemoteHint = "host_key" | "ssh_key";
+
 export interface RemoteRefResult {
   success: boolean;
-  data: { reachable: boolean; sha: string | null; failure?: RemoteFailure };
+  data: { reachable: boolean; sha: string | null; failure?: RemoteFailure; hint?: RemoteHint };
   error?: string;
+}
+
+/** The hint for git's message, if it is an SSH refusal. */
+export function remoteHint(message: string): RemoteHint | undefined {
+  const m = message.toLowerCase();
+  if (/host key verification failed|no .*host key is known|host key for .* has changed/.test(m)) return "host_key";
+  if (/permission denied \(publickey/.test(m)) return "ssh_key";
+  return undefined;
 }
 
 /** What git's message says went wrong (the first rule that matches). */
@@ -52,7 +69,8 @@ export async function resolveRemoteRef(repoUrl: string, refLabel: string, timeou
     // (decided 0.20; until then every variable was allowed) plus
     // GIT_TERMINAL_PROMPT=0 (no prompt nobody sees). The argument checks
     // stay: a URL like "--upload-pack=…" is refused.
-    const user = userGitEnvironment();
+    // ssh never asks either (BatchMode, 0.20.1 — git-environment.ts)
+    const user = await withSshBatchMode(userGitEnvironment());
     const output = await simpleGit({ timeout: { block: timeoutMs }, ...user.options })
       .env(user.env)
       .listRemote([repoUrl, refLabel]);
@@ -64,6 +82,7 @@ export async function resolveRemoteRef(repoUrl: string, refLabel: string, timeou
     return { success: true, data: { reachable: true, sha: line.split("\t")[0] } };
   } catch (err: unknown) {
     const message = scrub(String((err as { message?: string })?.message ?? err));
-    return { success: false, data: { reachable: false, sha: null, failure: classifyRemoteError(message) }, error: message };
+    const hint = remoteHint(message);
+    return { success: false, data: { reachable: false, sha: null, failure: classifyRemoteError(message), ...(hint ? { hint } : {}) }, error: message };
   }
 }
