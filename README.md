@@ -6,7 +6,7 @@ TARAflow is a desktop-based Threat Analysis and Risk Assessment (TARA) tool for 
 
 It combines **Data Flow Diagrams (DFDs)**, asset analysis, threat generation, risk assessment, attack trees, safety analysis, documentation, and an auditable Git-based workflow in a single application.
 
-> **Current version:** `v0.20.0-beta`
+> **Current version:** `v0.20.1-beta`
 
 TARAflow is currently under active development. The `0.x` version series is a beta: the features are complete enough for real projects, but interfaces and the project format may still change between releases; older project files are migrated when they are opened.
 
@@ -140,6 +140,7 @@ Features include:
 * Mandated EN 50742 §7.4.3 controls surfaced in the mitigation picker and reports
 * EN 50742 relevance: only the risks on interfaces and flows into the safety zone (or on a path to a safety function) get the EN 50742 rating; a *Safety* column and filter in the risk register
 * Risk-level filtering (Critical / High / Medium / Low)
+* Filter by implementation status (the status the *Implementation* column shows; none selected, not done, all done, done without evidence)
 * Risk impact from the security goals the threat violates, including per-goal impact
 * Impact aggregation per regulation preset — **harm floor** (safety, physical damage and environment are never diluted by milder consequences), **maximum** (ISO/SAE 21434, ETSI TVRA) or weighted mean — switchable with a preview of every changed risk
 * Asset criterion weights as the default for the impact weights, overridable per factor
@@ -724,11 +725,12 @@ Recent development versions include:
 * `v0.18.0-beta` — more matrix rows from new model fields (Security sub-tabs, black-box multiprocess), EN 50742 Approach A requirement matrix, secure channels (TLS, mTLS, VPN, SSH, application level), "Information missing" with the empty field, Azure DevOps plus Jira Server / DC, GitHub, GitLab, OpenProject (preview), AND gate = one attack path, asset filter, hazard findings panel (schema 13)
 * `v0.19.0-beta` — component TARAs imported into a machine TARA (pinned to a commit, per-instance decisions, component measures credited only while their assumptions hold, drift check and update, Overview tab *Components* with the deviations, report chapter, AVE v2 check `component-import`); tracker link dialog; asset protection need and criticality removed (schema 14)
 * `v0.20.0-beta` — EN 50742 Approach B; EN 50742 relevance by safety zone or path for A and B, SRSL 0 only for an isolated safety function, exposure levels and the safety zone shown in the diagram (never stored); threat catalogue version stamp; audit commits name every change of the file; prefixed boundaries of imported components; git channel hardening; DFD info of an element while rating threats and risks; *Change prefix…* for imported instances; tracker settings kept on disconnect (schema 14, no conversion)
+* `v0.20.1-beta` — git over SSH never waits on a hidden prompt (batch mode, hints for host key and ssh-agent); audit SSH key path checked (a `.pub` is caught, the private key offered); *Resolve* says it uses your SSH setup; risks filter by implementation status; risk table column widths
 
 The current development state is represented by:
 
 ```text
-v0.20.0-beta
+v0.20.1-beta
 ```
 
 Versions in the beta: releases without a new project schema count the patch number (`0.15.1-beta`, `0.15.2-beta`, …), a release with a new project schema raises the minor version — no extra pre-release counter.
@@ -789,7 +791,7 @@ https://github.com/TARAflow/TARAflow
 
 ## Status
 
-**TARAflow 0.20.0-beta**
+**TARAflow 0.20.1-beta**
 
 TARAflow is an actively developed threat analysis and risk assessment platform combining:
 

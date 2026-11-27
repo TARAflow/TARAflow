@@ -1,6 +1,9 @@
-## [0.20.1-beta] - unreleased
+## [0.20.1-beta] - 2026-11-27
 
-Small fixes after 0.20.0-beta. No new project schema (still 14); results unchanged.
+Small release after 0.20.0-beta: git over SSH no longer waits on a hidden prompt, the
+audit's SSH key path is checked, and the risks tab gets a filter by implementation status.
+No new project schema (still 14); results unchanged. A push with an unusable SSH key now
+stops with the reason instead of running with the default key.
 
 ### Added
 - **Risks tab — filter by implementation status:** next to priority and risk level. A status
