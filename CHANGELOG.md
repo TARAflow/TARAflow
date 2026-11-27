@@ -156,6 +156,12 @@ existing EN 50742 A projects can change (see the upgrade notes).
   by an earlier push is removed on the next push — **revoke it**).
 
 ### Fixed
+- **Exposure level of a flow to or from a chip boundary:** a chip boundary is no member of a
+  trust boundary, so a flow from outside a trust boundary to a chip inside it counted as not
+  crossing and lost its derived exposure level (three risks of the Simple Test Project lost
+  their exposure rating), while a flow from inside got one. For the exposure level, a chip
+  boundary endpoint now stands in the trust boundaries of the elements inside it. Threat
+  generation is unchanged.
 - **Hazard item dialog — review progress:** the counter read `{{reviewed}}/1 reviewed`; the
   dialog passed the count under another name than the text asks for. A new test checks every
   translated text's placeholders against the code.
