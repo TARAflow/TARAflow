@@ -491,6 +491,7 @@ const RisksTabView: React.FC<RiskTabProps> = ({
     setScopeFilter,
     setIsoReviewOnly,
     setSafetyOnly,
+    setImplementationFilter,
     clearFilters,
     filterRisks,
     hasActiveFilters,
@@ -1122,6 +1123,8 @@ const RisksTabView: React.FC<RiskTabProps> = ({
                 {...(safetyMarks.relevantThreatIds
                   ? { safetyOnly: !!filters.safetyOnly, onSafetyOnlyChange: setSafetyOnly }
                   : {})}
+                implementationFilter={filters.implementationFilter ?? ""}
+                onImplementationFilterChange={setImplementationFilter}
                 filteredCount={filteredActiveRisks.length + filteredAttackPathRisks.length}
                 totalCount={toolbarRisks.length}
               />

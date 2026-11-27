@@ -368,7 +368,8 @@ Designs: `doc/Open/Threat/transducer-threat-catalogue-design.md` (phase 0) and
   - The toolbar tooltip shows numbers only ("23/59 done, 36 open") — the lists live in the
     panel alone, not in two places; the phase indicator may keep its short form.
   - Inside a finding: MoSCoW first (must → should → could), then threat id.
-  - **Filter by implementation status in the risks tab** (user 2026-11-27), next to the
+  - **Filter by implementation status in the risks tab** (user 2026-11-27; **done in
+    0.20.1** — the findings above reuse its rules), next to the
     priority, treatment and risk level filters (`use-risk-filters.ts`, `risk-filters.tsx`).
     A risk has several selected mitigations, each with a status — a risk matches when at
     least one of its selected mitigations has the chosen status (open, in progress, in

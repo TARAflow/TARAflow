@@ -55,6 +55,14 @@
       "searchPlaceholder": "Search risks...",
       "safetyOnlyFilter": "Only safety-relevant (EN 50742)",
       "allPriorities": "All Priorities",
+      "implementationFilter": {
+        "label": "Implementation",
+        "all": "All statuses",
+        "none": "No mitigation selected",
+        "not_done": "Mitigations not done",
+        "all_done": "All mitigations done",
+        "done_without_evidence": "Done without evidence"
+      },
       "allStatuses": "All Statuses",
       "showingCount": "Showing {{count}} of {{total}}",
       "noJustification": "Missing justification!",

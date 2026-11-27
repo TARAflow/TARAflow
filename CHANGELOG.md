@@ -2,6 +2,13 @@
 
 Small fixes after 0.20.0-beta. No new project schema (still 14); results unchanged.
 
+### Added
+- **Risks tab — filter by implementation status:** next to priority and risk level. A risk
+  matches when one of its selected mitigations has the chosen status (open … rejected), or
+  by the values *no mitigation selected*, *mitigations not done*, *all mitigations done*
+  and *done without evidence* (a done status without ticket, evidence note or reference —
+  also without a tracker).
+
 ### Fixed
 - **Git over SSH no longer waits on a hidden prompt:** started from a terminal, a *Resolve* of
   a source reference (also a push or the component check's fetch) to a host without a usable
