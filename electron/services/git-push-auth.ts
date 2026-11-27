@@ -21,12 +21,19 @@
 // Pure: no Electron, no keytar, no git — tested in git-push-auth.test.ts.
 
 import { hasUrlCredentials, withoutUrlCredentials } from "../../src/shared/utils/url-credentials";
+import type { SshKeyStatus } from "./ssh-key-inspect";
 
 export interface PushAuthInput {
   method?: "pat" | "ssh";
   /** The token of a "pat" setup (from the credential store). */
   token?: string | null;
   sshKeyPath?: string;
+  /**
+   * What the key path names (ssh-key-inspect.ts), when it was checked. Not
+   * "ok": the key is not applied (0.20.1 — a .pub given as the key made ssh
+   * fall back to a password prompt).
+   */
+  sshKeyStatus?: SshKeyStatus;
   /** The push URL of the remote. */
   remoteUrl?: string;
   /** The environment the push inherits (GIT_SSH_COMMAND / GIT_SSH win over the field). */
@@ -36,8 +43,32 @@ export interface PushAuthInput {
 export interface PushAuth {
   /** `-c key=value` entries for this one push (simple-git `config`). */
   config: string[];
-  /** Why the SSH key field is not applied, if it is set but not used. */
-  sshKeySkipped?: "environment" | "invalid";
+  /**
+   * Why the SSH key field is not applied, if it is set but not used.
+   * "environment": the user's GIT_SSH_COMMAND / GIT_SSH decide (fine); every
+   * other reason is an unusable key — the push does not run with another key
+   * instead (sshKeyProblem).
+   */
+  sshKeySkipped?: "environment" | "invalid" | Exclude<SshKeyStatus, "ok">;
+}
+
+/**
+ * The message of a push refused for an unusable key (0.20.1: before, an
+ * invalid path was skipped silently and the push ran with the default key).
+ */
+export function sshKeyProblem(reason: Exclude<PushAuth["sshKeySkipped"], "environment" | undefined>, keyPath: string): string {
+  switch (reason) {
+    case "missing":
+      return `SSH key ${keyPath} not found — check the SSH key path in the audit settings.`;
+    case "public_key":
+      return `SSH key ${keyPath} is a public key (.pub) — the audit settings need the private key (the same path without .pub).`;
+    case "not_a_private_key":
+      return `SSH key ${keyPath} is no private key — check the SSH key path in the audit settings.`;
+    case "permissions_too_open":
+      return `SSH key ${keyPath} can be read by other users — ssh refuses it; make it readable by you only (chmod 600).`;
+    default:
+      return `SSH key path ${JSON.stringify(keyPath)} is not usable — check the audit settings.`;
+  }
 }
 
 /** A path as one word for the shell git runs core.sshCommand with. */
@@ -60,6 +91,7 @@ export function pushAuthConfig(input: PushAuthInput): PushAuth {
   if (input.method === "ssh" && key) {
     if (input.env.GIT_SSH_COMMAND || input.env.GIT_SSH) sshKeySkipped = "environment";
     else if (/[\0\r\n]/.test(key)) sshKeySkipped = "invalid";
+    else if (input.sshKeyStatus && input.sshKeyStatus !== "ok") sshKeySkipped = input.sshKeyStatus;
     // BatchMode (0.20.1): fail instead of asking for a password or passphrase
     // in a terminal nobody sees (git-environment.ts)
     else config.push(`core.sshCommand=ssh -i ${shellQuote(key)} -o IdentitiesOnly=yes -o BatchMode=yes`);

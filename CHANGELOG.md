@@ -9,6 +9,13 @@ Small fixes after 0.20.0-beta. No new project schema (still 14); results unchang
   runs in batch mode and fails at once; *Resolve* says what to do — confirm a new host's key
   once in a terminal, or load a key with a passphrase into the ssh-agent. Your own ssh setup
   (`GIT_SSH_COMMAND`, `GIT_SSH`, `core.sshCommand`) is used as it is.
+- **SSH key of the audit push checked:** the audit settings accepted the public key (`….pub`)
+  as the SSH key, and ssh then fell back to a password prompt. The field now says what the
+  path names — no file, a public key (with the private key beside it offered with one
+  click), no private key, or readable by other users — and the type of a usable key. A push
+  with an unusable key stops with that reason instead of running with another key (before,
+  an invalid path was skipped silently). The key file's content never leaves the main
+  process.
 - **Risk table — column widths:** the treatment column grew with the table (it took as much
   room as the description), while the headers *Risk (Before)* and *Risk (After)* — longer
   in German — ran into the next column. A column is now at least as wide as its header,

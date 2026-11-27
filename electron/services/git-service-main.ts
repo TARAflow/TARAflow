@@ -16,7 +16,8 @@ import type { AuditConfig } from "audit/models/audit-types";
 import { credentialService } from "./credential-service-main";
 import { resolveGitSigning, signingFromConfig } from "./git-signing";
 import { userGitEnvironment, withSshBatchMode } from "./git-environment";
-import { pushAuthConfig, storedUrlRepair } from "./git-push-auth";
+import { pushAuthConfig, sshKeyProblem, storedUrlRepair } from "./git-push-auth";
+import { inspectSshKey } from "./ssh-key-inspect";
 
 // ==================== GIT SERVICE ====================
 
@@ -351,13 +352,22 @@ export class GitService {
           ? await credentialService.getGitToken(config.auth.patAccount)
           : null;
       const user = userGitEnvironment();
+      // the key path checked first (0.20.1): a .pub, a missing file … is not
+      // applied, and the push does not run with another key instead
+      const keyPath = config?.auth.method === "ssh" ? config.auth.sshKeyPath?.trim() : undefined;
+      const sshKeyStatus =
+        keyPath && !user.env.GIT_SSH_COMMAND && !user.env.GIT_SSH ? (await inspectSshKey(keyPath)).status : undefined;
       const auth = pushAuthConfig({
         method: config?.auth.method,
         token,
         sshKeyPath: config?.auth.sshKeyPath,
+        sshKeyStatus,
         remoteUrl,
         env: user.env,
       });
+      if (auth.sshKeySkipped && auth.sshKeySkipped !== "environment") {
+        return { success: false, error: sshKeyProblem(auth.sshKeySkipped, keyPath ?? "") };
+      }
       // ssh never asks (git-environment.ts): the key's core.sshCommand carries
       // BatchMode itself — a GIT_SSH_COMMAND would override it, so only
       // without the key does the environment get one

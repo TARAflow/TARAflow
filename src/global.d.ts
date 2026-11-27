@@ -36,6 +36,16 @@ declare global {
           buttonLabel?: string;
           filters?: { name: string; extensions: string[] }[];
         }) => Promise<{ success: boolean; data?: string; error?: string }>;
+        /** What an SSH key path names (electron/services/ssh-key-inspect.ts) — never key content. */
+        inspectSshKey?: (keyPath: string) => Promise<{
+          success: boolean;
+          data?: {
+            status: "ok" | "missing" | "public_key" | "not_a_private_key" | "permissions_too_open";
+            keyType?: "rsa" | "ed25519" | "ecdsa" | "dsa" | "sk" | "other";
+            privateKeyPath?: string;
+          };
+          error?: string;
+        }>;
         writeProject: (
           filePath: string,
           projectData: string,
