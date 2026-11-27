@@ -955,6 +955,24 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
     // derived EL — a stale value would still look derived and feed the risk
     // and EN 50742 AP calculation. Manual values stay; a flow without analysis
     // (dangling endpoint) is left as it is.
+    //
+    // A chip boundary is no member of a trust boundary (the threat tables rely
+    // on that). For the exposure level, a chip boundary endpoint stands in the
+    // trust boundaries of the elements inside it: a flow from outside the
+    // trust boundary to the chip crosses it, one from inside does not
+    // (examples review 2026-11-27: Simple_Test_Project DF-4 lost its EL1, and
+    // a flow from inside got one).
+    const chipTrustBoundaries = new Map<string, Set<string>>();
+    for (const [memberId, chipIds] of elementChipBoundaries) {
+      for (const chipId of chipIds) {
+        const set = chipTrustBoundaries.get(chipId) ?? new Set<string>();
+        for (const tbId of elementTrustBoundaries.get(memberId) ?? []) set.add(tbId);
+        chipTrustBoundaries.set(chipId, set);
+      }
+    }
+    const endpointTBs = (elementId: string, analysed: readonly string[] | undefined): string[] =>
+      chipTrustBoundaries.has(elementId) ? [...chipTrustBoundaries.get(elementId)!] : [...(analysed ?? [])];
+
     for (const conn of connections) {
       const props = conn.properties as DataFlowProperties | undefined;
       if (props?.exposureLevelSource === "manual") continue;
@@ -962,8 +980,15 @@ export class DefaultDFDGraphBuilder implements DFDGraphBuilder {
       const analysis = dataFlowAnalysis.get(conn.id);
       if (!analysis) continue;
 
-      const fromTBIds = analysis.crossesTrustBoundary ? (analysis.fromTrustBoundaryIds ?? []) : [];
-      const toTBIds = analysis.crossesTrustBoundary ? (analysis.toTrustBoundaryIds ?? []) : [];
+      let fromTBIds = analysis.crossesTrustBoundary ? (analysis.fromTrustBoundaryIds ?? []) : [];
+      let toTBIds = analysis.crossesTrustBoundary ? (analysis.toTrustBoundaryIds ?? []) : [];
+      if (chipTrustBoundaries.has(conn.from) || chipTrustBoundaries.has(conn.to)) {
+        const from = endpointTBs(conn.from, analysis.fromTrustBoundaryIds);
+        const to = endpointTBs(conn.to, analysis.toTrustBoundaryIds);
+        const same = from.length === to.length && from.every((id) => to.includes(id));
+        fromTBIds = same ? [] : from;
+        toTBIds = same ? [] : to;
+      }
       let derivedEL: string | undefined;
 
       for (const tbId of [...fromTBIds, ...toTBIds]) {

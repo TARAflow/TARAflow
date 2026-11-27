@@ -99,3 +99,55 @@ describe("end to end: the flow stops crossing", () => {
     expect(after).toMatchObject({ exposureLevel: "EL3", exposureLevelSource: "derived" });
   });
 });
+
+// Examples review (2026-11-27): in Simple_Test_Project the flow DF-4 runs from
+// the debugger outside the trust boundary [MTB] to the chip boundary [STM]
+// inside it — a crossing flow. A chip boundary is no member of a trust
+// boundary (on purpose: the threat tables rely on it), so the flow counted as
+// not crossing, and its derived EL1 was cleared; three risks lost their
+// exposure level. For the exposure level, a chip boundary endpoint now stands
+// in the trust boundaries of the elements inside it.
+describe("a flow ending at a chip boundary", () => {
+  const vertex = (type: string, id: string, x: number, y: number, w: number, h: number) =>
+    `<object label="${id}" type="${type}" id="${id}">` +
+    `<mxCell style="rounded=0;" vertex="1" parent="1">` +
+    `<mxGeometry x="${x}" y="${y}" width="${w}" height="${h}" as="geometry"/></mxCell></object>`;
+  const edge = (id: string, from: string, to: string) =>
+    `<object label="${id}" type="dataflow" id="${id}"><mxCell style="endArrow=classic;" edge="1" parent="1" source="${from}" target="${to}">` +
+    `<mxGeometry relative="1" as="geometry"/></mxCell></object>`;
+  // tb [0..600] holds chip [100..400] with process p inside; ee and the second process q outside
+  const xml =
+    `<mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>` +
+    vertex("trustboundary", "tb", 0, 0, 600, 300) +
+    vertex("chipboundary", "chip", 100, 50, 300, 200) +
+    vertex("process", "p", 150, 100, 100, 50) +
+    vertex("process", "r", 450, 100, 100, 50) +
+    vertex("externalentity", "ee", 0, 500, 100, 50) +
+    edge("in", "ee", "chip") +
+    edge("out", "chip", "ee") +
+    edge("inside", "r", "chip") +
+    `</root></mxGraphModel>`;
+
+  function build(stored: Record<string, unknown> = {}) {
+    const parse = dfdParser.parse(xml);
+    (parse.elements.find((e) => e.id === "tb")!.properties as Any).defaultExposureLevel = "EL2";
+    for (const c of parse.connections) c.properties = { ...(c.properties ?? {}), ...stored };
+    builder.build({ elements: parse.elements, connections: parse.connections, assets: [] });
+    return (id: string) => parse.connections.find((c) => c.id === id)!.properties as Any;
+  }
+
+  it("from outside into the chip, and out of it: crossing — the boundary's EL, derived", () => {
+    const props = build();
+    expect(props("in")).toMatchObject({ exposureLevel: "EL2", exposureLevelSource: "derived" });
+    expect(props("out")).toMatchObject({ exposureLevel: "EL2", exposureLevelSource: "derived" });
+  });
+
+  it("a stored derived EL on the crossing flow stays (it was cleared)", () => {
+    expect(build({ exposureLevel: "EL2", exposureLevelSource: "derived" })("in")).toMatchObject({ exposureLevel: "EL2" });
+  });
+
+  it("from inside the same trust boundary: not crossing — no EL", () => {
+    expect(build()("inside").exposureLevel).toBeUndefined();
+    expect(build({ exposureLevel: "EL2", exposureLevelSource: "derived" })("inside").exposureLevel).toBeUndefined();
+  });
+});
