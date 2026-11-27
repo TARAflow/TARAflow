@@ -384,7 +384,7 @@ Designs: `doc/Open/Threat/transducer-threat-catalogue-design.md` (phase 0) and
 - **SSH key handling** (user 2026-11-27, from a real case: the public key `….pub` entered as
   the audit's SSH key path was accepted; *Resolve* of a source binding to Azure DevOps hung
   on an ssh password prompt in the terminal that started TARAflow until the 20 s timeout).
-  A short design note first (`doc/Open/Audit/ssh-key-handling-design.md`), then one commit
+  Design note `doc/Open/Audit/ssh-key-handling-design.md`, one commit
   per step; all texts en + de.
   1. **No hanging ssh prompts** (R2): `GIT_TERMINAL_PROMPT=0` stops git's prompts only — ssh
      reads from the controlling terminal. Every git call of the main process with fixed
@@ -423,8 +423,9 @@ Designs: `doc/Open/Threat/transducer-threat-catalogue-design.md` (phase 0) and
   user's `GIT_SSH_COMMAND` untouched); `resolveRemoteRef` (BatchMode without a user's
   `GIT_SSH_COMMAND`, not with it); `classifyRemoteError` (publickey → `no_access`, host
   key → `no_access` with its hint); the BatchMode argument at the simple-git interface in
-  an integration test (as `git-reader-exec.int.test.ts`). Steps 1 and 2 are fixes without
-  new semantics — candidates for 0.20.1 if wanted.
+  an integration test (as `git-reader-exec.int.test.ts`). **Steps 1 and 2 go into 0.20.1**
+  (user 2026-11-27) — design note `doc/Open/Audit/ssh-key-handling-design.md`; step 3 stays
+  in 0.21.
 - **Asset tab grouped by system asset** (idea 2026-11-26): in a machine TARA with
   components, show the assets as *system → functions → data*, derived from the existing
   asset-to-asset relations. A view only — no new field, no change of threat or risk
