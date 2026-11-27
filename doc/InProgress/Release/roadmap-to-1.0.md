@@ -1,6 +1,6 @@
 # TARAflow — roadmap to 1.0.0
 
-**Status:** v0.10 · 2026-11-21 · v0.10: EN 50742 B done (0.20 patches 09 – 19), tag rules (one base method, A as an overlay — user 2026-11-21) · v0.9: results dump of 0.19 done (0.20 patch 01); four small
+**Status:** v0.11 · 2026-11-27 · v0.11: dismiss unsuitable proposed mitigations / verifications per threat, and the catalogue leak of gap template I-001, in 0.21 (user 2026-11-27) · v0.10 · 2026-11-21 · v0.10: EN 50742 B done (0.20 patches 09 – 19), tag rules (one base method, A as an overlay — user 2026-11-21) · v0.9: results dump of 0.19 done (0.20 patch 01); four small
 items from the 0.19 manual test and review in 0.20; EN 40000-1-4 with EN 18031 in 0.22 (user
 2026-11-20) · v0.8: the Audit SSH key field without effect (review 2026-11-20) · v0.7: 0.20 also hardens git:rawInDir and shows a component's boundary interfaces (review / user 2026-11-19/20) · v0.6: acknowledged audit findings in 0.20 (user 2026-11-17) · v0.5: snapshot hash test from 0.20 (reference 0.19, re-based in 0.21); where R-6 / R-7 go if decided for 1.0; the deliberate exception of 0.23 to rule 2 (review of cb0eabe5, second instance) · v0.4: review of the order against the design documents and
 the code (second instance, user 2026-11-14) — guard rails first in 0.20 (results dump,
@@ -310,6 +310,40 @@ Designs: `doc/Open/Threat/transducer-threat-catalogue-design.md` (phase 0) and
     (git checkout of the file, after a confirmation naming what is lost; the project is
     reloaded). For changes one does not want to keep, also when only timestamps differ
     from the commit (a value set and set back).
+- **Dismiss unsuitable proposed mitigations / verifications** (user 2026-11-27, from a
+  customer project: a mobile-app process got a chip side-channel countermeasure proposed).
+  Today a proposal the analyst finds inapplicable stays selectable in the risk dialog and
+  comes back with every threat regeneration. Design doc first
+  (`doc/Open/Threat/proposed-mitigation-dismissal-design.md`, with a phase plan), then one
+  commit per step:
+  1. **Catalogue fix:** gap template `I-001` (`threats-gap.json`, Process / Multiprocess)
+     proposes `M-CB-I-001`, a chip-boundary / embedded mitigation (check `V-CB-I-001` too);
+     review the other gap / shared templates for the same leak, and a catalogue
+     consistency test (a template lists only mitigations whose applicability fits its
+     element types — the rule defined in the design doc; it fails on today's `I-001`).
+  2. **Dismissed marker** on `MitigationDraft` / `VerificationDraft` and on the shared
+     references (`threat-reference-types.ts`, so the risks feature needs no threats
+     import): `dismissed?: { reason, at }`, reason mandatory, catalogue entries only (free
+     text is deleted as today), never set by the generator. The merge on regeneration
+     carries it by catalogue id like the notes; when the template no longer proposes the
+     id, the marker goes with it. Audit register and a readable diff label
+     ("dismissed: reason"). A schema fence 14 → 15 without data change, so an older
+     release does not drop the marker on save — shared with the bump of the field
+     retirements above.
+  3. **Threat dialog:** "Not applicable…" with a mandatory reason; dismissed entries
+     collapsed below with their reason and "Restore"; a hint when the entry is already
+     implemented (closed loop).
+  4. **Risk dialog:** dismissed proposals not selectable, hidden behind "Show dismissed
+     (n)" (read-only, with the reason); a dismissed id that is already selected is not
+     hidden silently but gives a finding ("selected, but marked not applicable on the
+     threat") — evaluated in the risks feature from the reference.
+  5. **Report** (also the CLI): dismissed proposals per threat with the reason ("Not
+     applicable: …") — traceability for IEC 62443-4-1.
+  All texts en + de. Tests: merge (survives regeneration, goes with the id, notes and
+  marker together), risk sync and selection, guard finding, consistency test, schema
+  fence without data change, report output. Acceptance with a test fixture (never the
+  customer file): dismiss, regenerate, sync — stays dismissed, not selectable, one
+  readable audit change, the reason in the report. Open: R-11.
 - **Asset tab grouped by system asset** (idea 2026-11-26): in a machine TARA with
   components, show the assets as *system → functions → data*, derived from the existing
   asset-to-asset relations. A view only — no new field, no change of threat or risk
@@ -435,6 +469,7 @@ list — users review once instead of twice; the rest changes no values.
 | R-3 | Sensor / actuator: authored templates before 1.0, or generic output frozen as the 1.0 contract? | 0.21 | open |
 | R-4 | Flows crossing a physical boundary: build the generator source, or drop the flag? | 0.21 | open |
 | R-5 | Model field purpose D2: which fields retire; old values kept as text in the notes? | 0.21 | open |
+| R-11 | `authenticatorStorage` unset counts as `software_only` whenever an element authenticates (FX-7, `threat-catalog-service.ts` contextMatch) — it also fires for a process that holds no authenticator. A value `none` ("stores no authenticator"), or a tighter "authenticates" for `logic_module`? The design doc proposes one; implemented as its own commit once decided | 0.21 | open |
 | R-5b | Model field purpose D3–D8 (`model-field-purpose-and-rating-context-design.md` §9) | 0.24 | open |
 | R-6 | Measure ownership (one status per measure): before 1.0, or 2.x? It changes the structure of measures — **if before 1.0, then as a release of its own before 0.23** (the later numbers move up), never inside the ISO release | before 0.23 | open |
 | R-7 | Safety profiles (`hazard-safety-profiles-design.md`): before 1.0, or after? It brings a schema plan of its own — **if before 1.0, then as a release of its own before 0.23** (the later numbers move up), never inside the ISO release; else 1.x / 2.x | before 0.23 | open |
