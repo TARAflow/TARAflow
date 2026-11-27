@@ -22,6 +22,7 @@ import {
   TableCell,
   Box,
 } from "@mui/material";
+import { textWidth } from "../utils/text-width";
 
 // ==================== COLUMN CONTRACT ====================
 
@@ -42,6 +43,20 @@ export interface DataColumn<T> {
 }
 
 // ==================== CELL STYLES ====================
+
+/** Header font: 0.72rem, weight 600 (headerCellSx); padding 8 px each side. */
+const HEADER_FONT_PX = 0.72 * 16;
+const HEADER_PADDING_PX = 2 * 8 + 2;
+
+/**
+ * The width of a fixed column: its own width, but at least its header's —
+ * a header does not wrap, so a narrower column let it run into the next one
+ * (risk table, 2026-11-27: "Risiko (Nachher)" at 80 px).
+ */
+export function fixedColumnWidth(col: Pick<DataColumn<unknown>, "header" | "width" | "minWidth">): number {
+  const own = col.width ?? col.minWidth ?? 80;
+  return Math.max(own, textWidth(col.header, HEADER_FONT_PX, 600) + HEADER_PADDING_PX);
+}
 
 const headerCellSx = {
   bgcolor: "grey.50",
@@ -121,7 +136,7 @@ export function DataTable<T>({
 
   if (!rows.length) return null;
 
-  const totalFixed = columns.reduce((sum, col) => sum + (col.width ?? 0), 0);
+  const totalFixed = columns.reduce((sum, col) => sum + (col.flex ? 0 : fixedColumnWidth(col)), 0);
   const hasFlex = columns.some((col) => col.flex);
   const tableMinWidth = totalFixed + (hasFlex ? 200 : 0);
 
@@ -143,7 +158,7 @@ export function DataTable<T>({
               style={{
                 width: col.flex
                   ? undefined // flex columns take what is left
-                  : `${col.width ?? col.minWidth ?? 80}px`,
+                  : `${fixedColumnWidth(col)}px`,
               }}
             />
           ))}

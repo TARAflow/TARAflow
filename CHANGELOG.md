@@ -1,3 +1,13 @@
+## [0.20.1-beta] - unreleased
+
+Small fixes after 0.20.0-beta. No new project schema (still 14); results unchanged.
+
+### Fixed
+- **Risk table — column widths:** the treatment column grew with the table (it took as much
+  room as the description), while the headers *Risk (Before)* and *Risk (After)* — longer
+  in German — ran into the next column. A column is now at least as wide as its header,
+  and the treatment column as wide as its longest label.
+
 ## [0.20.0-beta] - 2026-11-26
 
 **EN 50742 Approach B and guard rails for stable results:** the tag *EN 50742 B*
